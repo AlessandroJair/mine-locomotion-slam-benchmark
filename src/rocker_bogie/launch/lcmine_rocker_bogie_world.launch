@@ -1,0 +1,233 @@
+<launch>
+
+    <!-- these are the arguments you can pass this launch file, for example paused:=true -->
+    <arg name="paused" default="true" />
+    <arg name="use_sim_time" default="true" />
+    <arg name="gui" default="true" />
+    <arg name="headless" default="false" />
+    <arg name="debug" default="false" />
+
+    <!-- =====================================================================
+         RANDOM SEED
+         =====================================================================
+         Gazebo's noise models (the IMU, and the <noise> block of the Velodyne's
+         <ray>) draw from ignition::math::Rand.  Left alone, gzserver seeds that
+         generator from the system clock, so no run can ever be repeated: the
+         sensor noise of a given run exists once and is gone.
+
+         run_campaign.sh passes seed:=<run_id>, so run 1 / 2 / 3 get seeds
+         1 / 2 / 3.  The runs still differ from each other - different seeds
+         give different noise, which is what the reported standard deviation
+         measures - but each one is now anchored and can be reproduced.
+
+         seed:=0 restores clock seeding (gzserver treats 0 as "pick your own").
+         ===================================================================== -->
+    <arg name="seed" default="0" />
+
+    <!-- We resume the logic in empty_world.launch, changing only the name of the world to be launched -->
+    <include file="$(find gazebo_ros)/launch/empty_world.launch">
+        <arg name="world_name" value="$(find rocker_bogie)/world/mine/lcmine.world" />
+        <arg name="debug" value="$(arg debug)" />
+        <arg name="gui" value="$(arg gui)" />
+        <arg name="paused" value="$(arg paused)" />
+        <arg name="use_sim_time" value="$(arg use_sim_time)" />
+        <arg name="headless" value="$(arg headless)" />
+        <arg name="extra_gazebo_args" value="--seed $(arg seed)" />
+    </include>
+
+    <!-- Load the URDF into the ROS Parameter Server (global, fuera del namespace) -->
+    <param name="rocker_bogie/robot_description" command="xacro --inorder '$(find rocker_bogie)/urdf/ensamblajeurdf.xacro'" />
+
+    <!-- Spawn the robot in Gazebo from the URDF -->
+    <node name="spawn_rocker_bogie" pkg="gazebo_ros" type="spawn_model"
+          args="-param rocker_bogie/robot_description -urdf -model rocker_bogie -x 33.5 -y 0.2 -z 1.3 -Y 3.14159"
+          output="screen" />
+
+    <group ns="rocker_bogie">
+
+        <!-- Velocity controllers for 6 wheels -->
+        <rosparam>
+            joint_state_controller:
+                type: joint_state_controller/JointStateController
+                publish_rate: 50
+
+            # =================================================================
+            # WHEEL / STEERING JOINT MAP
+            # =================================================================
+            # Derived from forward kinematics of the URDF at zero configuration
+            # (robot_metrics/scripts/extract_robot_specs.py --wheel-map), not
+            # from the CAD export order.
+            #
+            # Frame: base_link is authored facing -x - the camera sits at
+            # x = -0.07 with rpy yaw = pi, and the robot spawns at Y = pi.  With
+            # z up and a right-handed frame, LEFT = z_hat x forward = -y_hat.
+            # So in base_link coordinates FRONT is the smaller x and LEFT is
+            # the smaller y.  Measured wheel centres:
+            #
+            #   nav position   wheel       x_bl[m]  y_bl[m]  drive   steer
+            #   front-left     Rueda_6_1    -0.143   -0.182  rev_11  rev_5
+            #   front-right    Rueda_1_1    -0.143   +0.414  rev_12  rev_7
+            #   middle-left    Rueda_4_1    +0.283   -0.275  rev_10  (none)
+            #   middle-right   Rueda_3_1    +0.283   +0.507  rev_13  (none)
+            #   rear-left      Rueda_2_1    +0.710   -0.275  rev_9   rev_6
+            #   rear-right     Rueda_5_1    +0.710   +0.507  rev_14  rev_8
+            #
+            # The STEERING map below was already correct and is unchanged.
+            #
+            # The DRIVE map was mirrored: every controller was bound to the
+            # diametrically opposite wheel (fl->rev_14 is the rear-RIGHT wheel,
+            # and so on), because the labels had been assigned in raw base_link
+            # axes without accounting for the 180 deg model heading.  Front/rear
+            # being swapped is harmless - the Ackermann solution gives front and
+            # rear the same speed - but LEFT/RIGHT being swapped is not: in
+            # every turn the inner-wheel speeds were sent to the outer wheels
+            # and vice versa, so all six wheels were dragged sideways through
+            # the corner.  That inflates the measured slip and the IMU
+            # vibration, both of which the paper attributes to locomotion type.
+            # =================================================================
+            wheel_vel_controller_fl:
+                type: velocity_controllers/JointVelocityController
+                joint: rev_11
+            wheel_vel_controller_fr:
+                type: velocity_controllers/JointVelocityController
+                joint: rev_12
+            wheel_vel_controller_ml:
+                type: velocity_controllers/JointVelocityController
+                joint: rev_10
+            wheel_vel_controller_mr:
+                type: velocity_controllers/JointVelocityController
+                joint: rev_13
+            wheel_vel_controller_rl:
+                type: velocity_controllers/JointVelocityController
+                joint: rev_9
+            wheel_vel_controller_rr:
+                type: velocity_controllers/JointVelocityController
+                joint: rev_14
+
+            steer_controller_fl:
+                type: position_controllers/JointPositionController
+                joint: rev_5
+            steer_controller_fr:
+                type: position_controllers/JointPositionController
+                joint: rev_7
+            steer_controller_rl:
+                type: position_controllers/JointPositionController
+                joint: rev_6
+            steer_controller_rr:
+                type: position_controllers/JointPositionController
+                joint: rev_8
+
+            # Effort controllers for the two rocker pivots.  They exist ONLY so
+            # that rocker_differential.py can apply the differential coupling
+            # torque; a zero command leaves the pivot free, so the suspension
+            # stays passive when that node is not running.
+            rocker_diff_effort_left:
+                type: effort_controllers/JointEffortController
+                joint: rocker_pivot_left
+            rocker_diff_effort_right:
+                type: effort_controllers/JointEffortController
+                joint: rocker_pivot_right
+
+            gazebo_ros_control:
+                # GAINS RESCALED WITH THE MASS MATCHING (mass_scale = 0.474039,
+                # see robot_metrics/scripts/scale_masses.py). These loops close
+                # effort onto inertia: for J*qdd = K*e the natural frequency is
+                # sqrt(K/J), so halving every J and leaving K alone would have
+                # raised the bandwidth by sqrt(2) and changed the tracking
+                # behaviour of the Rocker-Bogie only - a new confound in place
+                # of the one being removed. Multiplying K, I and D by the same
+                # 0.474039 keeps wn and zeta exactly where they were tuned.
+                # Native values were p:26/i:1 (wheels) and p:50/i:5/d:1 (steer).
+                pid_gains:
+                    rev_9:  {p: 12.325, i: 0.474, d: 0.0}
+                    rev_10: {p: 12.325, i: 0.474, d: 0.0}
+                    rev_11: {p: 12.325, i: 0.474, d: 0.0}
+                    rev_12: {p: 12.325, i: 0.474, d: 0.0}
+                    rev_13: {p: 12.325, i: 0.474, d: 0.0}
+                    rev_14: {p: 12.325, i: 0.474, d: 0.0}
+                    rev_5:              {p: 23.702, i: 2.370, d: 0.474}
+                    rev_6:              {p: 23.702, i: 2.370, d: 0.474}
+                    rev_7:              {p: 23.702, i: 2.370, d: 0.474}
+                    rev_8:              {p: 23.702, i: 2.370, d: 0.474}
+                    # NOTE: the passive suspension joints (rocker pivots and
+                    # bogies) deliberately have NO pid_gains entry. A gain here
+                    # would let gazebo_ros_control regulate them, which is what
+                    # used to keep the suspension locked. The rocker pivots are
+                    # effort-controlled, and an effort interface needs no PID.
+        </rosparam>
+
+        <!-- Load and start controllers -->
+        <node name="controller_starter" pkg="controller_manager" type="controller_manager"
+              args="spawn joint_state_controller wheel_vel_controller_fl wheel_vel_controller_ml wheel_vel_controller_rl wheel_vel_controller_fr wheel_vel_controller_mr wheel_vel_controller_rr steer_controller_fl steer_controller_fr steer_controller_rl steer_controller_rr rocker_diff_effort_left rocker_diff_effort_right"
+              output="screen" />
+
+        <!-- Rocker differential: enforces phi_left + phi_right = 0.
+             Set enabled:=false for the "no differential" ablation. -->
+        <arg name="differential_enabled" default="true" />
+        <node name="rocker_differential" pkg="rocker_bogie" type="rocker_differential.py" output="screen">
+            <param name="enabled"   value="$(arg differential_enabled)" />
+            <!-- Rescaled with the mass matching, same argument as the PID
+                 gains above. The rocker subtree inertia about its pivot,
+                 measured from the expanded URDF by the parallel axis theorem,
+                 went from 8.535 to 4.046 kg*m^2 (25 links, 13.48 kg). Scaling
+                 stiffness and damping by the same 0.474039 leaves the coupling
+                 dynamics exactly where they were tuned:
+                     wn   = sqrt(948.08/4.046) = 15.3 rad/s = 2.4 Hz
+                     zeta = 28.44/(2*sqrt(948.08*4.046)) = 0.230
+                 both identical to the native 2000/60 pair, and 2.4 Hz is far
+                 below the node's 200 Hz update rate and the 1 kHz physics step.
+                 Native values were 2000.0 / 60.0 / 400.0.
+
+                 Worth knowing: zeta = 0.23 means the differential is markedly
+                 underdamped and a step disturbance overshoots by roughly 48%
+                 before settling. That is inherited from the original tuning,
+                 not introduced here, and it is left alone so the mass matching
+                 changes one thing only. If the constraint residual reported by
+                 rocker_differential.py on shutdown turns out to be dominated by
+                 ringing, critical damping is damping = 2*sqrt(k*I) = 123.9. -->
+            <param name="stiffness" value="948.08" />
+            <param name="damping"   value="28.44" />
+            <param name="max_torque" value="189.6" />
+        </node>
+
+        <!--
+          Twist to individual wheel velocities and steering angles.
+
+          GEOMETRY (corrected 2026-07).  All four values are measured from the
+          URDF by extract_robot_specs.py, not guessed:
+
+            wheelbase    front axle to rear axle      0.8532 m  (was 0.57)
+            rear_track   middle/rear wheel separation 0.7821 m  (was 0.6775)
+            front_track  front wheel separation       0.5961 m  (not modelled
+                                                                before)
+            wheel_radius cylinder collision radius    0.178  m  (correct)
+
+          The old wheelbase was 33% short and the old track 13% short, so the
+          Ackermann solution was computed for a vehicle that does not exist:
+          every commanded yaw rate produced a steering angle that was too small
+          and inner/outer wheel speeds that did not match the actual turn.  The
+          robot understeered and scrubbed its way through the corners, which
+          inflates both the slip metric and the IMU vibration signal that the
+          paper attributes to the locomotion type.
+        -->
+        <node name="twist_to_wheels" pkg="rocker_bogie" type="twist_to_wheels.py" output="screen">
+            <param name="wheelbase" value="0.8532" />
+            <param name="front_track" value="0.5961" />
+            <param name="rear_track" value="0.7821" />
+            <param name="wheel_radius" value="0.178" />
+            <param name="max_steer_angle" value="0.5" />
+        </node>
+
+        <!-- convert joint states to TF transforms for rviz, etc -->
+        <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" output="screen">
+            <param name="tf_prefix" value="rocker_bogie" />
+            <remap from="robot_description" to="/rocker_bogie/robot_description" />
+        </node>
+
+    </group>
+
+    <!-- Static TF: base_link_nav es base_link rotado 180° (nuevo frente del robot) -->
+    <node pkg="tf" type="static_transform_publisher" name="base_link_nav_tf"
+          args="0 0 0 3.14159 0 0 rocker_bogie/base_link_nav rocker_bogie/base_link 50" />
+
+</launch>

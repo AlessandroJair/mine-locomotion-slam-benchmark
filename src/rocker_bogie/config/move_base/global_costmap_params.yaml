@@ -1,0 +1,20 @@
+# Global costmap - usa mapa de RTAB-Map (SLAM en tiempo real)
+global_costmap:
+  global_frame: map
+  robot_base_frame: rocker_bogie/base_link_nav
+  update_frequency: 2.0
+  publish_frequency: 1.0
+  transform_tolerance: 3.0
+  track_unknown_space: true
+
+  plugins:
+    - {name: static_layer, type: "costmap_2d::StaticLayer"}
+    - {name: inflation_layer, type: "costmap_2d::InflationLayer"}
+
+  static_layer:
+    map_topic: /rtabmap/grid_map
+    subscribe_to_updates: true
+
+  inflation_layer:
+    inflation_radius: 0.25
+    cost_scaling_factor: 10.0

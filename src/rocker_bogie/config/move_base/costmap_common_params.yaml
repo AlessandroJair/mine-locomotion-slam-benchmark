@@ -1,0 +1,20 @@
+# Parametros comunes para global y local costmap
+# Footprint del rocker-bogie basado en model.sdf (~1.21m x 0.96m)
+# X: de -0.71 a +0.32, Y: de -0.48 a +0.48
+footprint: [[-0.71,-0.48],[-0.71,0.48],[0.32,0.48],[0.32,-0.48]]
+
+robot_radius: 0.0  # Se usa footprint en lugar de radio
+
+# Fuente de obstaculos: Velodyne LiDAR 3D
+observation_sources: velodyne_cloud
+
+velodyne_cloud:
+  sensor_frame: rocker_bogie/velodyne_base_link
+  data_type: PointCloud2
+  topic: /velodyne_points
+  marking: true
+  clearing: true
+  min_obstacle_height: 0.2
+  max_obstacle_height: 2.0
+  obstacle_range: 5.0
+  raytrace_range: 6.0

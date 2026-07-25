@@ -1,0 +1,41 @@
+<?xml version="1.0"?>
+<launch>
+
+  <!-- Argumentos -->
+    <!-- The mine route. Generated from robot_metrics/config/route_mine.yaml
+       by generate_waypoints.py: all three platforms drive the same
+       physical path. Do not edit the generated file by hand. -->
+  <arg name="config_file" default="$(find rocker_bogie)/config/waypoints_mine.yaml"/>
+  <arg name="use_rviz" default="true"/>
+  <arg name="use_move_base" default="true"/>
+
+  <!-- move_base (condicional) -->
+  <include file="$(find rocker_bogie)/launch/move_base.launch" if="$(arg use_move_base)"/>
+
+  <!-- Nodo de navegacion por waypoints -->
+  <node pkg="rocker_bogie" type="waypoint_navigator_yaml.py" name="waypoint_navigator" output="screen">
+    <param name="config_file" value="$(arg config_file)"/>
+    <param name="use_move_base" value="$(arg use_move_base)"/>
+  </node>
+
+  <!-- Repetition index for this run (1, 2, 3 ...). -->
+  <arg name="run_id" default="1"/>
+
+  <!-- Metrics logger -->
+  <include file="$(find robot_metrics)/launch/metrics_logger.launch">
+    <arg name="robot_name" value="rocker_bogie"/>
+    <arg name="model_name" value="rocker_bogie"/>
+    <arg name="cmd_vel_topic" value="/cmd_vel"/>
+    <arg name="run_id" value="$(arg run_id)"/>
+    <!-- The six wheels carrying contact sensors, in the order used by the
+         contact figure: front, middle, rear for each side. -->
+    <arg name="wheel_links"
+         value="Rueda_6_1,Rueda_4_1,Rueda_2_1,Rueda_1_1,Rueda_3_1,Rueda_5_1"/>
+  </include>
+
+  <!-- RViz para visualizacion (opcional) -->
+  <group if="$(arg use_rviz)">
+    <node pkg="rviz" type="rviz" name="waypoint_rviz" args="-d $(find rocker_bogie)/config/display.rviz"/>
+  </group>
+
+</launch>

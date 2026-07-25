@@ -1,0 +1,77 @@
+<launch>
+
+    <!-- these are the arguments you can pass this launch file, for example paused:=true -->
+    <arg name="paused" default="true" />
+    <arg name="use_sim_time" default="true" />
+    <arg name="gui" default="true" />
+    <arg name="headless" default="false" />
+    <arg name="debug" default="false" />
+
+    <!-- =====================================================================
+         RANDOM SEED
+         =====================================================================
+         Gazebo's noise models (the IMU, and the <noise> block of the Velodyne's
+         <ray>) draw from ignition::math::Rand.  Left alone, gzserver seeds that
+         generator from the system clock, so no run can ever be repeated: the
+         sensor noise of a given run exists once and is gone.
+
+         run_campaign.sh passes seed:=<run_id>, so run 1 / 2 / 3 get seeds
+         1 / 2 / 3.  The runs still differ from each other - different seeds
+         give different noise, which is what the reported standard deviation
+         measures - but each one is now anchored and can be reproduced.
+
+         seed:=0 restores clock seeding (gzserver treats 0 as "pick your own").
+         ===================================================================== -->
+    <arg name="seed" default="0" />
+
+    <!-- We resume the logic in empty_world.launch, changing only the name of the world to be launched -->
+    <include file="$(find gazebo_ros)/launch/empty_world.launch">
+        <arg name="world_name" value="$(find differential)/world/mine/lcmine.world" />
+        <arg name="debug" value="$(arg debug)" />
+        <arg name="gui" value="$(arg gui)" />
+        <arg name="paused" value="$(arg paused)" />
+        <arg name="use_sim_time" value="$(arg use_sim_time)" />
+        <arg name="headless" value="$(arg headless)" />
+        <arg name="extra_gazebo_args" value="--seed $(arg seed)" />
+    </include>
+
+    <!--
+      Spawn pose - MUST match the other two platforms (see sim_config.yaml).
+      The robot used to be instantiated by an <include> inside lcmine.world,
+      which made the world file differ between packages.  It is now spawned
+      here so that the world file is byte-identical for the three robots.
+
+        x, y  : identical for all three platforms (33.5, 0.2).
+        Y     : 0 for Husky and Tracked.  The Rocker-Bogie URDF is authored
+                with its base_link facing -x, so it spawns at Y = pi to obtain
+                the SAME physical heading.  This is a model-frame convention,
+                not a different initial condition.
+        z     : drop height, per-platform, chosen so each chassis starts just
+                above the gallery floor without interpenetration.
+    -->
+    <arg name="spawn_x" default="33.5" />
+    <arg name="spawn_y" default="0.2" />
+    <arg name="spawn_z" default="1.5" />
+    <arg name="spawn_Y" default="0.0" />
+
+    <node name="spawn_husky" pkg="gazebo_ros" type="spawn_model"
+          args="-database differential -sdf -model differential
+                -x $(arg spawn_x) -y $(arg spawn_y) -z $(arg spawn_z) -Y $(arg spawn_Y)"
+          output="screen" />
+
+    <group ns="husky">
+
+        <!-- Load the URDF into the ROS Parameter Server -->
+        <param name="robot_description" command="xacro --inorder '$(find differential)/urdf_xacro/husky_gazebo.urdf.xacro'" />
+
+        <!-- joint_state_publisher: publica joint states para las ruedas (el plugin skid_steer no los publica) -->
+        <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" output="screen" />
+
+        <!-- convert joint states to TF transforms for rviz, etc -->
+        <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" output="screen">
+            <param name="tf_prefix" value="husky" />
+        </node>
+
+    </group>
+
+</launch>

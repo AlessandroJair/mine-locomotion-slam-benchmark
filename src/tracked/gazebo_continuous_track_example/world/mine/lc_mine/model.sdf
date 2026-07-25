@@ -1,0 +1,44 @@
+<?xml version="1.0"?>
+<sdf version="1.6">
+ <model name="lc_mine">
+   <pose>-3.0 0 0 0 0 0</pose>
+   <static>true</static>
+   <link name="link">
+     <collision name="collision">
+       <geometry>
+         <mesh>
+           <uri>model://lc_mine/untitled2.dae</uri>
+         </mesh>
+       </geometry>
+       <!--
+         Terrain friction declared explicitly so it can be reported in the
+         paper.  Before this change no <surface> block existed and the mine
+         gallery silently used the ODE default (mu = mu2 = 1.0); the values
+         below reproduce that default, so previously collected data remain
+         valid, but the number is now documented instead of implicit.
+       -->
+       <surface>
+         <friction>
+           <ode>
+             <mu>1.0</mu>
+             <mu2>1.0</mu2>
+           </ode>
+         </friction>
+       </surface>
+     </collision>
+     <visual name="visual">
+       <geometry>
+         <mesh>
+           <uri>model://lc_mine/untitled2.dae</uri>
+         </mesh>
+       </geometry>
+       <material>
+         <script>
+           <name>lc_mine</name>
+           <uri>model://lc_mine/untitled2.dae</uri>
+         </script>
+       </material>
+     </visual>
+   </link>
+ </model>
+</sdf>

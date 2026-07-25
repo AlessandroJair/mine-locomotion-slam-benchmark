@@ -1,0 +1,100 @@
+# =============================================================================
+# GENERATED FILE - DO NOT EDIT
+# =============================================================================
+# Produced by robot_metrics/scripts/generate_waypoints.py from
+#   robot_metrics/config/route_mine.yaml   (route, in Gazebo world coordinates)
+#   robot_metrics/config/sim_config.yaml   (spawn pose of each platform)
+#
+# Robot          : rocker_bogie
+# Spawn pose     : x=33.5 y=0.2 yaw=180.0 deg (world frame)
+# Transform      : p_map = R(-yaw_spawn) * (p_world - p_spawn)
+# Route          : mine_loop_2026, 17 waypoints, 137.7 m
+#
+# To change the route, edit route_mine.yaml and re-run generate_waypoints.py.
+# Editing this file by hand puts this platform on a different route from the
+# other two and invalidates the comparison.
+# =============================================================================
+
+waypoints:
+- name: start
+  x: 0.0
+  y: -0.0
+  yaw: -180.0
+- name: north_mid
+  x: -9.5
+  y: -0.0
+  yaw: -180.0
+- name: ne_corner
+  x: -19.0
+  y: -0.0
+  yaw: 120.0
+- name: east_north
+  x: -20.5
+  y: 8.2
+  yaw: 90.0
+- name: east_mid
+  x: -20.5
+  y: 17.2
+  yaw: 90.0
+- name: step_run_up
+  x: -20.5
+  y: 23.2
+  yaw: 90.0
+- name: step_exit
+  x: -20.5
+  y: 31.2
+  yaw: 90.0
+- name: se_corner
+  x: -17.0
+  y: 37.2
+  yaw: 30.0
+- name: south_east
+  x: -7.5
+  y: 39.0
+  yaw: 0.0
+- name: south_mid
+  x: 2.5
+  y: 39.7
+  yaw: 0.0
+- name: south_west
+  x: 11.5
+  y: 38.7
+  yaw: -10.0
+- name: sw_corner
+  x: 14.0
+  y: 33.2
+  yaw: -90.0
+- name: west_south
+  x: 14.5
+  y: 24.2
+  yaw: -90.0
+- name: west_mid
+  x: 15.0
+  y: 14.2
+  yaw: -90.0
+- name: nw_corner
+  x: 15.5
+  y: 4.2
+  yaw: -120.0
+- name: north_west
+  x: 8.0
+  y: 0.0
+  yaw: -180.0
+- name: loop_close
+  x: 0.0
+  y: -0.0
+  yaw: -180.0
+navigation_params:
+  goal_tolerance: 0.8
+  angular_tolerance: 0.15
+  max_linear_speed: 0.4
+  max_angular_speed: 0.8
+  linear_kp: 0.6
+  angular_kp: 1.2
+  approach_distance: 2.0
+  approach_speed: 0.2
+  use_move_base: true
+  move_base_timeout: 180.0
+  move_base_retry_count: 2
+  min_turn_radius: 1.2
+  can_pivot_in_place: false

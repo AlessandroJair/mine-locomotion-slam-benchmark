@@ -1,0 +1,1384 @@
+<?xml version="1.0" ?>
+<robot name="ensamblajeurdf" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+<xacro:include filename="$(find rocker_bogie)/urdf/materials.xacro" />
+<xacro:include filename="$(find rocker_bogie)/urdf/ensamblajeurdf.trans" />
+<xacro:include filename="$(find rocker_bogie)/urdf/ensamblajeurdf.gazebo" />
+<link name="base_link">
+  <inertial>
+    <origin xyz="0.283293 0.116408 0.574618" rpy="0 0 0"/>
+    <mass value="33.855"/>
+    <inertia ixx="0.393878" iyy="0.982600" izz="1.193148" ixy="0" iyz="0" ixz="2.63e-05"/>
+  </inertial>
+  <visual>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rocker_bogie/meshes/base_link.stl" scale="0.001417 0.001164 0.001275"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+  <collision>
+    <origin xyz="0.283 0.116 0.575" rpy="0 0 0"/>
+    <geometry>
+      <box size="0.60 0.25 0.12"/>
+    </geometry>
+  </collision>
+</link>
+
+<link name="AcopleRB_1_1">
+  <inertial>
+    <origin xyz="0 0.0042 -0.051" rpy="0 0 0"/>
+    <mass value="1.60747"/>
+    <inertia ixx="0.001525" iyy="0.002987" izz="0.001525" ixy="0" iyz="0" ixz="0"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.283305 -0.232815 -0.627665" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rocker_bogie/meshes/AcopleRB_1_1.stl" scale="0.001417 0.001164 0.001275"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+</link>
+
+<link name="AcopleRB_2_1">
+  <inertial>
+    <origin xyz="0 -0.0042 -0.051" rpy="0 0 0"/>
+    <mass value="1.60747"/>
+    <inertia ixx="0.001525" iyy="0.002987" izz="0.001525" ixy="0" iyz="0" ixz="0"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.283305 0 -0.627665" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rocker_bogie/meshes/AcopleRB_2_1.stl" scale="0.001417 0.001164 0.001275"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+</link>
+
+<link name="Barra_acople_1_1">
+  <inertial>
+    <origin xyz="0 -0.015133 0" rpy="0 0 0"/>
+    <mass value="0.100807"/>
+    <inertia ixx="1.597336875e-05" iyy="7.9867125e-06" izz="1.597336875e-05" ixy="0" iyz="0" ixz="0"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.283305 0.022117 -0.576664" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rocker_bogie/meshes/Barra_acople_1_1.stl" scale="0.001417 0.001164 0.001275"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+</link>
+
+<link name="Barra_acople_2_1">
+  <inertial>
+    <origin xyz="0 0.015133 0" rpy="0 0 0"/>
+    <mass value="0.100807"/>
+    <inertia ixx="1.597336875e-05" iyy="7.9867125e-06" izz="1.597336875e-05" ixy="0" iyz="0" ixz="0"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.283305 -0.254932 -0.576664" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rocker_bogie/meshes/Barra_acople_2_1.stl" scale="0.001417 0.001164 0.001275"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+</link>
+
+<link name="BarraBR_1_1">
+  <inertial>
+    <origin xyz="-0.142734 0 -0.128473" rpy="0 0 0"/>
+    <mass value="1.105"/>
+    <inertia ixx="0.006166" iyy="0.01222" izz="0.006166" ixy="0" iyz="0" ixz="-0.006054"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.22421 0.075665 -0.523473" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rocker_bogie/meshes/BarraBR_1_1.stl" scale="0.001417 0.001164 0.001275"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+</link>
+
+<link name="BarraBR_2_1">
+  <inertial>
+    <origin xyz="-0.142734 0 -0.128473" rpy="0 0 0"/>
+    <mass value="1.105"/>
+    <inertia ixx="0.006166" iyy="0.01222" izz="0.006166" ixy="0" iyz="0" ixz="-0.006054"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.22421 -0.30848 -0.523473" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rocker_bogie/meshes/BarraBR_2_1.stl" scale="0.001417 0.001164 0.001275"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+</link>
+
+<link name="BarraAcople1_1">
+  <inertial>
+    <origin xyz="0.048079 0 -0.043275" rpy="0 0 0"/>
+    <mass value="0.37221"/>
+    <inertia ixx="0.000264" iyy="0.000487" izz="0.000264" ixy="0" iyz="0" ixz="0.000224"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.342401 0.075665 -0.523473" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rocker_bogie/meshes/BarraAcople1_1.stl" scale="0.001417 0.001164 0.001275"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+</link>
+
+<link name="BarraAcople2_1">
+  <inertial>
+    <origin xyz="0.048079 0 -0.043275" rpy="0 0 0"/>
+    <mass value="0.37221"/>
+    <inertia ixx="0.000264" iyy="0.000487" izz="0.000264" ixy="0" iyz="0" ixz="0.000224"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.342401 -0.30848 -0.523473" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rocker_bogie/meshes/BarraAcople2_1.stl" scale="0.001417 0.001164 0.001275"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+</link>
+
+<link name="AcopleTubo90_1_1">
+  <inertial>
+    <origin xyz="0.027232 -0.00793 -0.024511" rpy="0 0 0"/>
+    <mass value="0.160204"/>
+    <inertia ixx="0.00008" iyy="0.000072" izz="0.00008" ixy="7.9867125e-06" iyz="-7.9867125e-06" ixz="1.597336875e-05"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.438558 0.075665 -0.436922" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rocker_bogie/meshes/AcopleTubo90_1_1.stl" scale="0.001417 0.001164 0.001275"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+</link>
+
+<link name="AcopleTubo90__2_1">
+  <inertial>
+    <origin xyz="0.027232 0.00793 -0.024511" rpy="0 0 0"/>
+    <mass value="0.160204"/>
+    <inertia ixx="0.00008" iyy="0.000072" izz="0.00008" ixy="-7.9867125e-06" iyz="7.9867125e-06" ixz="1.597336875e-05"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.438558 -0.30848 -0.436922" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rocker_bogie/meshes/AcopleTubo90__2_1.stl" scale="0.001417 0.001164 0.001275"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+</link>
+
+<link name="Barra_Acople_R_1_1">
+  <inertial>
+    <origin xyz="2.5730363188947406e-07 -0.015133 -2.31596427989478e-07" rpy="0 0 0"/>
+    <mass value="0.100807"/>
+    <inertia ixx="1.597336875e-05" iyy="7.9867125e-06" izz="1.597336875e-05" ixy="0" iyz="0" ixz="0"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.472614 0.115243 -0.40627" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rocker_bogie/meshes/Barra_Acople_R_1_1.stl" scale="0.001417 0.001164 0.001275"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+</link>
+
+<link name="Barra_Acople_R_2_1">
+  <inertial>
+    <origin xyz="2.5730363188947406e-07 0.015133 -2.31596427989478e-07" rpy="0 0 0"/>
+    <mass value="0.100807"/>
+    <inertia ixx="1.597336875e-05" iyy="7.9867125e-06" izz="1.597336875e-05" ixy="0" iyz="0" ixz="0"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.472614 -0.348058 -0.40627" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rocker_bogie/meshes/Barra_Acople_R_2_1.stl" scale="0.001417 0.001164 0.001275"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+</link>
+
+<link name="Acople_Rodamiento_1_1">
+  <inertial>
+    <origin xyz="2.5730363188947406e-07 -0.023282 -0.002333" rpy="0 0 0"/>
+    <mass value="1.39525"/>
+    <inertia ixx="0.001533" iyy="0.002484" izz="0.001541" ixy="0" iyz="0" ixz="0"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.472614 0.145509 -0.40627" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rocker_bogie/meshes/Acople_Rodamiento_1_1.stl" scale="0.001417 0.001164 0.001275"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+</link>
+
+<link name="Acople_Rodamiento_2_1">
+  <inertial>
+    <origin xyz="2.5730363188947406e-07 0.023282 -0.002333" rpy="0 0 0"/>
+    <mass value="1.39525"/>
+    <inertia ixx="0.001533" iyy="0.002484" izz="0.001541" ixy="0" iyz="0" ixz="0"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.472614 -0.378324 -0.40627" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rocker_bogie/meshes/Acople_Rodamiento_2_1.stl" scale="0.001417 0.001164 0.001275"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+</link>
+
+<link name="BarraAcople3_1">
+  <inertial>
+    <origin xyz="-0.048079 0 -0.043276" rpy="0 0 0"/>
+    <mass value="0.37221"/>
+    <inertia ixx="0.000264" iyy="0.000487" izz="0.000264" ixy="0" iyz="0" ixz="-0.000224"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.413518 -0.401606 -0.353078" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rocker_bogie/meshes/BarraAcople3_1.stl" scale="0.001417 0.001164 0.001275"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+</link>
+
+<link name="BarraAcople4_1">
+  <inertial>
+    <origin xyz="-0.048079 0 -0.043276" rpy="0 0 0"/>
+    <mass value="0.37221"/>
+    <inertia ixx="0.000264" iyy="0.000487" izz="0.000264" ixy="0" iyz="0" ixz="-0.000224"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.413518 0.168791 -0.353078" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rocker_bogie/meshes/BarraAcople4_1.stl" scale="0.001417 0.001164 0.001275"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+</link>
+
+<link name="BarraAcople5_1">
+  <inertial>
+    <origin xyz="0.04808 0 -0.043276" rpy="0 0 0"/>
+    <mass value="0.37221"/>
+    <inertia ixx="0.000264" iyy="0.000487" izz="0.000264" ixy="0" iyz="0" ixz="0.000224"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.531709 0.168791 -0.353078" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rocker_bogie/meshes/BarraAcople5_1.stl" scale="0.001417 0.001164 0.001275"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+</link>
+
+<link name="BarraAcople6_1">
+  <inertial>
+    <origin xyz="0.04808 0 -0.043276" rpy="0 0 0"/>
+    <mass value="0.37221"/>
+    <inertia ixx="0.000264" iyy="0.000487" izz="0.000264" ixy="0" iyz="0" ixz="0.000224"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.531709 -0.401606 -0.353078" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rocker_bogie/meshes/BarraAcople6_1.stl" scale="0.001417 0.001164 0.001275"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+</link>
+
+<link name="AcopleTubo135_1_1">
+  <inertial>
+    <origin xyz="-0.026766 0 -0.033371" rpy="0 0 0"/>
+    <mass value="0.160204"/>
+    <inertia ixx="0.000096" iyy="0.000112" izz="5.5906874999999997e-05" ixy="0" iyz="0" ixz="-2.396008125e-05"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.31736 0.168791 -0.266528" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rocker_bogie/meshes/AcopleTubo135_1_1.stl" scale="0.001417 0.001164 0.001275"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+</link>
+
+<link name="AcopleTubo135_2_1">
+  <inertial>
+    <origin xyz="-0.026766 0 -0.033371" rpy="0 0 0"/>
+    <mass value="0.160204"/>
+    <inertia ixx="0.000096" iyy="0.000112" izz="5.5906874999999997e-05" ixy="0" iyz="0" ixz="-2.396008125e-05"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.31736 -0.401606 -0.266528" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rocker_bogie/meshes/AcopleTubo135_2_1.stl" scale="0.001417 0.001164 0.001275"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+</link>
+
+<link name="ApoyoServomotor_1_1">
+  <inertial>
+    <origin xyz="-0.061254 0 -0.034916" rpy="0 0 0"/>
+    <mass value="0.27687"/>
+    <inertia ixx="0.000112" iyy="0.000415" izz="0.000367" ixy="0" iyz="0" ixz="-0.000096"/>
+  </inertial>
+  <visual>
+    <origin xyz="0.061257 0.075665 -0.266528" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rocker_bogie/meshes/ApoyoServomotor_1_1.stl" scale="0.001417 0.001164 0.001275"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+</link>
+
+<link name="ApoyoServomotor_2_1">
+  <inertial>
+    <origin xyz="-0.061254 0 -0.034916" rpy="0 0 0"/>
+    <mass value="0.27687"/>
+    <inertia ixx="0.000112" iyy="0.000415" izz="0.000367" ixy="0" iyz="0" ixz="-0.000096"/>
+  </inertial>
+  <visual>
+    <origin xyz="0.061257 -0.30848 -0.266528" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rocker_bogie/meshes/ApoyoServomotor_2_1.stl" scale="0.001417 0.001164 0.001275"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+</link>
+
+<link name="ApoyoServomotor_3_1">
+  <inertial>
+    <origin xyz="0.061254 0 -0.034916" rpy="0 0 0"/>
+    <mass value="0.27687"/>
+    <inertia ixx="0.000112" iyy="0.000415" izz="0.000367" ixy="0" iyz="0" ixz="0.000096"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.627868 -0.401606 -0.266528" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rocker_bogie/meshes/ApoyoServomotor_3_1.stl" scale="0.001417 0.001164 0.001275"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+</link>
+
+<link name="ApoyoServomotor_4_1">
+  <inertial>
+    <origin xyz="0.061254 0 -0.034916" rpy="0 0 0"/>
+    <mass value="0.27687"/>
+    <inertia ixx="0.000112" iyy="0.000415" izz="0.000367" ixy="0" iyz="0" ixz="0.000096"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.627868 0.168791 -0.266528" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rocker_bogie/meshes/ApoyoServomotor_4_1.stl" scale="0.001417 0.001164 0.001275"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+</link>
+
+<link name="BarraRuedas_1_1">
+  <inertial>
+    <origin xyz="-5.1460726387724e-07 0 -0.039525" rpy="0 0 0"/>
+    <mass value="0.240385"/>
+    <inertia ixx="0.000136" iyy="0.000136" izz="2.396008125e-05" ixy="0" iyz="0" ixz="0"/>
+  </inertial>
+  <visual>
+    <origin xyz="0.143315 0.075665 -0.192525" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rocker_bogie/meshes/BarraRuedas_1_1.stl" scale="0.001417 0.001164 0.001275"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+</link>
+
+<link name="BarraRuedas_2_1">
+  <inertial>
+    <origin xyz="0 0 -0.039525" rpy="0 0 0"/>
+    <mass value="0.240385"/>
+    <inertia ixx="0.000136" iyy="0.000136" izz="2.396008125e-05" ixy="0" iyz="0" ixz="0"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.283305 0.168791 -0.192525" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rocker_bogie/meshes/BarraRuedas_2_1.stl" scale="0.001417 0.001164 0.001275"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+</link>
+
+<link name="BarraRuedas_3_1">
+  <inertial>
+    <origin xyz="5.146072640934809e-07 0 -0.039525" rpy="0 0 0"/>
+    <mass value="0.240385"/>
+    <inertia ixx="0.000136" iyy="0.000136" izz="2.396008125e-05" ixy="0" iyz="0" ixz="0"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.709925 0.168791 -0.192525" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rocker_bogie/meshes/BarraRuedas_3_1.stl" scale="0.001417 0.001164 0.001275"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+</link>
+
+<link name="BarraRuedas_4_1">
+  <inertial>
+    <origin xyz="-5.146072639558729e-07 0 -0.039525" rpy="0 0 0"/>
+    <mass value="0.240385"/>
+    <inertia ixx="0.000136" iyy="0.000136" izz="2.396008125e-05" ixy="0" iyz="0" ixz="0"/>
+  </inertial>
+  <visual>
+    <origin xyz="0.143315 -0.30848 -0.192525" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rocker_bogie/meshes/BarraRuedas_4_1.stl" scale="0.001417 0.001164 0.001275"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+</link>
+
+<link name="BarraRuedas_5_1">
+  <inertial>
+    <origin xyz="0 0 -0.039525" rpy="0 0 0"/>
+    <mass value="0.240385"/>
+    <inertia ixx="0.000136" iyy="0.000136" izz="2.396008125e-05" ixy="0" iyz="0" ixz="0"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.283305 -0.401606 -0.192525" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rocker_bogie/meshes/BarraRuedas_5_1.stl" scale="0.001417 0.001164 0.001275"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+</link>
+
+<link name="BarraRuedas_6_1">
+  <inertial>
+    <origin xyz="5.14607263778949e-07 0 -0.039525" rpy="0 0 0"/>
+    <mass value="0.240385"/>
+    <inertia ixx="0.000136" iyy="0.000136" izz="2.396008125e-05" ixy="0" iyz="0" ixz="0"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.709925 -0.401606 -0.192525" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rocker_bogie/meshes/BarraRuedas_6_1.stl" scale="0.001417 0.001164 0.001275"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+</link>
+
+<link name="SoporteMotor_1_1">
+  <inertial>
+    <origin xyz="-5.146072897081591e-07 -0.004389 -0.047494" rpy="0 0 0"/>
+    <mass value="0.21391"/>
+    <inertia ixx="0.000208" iyy="0.0002" izz="0.000136" ixy="0" iyz="-7.9867125e-06" ixz="0"/>
+  </inertial>
+  <visual>
+    <origin xyz="0.143315 0.075665 -0.113475" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rocker_bogie/meshes/SoporteMotor_1_1.stl" scale="0.001417 0.001164 0.001275"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+</link>
+
+<link name="SoporteMotor_2_1">
+  <inertial>
+    <origin xyz="0 -0.004389 -0.047494" rpy="0 0 0"/>
+    <mass value="0.21391"/>
+    <inertia ixx="0.000208" iyy="0.0002" izz="0.000136" ixy="0" iyz="-7.9867125e-06" ixz="0"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.283305 0.168791 -0.113475" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rocker_bogie/meshes/SoporteMotor_2_1.stl" scale="0.001417 0.001164 0.001275"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+</link>
+
+<link name="SoporteMotor_4_1">
+  <inertial>
+    <origin xyz="5.146072383018786e-07 -0.004389 -0.047494" rpy="0 0 0"/>
+    <mass value="0.21391"/>
+    <inertia ixx="0.000208" iyy="0.0002" izz="0.000136" ixy="0" iyz="-7.9867125e-06" ixz="0"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.709925 0.168791 -0.113475" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rocker_bogie/meshes/SoporteMotor_4_1.stl" scale="0.001417 0.001164 0.001275"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+</link>
+
+<link name="SoporteMotor_3_1">
+  <inertial>
+    <origin xyz="-5.146072376924728e-07 0.004389 -0.047494" rpy="0 0 0"/>
+    <mass value="0.21391"/>
+    <inertia ixx="0.000208" iyy="0.0002" izz="0.000136" ixy="0" iyz="7.9867125e-06" ixz="0"/>
+  </inertial>
+  <visual>
+    <origin xyz="0.143315 -0.30848 -0.113475" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rocker_bogie/meshes/SoporteMotor_3_1.stl" scale="0.001417 0.001164 0.001275"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+</link>
+
+<link name="SoporteMotor_5_1">
+  <inertial>
+    <origin xyz="0 0.004389 -0.047494" rpy="0 0 0"/>
+    <mass value="0.21391"/>
+    <inertia ixx="0.000208" iyy="0.0002" izz="0.000136" ixy="0" iyz="7.9867125e-06" ixz="0"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.283305 -0.401606 -0.113475" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rocker_bogie/meshes/SoporteMotor_5_1.stl" scale="0.001417 0.001164 0.001275"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+</link>
+
+<link name="SoporteMotor_6_1">
+  <inertial>
+    <origin xyz="5.146072897278172e-07 0.004389 -0.047494" rpy="0 0 0"/>
+    <mass value="0.21391"/>
+    <inertia ixx="0.000208" iyy="0.0002" izz="0.000136" ixy="0" iyz="7.9867125e-06" ixz="0"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.709925 -0.401606 -0.113475" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rocker_bogie/meshes/SoporteMotor_6_1.stl" scale="0.001417 0.001164 0.001275"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+</link>
+
+<link name="Motor_1_1">
+  <inertial>
+    <origin xyz="-5.146072487797164e-07 0.054562 -4.63192856651334e-07" rpy="0 0 0"/>
+    <mass value="3.81127"/>
+    <inertia ixx="0.005415" iyy="0.00099" izz="0.005415" ixy="0" iyz="0" ixz="0"/>
+  </inertial>
+  <visual>
+    <origin xyz="0.143315 0.107095 -0.054825" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rocker_bogie/meshes/Motor_1_1.stl" scale="0.001417 0.001164 0.001275"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+</link>
+
+<link name="Motor_2_1">
+  <inertial>
+    <origin xyz="0 0.054562 -4.6319285642130973e-07" rpy="0 0 0"/>
+    <mass value="3.81127"/>
+    <inertia ixx="0.005415" iyy="0.00099" izz="0.005415" ixy="0" iyz="0" ixz="0"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.283305 0.200221 -0.054825" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rocker_bogie/meshes/Motor_2_1.stl" scale="0.001417 0.001164 0.001275"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+</link>
+
+<link name="Motor_3_1">
+  <inertial>
+    <origin xyz="5.146072791910043e-07 0.054562 -4.6319285629745096e-07" rpy="0 0 0"/>
+    <mass value="3.81127"/>
+    <inertia ixx="0.005415" iyy="0.00099" izz="0.005415" ixy="0" iyz="0" ixz="0"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.709925 0.200221 -0.054825" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rocker_bogie/meshes/Motor_3_1.stl" scale="0.001417 0.001164 0.001275"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+</link>
+
+<link name="Motor_6_1">
+  <inertial>
+    <origin xyz="-5.146072789354465e-07 -0.054562 -4.6319285612050874e-07" rpy="0 0 0"/>
+    <mass value="3.81127"/>
+    <inertia ixx="0.005415" iyy="0.00099" izz="0.005415" ixy="0" iyz="0" ixz="0"/>
+  </inertial>
+  <visual>
+    <origin xyz="0.143315 -0.33991 -0.054825" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rocker_bogie/meshes/Motor_6_1.stl" scale="0.001417 0.001164 0.001275"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+</link>
+
+<link name="Motor_5_1">
+  <inertial>
+    <origin xyz="0 -0.054562 -4.6319285617359156e-07" rpy="0 0 0"/>
+    <mass value="3.81127"/>
+    <inertia ixx="0.005415" iyy="0.00099" izz="0.005415" ixy="0" iyz="0" ixz="0"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.283305 -0.433036 -0.054825" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rocker_bogie/meshes/Motor_5_1.stl" scale="0.001417 0.001164 0.001275"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+</link>
+
+<link name="Motor_4_1">
+  <inertial>
+    <origin xyz="5.146072486814256e-07 -0.054562 -4.631928563682277e-07" rpy="0 0 0"/>
+    <mass value="3.81127"/>
+    <inertia ixx="0.005415" iyy="0.00099" izz="0.005415" ixy="0" iyz="0" ixz="0"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.709925 -0.433036 -0.054825" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rocker_bogie/meshes/Motor_4_1.stl" scale="0.001417 0.001164 0.001275"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+</link>
+
+<link name="Rueda_2_1">
+  <inertial>
+    <origin xyz="-0.000463 -0.052315 0.000324" rpy="0 0 0"/>
+    <mass value="2.6357"/>
+    <inertia ixx="0.007449" iyy="0.015036" izz="0.007449" ixy="0.0" iyz="0.0" ixz="0.0"/>
+  </inertial>
+  <visual>
+    <origin xyz="-1.296759 0.406102 -0.1001" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rocker_bogie/meshes/Rueda_2_1.stl" scale="0.002588 0.002126 0.002329"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+  <collision>
+    <origin xyz="0 -0.052315 0" rpy="1.5707963 0 0"/>
+    <geometry>
+      <cylinder radius="0.178" length="0.1143"/>
+    </geometry>
+  </collision>
+</link>
+
+<link name="Rueda_4_1">
+  <inertial>
+    <origin xyz="-0.000464 -0.052315 0.000324" rpy="0 0 0"/>
+    <mass value="2.6357"/>
+    <inertia ixx="0.007449" iyy="0.015036" izz="0.007449" ixy="0.0" iyz="0.0" ixz="0.0"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.517504 0.406102 -0.1001" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rocker_bogie/meshes/Rueda_4_1.stl" scale="0.002588 0.002126 0.002329"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+  <collision>
+    <origin xyz="0 -0.052315 0" rpy="1.5707963 0 0"/>
+    <geometry>
+      <cylinder radius="0.178" length="0.1143"/>
+    </geometry>
+  </collision>
+</link>
+
+<link name="Rueda_6_1">
+  <inertial>
+    <origin xyz="-0.000466 -0.052315 0.000324" rpy="0 0 0"/>
+    <mass value="2.6357"/>
+    <inertia ixx="0.007449" iyy="0.015036" izz="0.007449" ixy="0.0" iyz="0.0" ixz="0.0"/>
+  </inertial>
+  <visual>
+    <origin xyz="0.261752 0.236011 -0.1001" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rocker_bogie/meshes/Rueda_6_1.stl" scale="0.002588 0.002126 0.002329"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+  <collision>
+    <origin xyz="0 -0.052315 0" rpy="1.5707963 0 0"/>
+    <geometry>
+      <cylinder radius="0.178" length="0.1143"/>
+    </geometry>
+  </collision>
+</link>
+
+<link name="Rueda_1_1">
+  <inertial>
+    <origin xyz="0.000463 0.052315 0.000324" rpy="0 0 0"/>
+    <mass value="2.6357"/>
+    <inertia ixx="0.007449" iyy="0.015036" izz="0.007449" ixy="0.0" iyz="0.0" ixz="0.0"/>
+  </inertial>
+  <visual>
+    <origin xyz="0.261752 -0.661286 -0.1001" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rocker_bogie/meshes/Rueda_1_1.stl" scale="0.002588 0.002126 0.002329"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+  <collision>
+    <origin xyz="0 0.052315 0" rpy="1.5707963 0 0"/>
+    <geometry>
+      <cylinder radius="0.178" length="0.1143"/>
+    </geometry>
+  </collision>
+</link>
+
+<link name="Rueda_3_1">
+  <inertial>
+    <origin xyz="0.000464 0.052315 0.000324" rpy="0 0 0"/>
+    <mass value="2.6357"/>
+    <inertia ixx="0.007449" iyy="0.015036" izz="0.007449" ixy="0.0" iyz="0.0" ixz="0.0"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.517504 -0.831378 -0.1001" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rocker_bogie/meshes/Rueda_3_1.stl" scale="0.002588 0.002126 0.002329"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+  <collision>
+    <origin xyz="0 0.052315 0" rpy="1.5707963 0 0"/>
+    <geometry>
+      <cylinder radius="0.178" length="0.1143"/>
+    </geometry>
+  </collision>
+</link>
+
+<link name="Rueda_5_1">
+  <inertial>
+    <origin xyz="0.000466 0.052315 0.000324" rpy="0 0 0"/>
+    <mass value="2.6357"/>
+    <inertia ixx="0.007449" iyy="0.015036" izz="0.007449" ixy="0.0" iyz="0.0" ixz="0.0"/>
+  </inertial>
+  <visual>
+    <origin xyz="-1.296759 -0.831378 -0.1001" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rocker_bogie/meshes/Rueda_5_1.stl" scale="0.002588 0.002126 0.002329"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+  <collision>
+    <origin xyz="0 0.052315 0" rpy="1.5707963 0 0"/>
+    <geometry>
+      <cylinder radius="0.178" length="0.1143"/>
+    </geometry>
+  </collision>
+</link>
+
+<link name="AcopleTuboRB_2_1">
+  <inertial>
+    <origin xyz="0 -0.023282 -0.000667" rpy="0 0 0"/>
+    <mass value="1.43027"/>
+    <inertia ixx="0.001701" iyy="0.002652" izz="0.001549" ixy="0" iyz="0" ixz="0"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.283305 0.052383 -0.576664" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rocker_bogie/meshes/AcopleTuboRB_2_1.stl" scale="0.001417 0.001164 0.001275"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+</link>
+
+<link name="AcopleTuboRB_1_1">
+  <inertial>
+    <origin xyz="0 0.023282 -0.000667" rpy="0 0 0"/>
+    <mass value="1.43027"/>
+    <inertia ixx="0.001701" iyy="0.002652" izz="0.001549" ixy="0" iyz="0" ixz="0"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.283305 -0.285198 -0.576664" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rocker_bogie/meshes/AcopleTuboRB_1_1.stl" scale="0.001417 0.001164 0.001275"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+</link>
+
+<!-- ================= ROCKER PIVOTS (passive suspension) ================= -->
+<!--
+  SUSPENSION TOPOLOGY  (restructured 2026-07 - see robot_metrics/README.md)
+
+  What was wrong before
+  =====================
+  The two sides of the suspension were welded to each other.  The chain was
+
+      base_link
+        `- differential_joint (revolute Y)  -> AcopleTuboRB_1_1   [left tube]
+             `- differential_bar_joint (FIXED) -> AcopleTuboRB_2_1 [right tube]
+
+  so AcopleTuboRB_1_1 and AcopleTuboRB_2_1 formed ONE rigid body carrying every
+  wheel on both sides, connected to the chassis by a single pivot.  The model
+  therefore had no independent left/right rocker travel whatsoever: when the
+  left wheels met the step, the right wheels were forced to follow.  That is the
+  opposite of what a rocker-bogie does, and it is the direct cause of the
+  wheel lift-off seen when crossing the step.
+
+  The joints actually named "rocker_joint_r" and "rocker_joint_l" were not in
+  the load path at all: their children (AcopleRB_1_1 / AcopleRB_2_1) are leaf
+  links that carry no wheel, so those revolute joints only wobbled two
+  cosmetic stubs.  They are now fixed (see below).
+
+  What the structure is now
+  =========================
+      base_link
+        |- rocker_pivot_left  (revolute Y) -> AcopleTuboRB_1_1  [LEFT rocker]
+        `- rocker_pivot_right (revolute Y) -> AcopleTuboRB_2_1  [RIGHT rocker]
+
+  Both pivots share the same axis line (same x and z, axis +Y), 0.337582 m
+  apart in y, so they form a proper coaxial rocker pair.  Each rocker carries,
+  on its own side, the classic rocker-bogie arrangement:
+      * the FRONT wheel, mounted directly on the rocker through a steering
+        joint;
+      * a BOGIE at the other end (rev_3 / rev_4) carrying the MIDDLE and REAR
+        wheels, the rear one also steered.
+
+  Sign convention - this is easy to get wrong and was got wrong before.
+  base_link is authored facing -x (the camera sits at x = -0.07 with rpy
+  yaw = pi, and the robot spawns at Y = pi).  With z up and a right-handed
+  frame, LEFT = z_hat x forward = z_hat x (-x_hat) = -y_hat.  So in base_link
+  coordinates the LEFT side is the one with the SMALLER y:
+
+      AcopleTuboRB_2_1  pivot at y = -0.052384  -> LEFT  rocker
+      AcopleTuboRB_1_1  pivot at y = +0.285198  -> RIGHT rocker
+
+  base_link's origin comes from the CAD export and is not centred on the
+  chassis, which is why the two offsets are not symmetric about zero; the
+  centreline is y = +0.116408 (where the sensors sit) and the pivot separation
+  (0.337582 m) is what matters.
+
+  Travel limits
+  =============
+  The left pivot previously had limits of +/-0.15 rad.  Lifting one wheel over
+  the 0.10 m step needs about atan(0.10 / 0.285) = 0.34 rad of rocker rotation,
+  so the old limit made it geometrically IMPOSSIBLE for the suspension to
+  absorb the step - it hit the joint stop and the chassis was levered upward
+  instead.  Limits are now +/-0.6 rad (+/-34 deg), which clears the step with
+  margin and is consistent with the hard stops of a physical rocker-bogie.
+
+  Damping and friction
+  ====================
+  Previously damping = 80 N*m*s/rad and friction = 4-6 N*m on a passive pivot,
+  i.e. the suspension was effectively frozen.  Values are now 0.5 and 0.2,
+  representative of a lubricated bearing on this scale.  These two numbers are
+  the ones to vary in a sensitivity study.
+
+  Actuation
+  =========
+  These pivots are PASSIVE.  They carry an EffortJointInterface transmission
+  (see ensamblajeurdf.trans) whose only purpose is to let rocker_differential.py
+  apply the differential coupling torque.  With that node stopped the effort
+  command stays at zero and the joints are free - which is exactly the
+  "no differential" ablation.  They are never position- or velocity-driven.
+-->
+<joint name="rocker_pivot_right" type="revolute">
+  <origin xyz="0.283305 0.285198 0.576664" rpy="0 0 0"/>
+  <parent link="base_link"/>
+  <child link="AcopleTuboRB_1_1"/>
+  <axis xyz="0.0 1.0 0.0"/>
+  <limit lower="-0.6" upper="0.6" effort="1000" velocity="10.0"/>
+  <dynamics damping="0.5" friction="0.2"/>
+</joint>
+
+<joint name="rocker_pivot_left" type="revolute">
+  <!--
+    Origin expressed in base_link: the old fixed joint placed AcopleTuboRB_2_1
+    at (0, -0.337582, 0) in the frame of AcopleTuboRB_1_1, whose own origin was
+    (0.283305, 0.285198, 0.576664).  Composing the two at zero deflection gives
+    y = 0.285198 - 0.337582 = -0.052384, so the link keeps exactly the pose it
+    had before; only its parent and its degree of freedom changed.
+  -->
+  <origin xyz="0.283305 -0.052384 0.576664" rpy="0 0 0"/>
+  <parent link="base_link"/>
+  <child link="AcopleTuboRB_2_1"/>
+  <axis xyz="0.0 1.0 0.0"/>
+  <limit lower="-0.6" upper="0.6" effort="1000" velocity="10.0"/>
+  <dynamics damping="0.5" friction="0.2"/>
+</joint>
+
+<!-- ================= ROCKER END COUPLINGS (cosmetic) ================= -->
+<!--
+  Barra_acople_1_1 / Barra_acople_2_1 and the AcopleRB_* links they carry are
+  structural stubs of the CAD assembly.  They are leaves of the tree: no wheel
+  hangs from them, so a revolute joint here adds a degree of freedom with mass
+  but no kinematic function - unmodelled dynamics that only injects noise into
+  the IMU.  They are fixed to the rocker they belong to.
+-->
+<joint name="rocker_joint_r" type="fixed">
+  <origin xyz="0 -0.030266 0" rpy="0 0 0"/>
+  <parent link="AcopleTuboRB_1_1"/>
+  <child link="Barra_acople_2_1"/>
+</joint>
+
+<joint name="rocker_acople_r" type="fixed">
+  <origin xyz="0 -0.022117 0.051" rpy="0 0 0"/>
+  <parent link="Barra_acople_2_1"/>
+  <child link="AcopleRB_1_1"/>
+</joint>
+
+<joint name="rocker_joint_l" type="fixed">
+  <origin xyz="0 0.030266 0" rpy="0 0 0"/>
+  <parent link="AcopleTuboRB_2_1"/>
+  <child link="Barra_acople_1_1"/>
+</joint>
+
+<joint name="rocker_acople_l" type="fixed">
+  <origin xyz="0 0.022117 0.051" rpy="0 0 0"/>
+  <parent link="Barra_acople_1_1"/>
+  <child link="AcopleRB_2_1"/>
+</joint>
+
+<joint name="link_r_5" type="fixed">
+  <origin xyz="-0.059096 -0.023282 -0.053192" rpy="0 0 0"/>
+  <parent link="AcopleTuboRB_2_1"/>
+  <child link="BarraBR_1_1"/>
+</joint>
+
+<joint name="link_r_6" type="fixed">
+  <origin xyz="-0.059096 0.023282 -0.053192" rpy="0 0 0"/>
+  <parent link="AcopleTuboRB_1_1"/>
+  <child link="BarraBR_2_1"/>
+</joint>
+
+<joint name="link_r_7" type="fixed">
+  <origin xyz="0.059096 -0.023282 -0.053192" rpy="0 0 0"/>
+  <parent link="AcopleTuboRB_2_1"/>
+  <child link="BarraAcople1_1"/>
+</joint>
+
+<joint name="link_r_8" type="fixed">
+  <origin xyz="0.059096 0.023282 -0.053192" rpy="0 0 0"/>
+  <parent link="AcopleTuboRB_1_1"/>
+  <child link="BarraAcople2_1"/>
+</joint>
+
+<joint name="link_r_9" type="fixed">
+  <origin xyz="0.096158 0 -0.086551" rpy="0 0 0"/>
+  <parent link="BarraAcople1_1"/>
+  <child link="AcopleTubo90_1_1"/>
+</joint>
+
+<joint name="link_r_10" type="fixed">
+  <origin xyz="0.096158 0 -0.086551" rpy="0 0 0"/>
+  <parent link="BarraAcople2_1"/>
+  <child link="AcopleTubo90__2_1"/>
+</joint>
+
+<joint name="link_r_11" type="fixed">
+  <origin xyz="0.034054 -0.039579 -0.030652" rpy="0 0 0"/>
+  <parent link="AcopleTubo90_1_1"/>
+  <child link="Barra_Acople_R_1_1"/>
+</joint>
+
+<joint name="link_r_12" type="fixed">
+  <origin xyz="0.034054 0.039579 -0.030652" rpy="0 0 0"/>
+  <parent link="AcopleTubo90__2_1"/>
+  <child link="Barra_Acople_R_2_1"/>
+</joint>
+
+<!-- ================= BOGIE PIVOTS (passive) ================= -->
+<!--
+  rev_3 = LEFT  bogie  (descends from AcopleTuboRB_2_1 = rocker_pivot_left)
+  rev_4 = RIGHT bogie  (descends from AcopleTuboRB_1_1 = rocker_pivot_right)
+
+  Each bogie carries the MIDDLE wheel and the REAR wheel of its side, the rear
+  one through a steering joint; the FRONT wheel of that side hangs directly
+  off the rocker.  That is the standard rocker-bogie arrangement.  These are
+  the joints the reviewer asked about: they are now genuinely passive revolute
+  joints.
+
+  Verified passive:
+    * no transmission          - removed from ensamblajeurdf.trans, so
+                                 gazebo_ros_control never registers them and
+                                 cannot command them;
+    * no controller            - not listed in any controller_manager spawn;
+    * no PID entry             - removed from the launch pid_gains block.
+
+  Previously they DID carry a hardware_interface/VelocityJointInterface
+  transmission.  gazebo_ros_control registers every transmitted joint and, in
+  every write cycle, drives it towards its command - which for an unclaimed
+  joint is a constant zero velocity.  The "passive" bogies were therefore being
+  actively held still by the simulator, on top of damping = 80 N*m*s/rad and
+  friction = 10 N*m from the URDF.  A bogie that cannot rotate transfers the
+  step impulse straight into the chassis and lifts the neighbouring wheel; this
+  is the main reason the simulated contact behaviour did not match Fig. 2.
+
+  Limits widened from +/-0.5 to +/-0.6 rad for the same geometric reason as the
+  rockers (0.10 m step over a 0.285 m half-span needs ~0.34 rad, and the bogie
+  span is shorter still, so the old stop was close to binding).
+-->
+<joint name="rev_3" type="revolute">
+  <origin xyz="0 -0.030266 0" rpy="0 0 0"/>
+  <parent link="Barra_Acople_R_1_1"/>
+  <child link="Acople_Rodamiento_1_1"/>
+  <axis xyz="-0.0 1.0 -0.0"/>
+  <limit lower="-0.6" upper="0.6" effort="1000" velocity="10.0"/>
+  <dynamics damping="0.5" friction="0.2"/>
+</joint>
+
+<joint name="rev_4" type="revolute">
+  <origin xyz="0 0.030266 0" rpy="0 0 0"/>
+  <parent link="Barra_Acople_R_2_1"/>
+  <child link="Acople_Rodamiento_2_1"/>
+  <axis xyz="0.0 1.0 0.0"/>
+  <limit lower="-0.6" upper="0.6" effort="1000" velocity="10.0"/>
+  <dynamics damping="0.5" friction="0.2"/>
+</joint>
+
+<joint name="link_r_15" type="fixed">
+  <origin xyz="-0.059096 0.023282 -0.053192" rpy="0 0 0"/>
+  <parent link="Acople_Rodamiento_2_1"/>
+  <child link="BarraAcople3_1"/>
+</joint>
+
+<joint name="link_r_16" type="fixed">
+  <origin xyz="-0.059096 -0.023282 -0.053192" rpy="0 0 0"/>
+  <parent link="Acople_Rodamiento_1_1"/>
+  <child link="BarraAcople4_1"/>
+</joint>
+
+<joint name="link_r_17" type="fixed">
+  <origin xyz="0.059096 -0.023282 -0.053192" rpy="0 0 0"/>
+  <parent link="Acople_Rodamiento_1_1"/>
+  <child link="BarraAcople5_1"/>
+</joint>
+
+<joint name="link_r_18" type="fixed">
+  <origin xyz="0.059096 0.023282 -0.053192" rpy="0 0 0"/>
+  <parent link="Acople_Rodamiento_2_1"/>
+  <child link="BarraAcople6_1"/>
+</joint>
+
+<joint name="link_r_19" type="fixed">
+  <origin xyz="-0.096156 0 -0.086551" rpy="0 0 0"/>
+  <parent link="BarraAcople4_1"/>
+  <child link="AcopleTubo135_1_1"/>
+</joint>
+
+<joint name="link_r_20" type="fixed">
+  <origin xyz="-0.096156 0 -0.086551" rpy="0 0 0"/>
+  <parent link="BarraAcople3_1"/>
+  <child link="AcopleTubo135_2_1"/>
+</joint>
+
+<joint name="link_r_21" type="fixed">
+  <origin xyz="-0.285466 0 -0.256945" rpy="0 0 0"/>
+  <parent link="BarraBR_1_1"/>
+  <child link="ApoyoServomotor_1_1"/>
+</joint>
+
+<joint name="link_r_22" type="fixed">
+  <origin xyz="-0.285466 0 -0.256945" rpy="0 0 0"/>
+  <parent link="BarraBR_2_1"/>
+  <child link="ApoyoServomotor_2_1"/>
+</joint>
+
+<joint name="link_r_23" type="fixed">
+  <origin xyz="0.096158 0 -0.086551" rpy="0 0 0"/>
+  <parent link="BarraAcople6_1"/>
+  <child link="ApoyoServomotor_3_1"/>
+</joint>
+
+<joint name="link_r_24" type="fixed">
+  <origin xyz="0.096158 0 -0.086551" rpy="0 0 0"/>
+  <parent link="BarraAcople5_1"/>
+  <child link="ApoyoServomotor_4_1"/>
+</joint>
+
+<joint name="rev_5" type="revolute">
+  <origin xyz="-0.082056 0 -0.074002" rpy="0 0 0"/>
+  <parent link="ApoyoServomotor_1_1"/>
+  <child link="BarraRuedas_1_1"/>
+  <axis xyz="0 0 1"/>
+  <limit lower="-0.5" upper="0.5" effort="100" velocity="1.0"/>
+  <dynamics damping="10.0" friction="1.0"/>
+</joint>
+
+<joint name="link_r_25" type="fixed">
+  <origin xyz="-0.034057 0 -0.074002" rpy="0 0 0"/>
+  <parent link="AcopleTubo135_1_1"/>
+  <child link="BarraRuedas_2_1"/>
+</joint>
+
+<joint name="rev_6" type="revolute">
+  <origin xyz="0.082056 0 -0.074002" rpy="0 0 0"/>
+  <parent link="ApoyoServomotor_4_1"/>
+  <child link="BarraRuedas_3_1"/>
+  <axis xyz="0 0 1"/>
+  <limit lower="-0.5" upper="0.5" effort="100" velocity="1.0"/>
+  <dynamics damping="10.0" friction="1.0"/>
+</joint>
+
+<joint name="rev_7" type="revolute">
+  <origin xyz="-0.082056 0 -0.074002" rpy="0 0 0"/>
+  <parent link="ApoyoServomotor_2_1"/>
+  <child link="BarraRuedas_4_1"/>
+  <axis xyz="0 0 1"/>
+  <limit lower="-0.5" upper="0.5" effort="100" velocity="1.0"/>
+  <dynamics damping="10.0" friction="1.0"/>
+</joint>
+
+<joint name="link_r_26" type="fixed">
+  <origin xyz="-0.034057 0 -0.074002" rpy="0 0 0"/>
+  <parent link="AcopleTubo135_2_1"/>
+  <child link="BarraRuedas_5_1"/>
+</joint>
+
+<joint name="rev_8" type="revolute">
+  <origin xyz="0.082056 0 -0.074002" rpy="0 0 0"/>
+  <parent link="ApoyoServomotor_3_1"/>
+  <child link="BarraRuedas_6_1"/>
+  <axis xyz="0 0 1"/>
+  <limit lower="-0.5" upper="0.5" effort="100" velocity="1.0"/>
+  <dynamics damping="10.0" friction="1.0"/>
+</joint>
+
+<joint name="link_r_27" type="fixed">
+  <origin xyz="0 0 -0.07905" rpy="0 0 0"/>
+  <parent link="BarraRuedas_1_1"/>
+  <child link="SoporteMotor_1_1"/>
+</joint>
+
+<joint name="link_r_28" type="fixed">
+  <origin xyz="0 0 -0.07905" rpy="0 0 0"/>
+  <parent link="BarraRuedas_2_1"/>
+  <child link="SoporteMotor_2_1"/>
+</joint>
+
+<joint name="link_r_29" type="fixed">
+  <origin xyz="0 0 -0.07905" rpy="0 0 0"/>
+  <parent link="BarraRuedas_3_1"/>
+  <child link="SoporteMotor_4_1"/>
+</joint>
+
+<joint name="link_r_30" type="fixed">
+  <origin xyz="0 0 -0.07905" rpy="0 0 0"/>
+  <parent link="BarraRuedas_4_1"/>
+  <child link="SoporteMotor_3_1"/>
+</joint>
+
+<joint name="link_r_31" type="fixed">
+  <origin xyz="0 0 -0.07905" rpy="0 0 0"/>
+  <parent link="BarraRuedas_5_1"/>
+  <child link="SoporteMotor_5_1"/>
+</joint>
+
+<joint name="link_r_32" type="fixed">
+  <origin xyz="0 0 -0.07905" rpy="0 0 0"/>
+  <parent link="BarraRuedas_6_1"/>
+  <child link="SoporteMotor_6_1"/>
+</joint>
+
+<joint name="link_r_33" type="fixed">
+  <origin xyz="0 -0.03143 -0.05865" rpy="0 0 0"/>
+  <parent link="SoporteMotor_1_1"/>
+  <child link="Motor_1_1"/>
+</joint>
+
+<joint name="link_r_34" type="fixed">
+  <origin xyz="0 -0.03143 -0.05865" rpy="0 0 0"/>
+  <parent link="SoporteMotor_2_1"/>
+  <child link="Motor_2_1"/>
+</joint>
+
+<joint name="link_r_35" type="fixed">
+  <origin xyz="0 -0.03143 -0.05865" rpy="0 0 0"/>
+  <parent link="SoporteMotor_4_1"/>
+  <child link="Motor_3_1"/>
+</joint>
+
+<joint name="link_r_36" type="fixed">
+  <origin xyz="0 0.03143 -0.05865" rpy="0 0 0"/>
+  <parent link="SoporteMotor_3_1"/>
+  <child link="Motor_6_1"/>
+</joint>
+
+<joint name="link_r_37" type="fixed">
+  <origin xyz="0 0.03143 -0.05865" rpy="0 0 0"/>
+  <parent link="SoporteMotor_5_1"/>
+  <child link="Motor_5_1"/>
+</joint>
+
+<joint name="link_r_38" type="fixed">
+  <origin xyz="0 0.03143 -0.05865" rpy="0 0 0"/>
+  <parent link="SoporteMotor_6_1"/>
+  <child link="Motor_4_1"/>
+</joint>
+
+<joint name="rev_9" type="continuous">
+  <origin xyz="0 -0.022117 0" rpy="0 0 0"/>
+  <parent link="Motor_3_1"/>
+  <child link="Rueda_2_1"/>
+  <axis xyz="0.0 1.0 0.0"/>
+  <limit effort="100.0" velocity="5.0"/>
+  <dynamics damping="0.5" friction="0.1"/>
+</joint>
+
+<joint name="rev_10" type="continuous">
+  <origin xyz="0 -0.022117 0" rpy="0 0 0"/>
+  <parent link="Motor_2_1"/>
+  <child link="Rueda_4_1"/>
+  <axis xyz="0.0 1.0 0.0"/>
+  <limit effort="100.0" velocity="5.0"/>
+  <dynamics damping="0.5" friction="0.1"/>
+</joint>
+
+<joint name="rev_11" type="continuous">
+  <origin xyz="0 -0.022117 0" rpy="0 0 0"/>
+  <parent link="Motor_1_1"/>
+  <child link="Rueda_6_1"/>
+  <axis xyz="0.0 1.0 0.0"/>
+  <limit effort="100.0" velocity="5.0"/>
+  <dynamics damping="0.5" friction="0.1"/>
+</joint>
+
+<joint name="rev_12" type="continuous">
+  <origin xyz="0 0.022117 0" rpy="0 0 0"/>
+  <parent link="Motor_6_1"/>
+  <child link="Rueda_1_1"/>
+  <axis xyz="-0.0 1.0 -0.0"/>
+  <limit effort="100.0" velocity="5.0"/>
+  <dynamics damping="0.5" friction="0.1"/>
+</joint>
+
+<joint name="rev_13" type="continuous">
+  <origin xyz="0 0.022117 0" rpy="0 0 0"/>
+  <parent link="Motor_5_1"/>
+  <child link="Rueda_3_1"/>
+  <axis xyz="-0.0 1.0 -0.0"/>
+  <limit effort="100.0" velocity="5.0"/>
+  <dynamics damping="0.5" friction="0.1"/>
+</joint>
+
+<joint name="rev_14" type="continuous">
+  <origin xyz="0 0.022117 0" rpy="0 0 0"/>
+  <parent link="Motor_4_1"/>
+  <child link="Rueda_5_1"/>
+  <axis xyz="-0.0 1.0 0.0"/>
+  <limit effort="100.0" velocity="5.0"/>
+  <dynamics damping="0.5" friction="0.1"/>
+</joint>
+
+<!-- rev_1 and rev_2 removed: AcopleTuboRB now connects to base_link via differential_joint -->
+<!-- Rocker pivots are now rocker_joint_r and rocker_joint_l -->
+
+<!-- ================= SENSOR LINKS ================= -->
+
+<!-- Velodyne LiDAR base link -->
+<link name="velodyne_base_link">
+  <inertial>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <mass value="4.07779"/>
+    <inertia ixx="0.007987" iyy="0.007987" izz="0.007987" ixy="0" iyz="0" ixz="0"/>
+  </inertial>
+  <visual>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <geometry>
+      <cylinder radius="0.0387" length="0.0538"/>
+    </geometry>
+    <material name="dark_grey">
+      <color rgba="0.1 0.1 0.1 1.0"/>
+    </material>
+  </visual>
+  <collision>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <geometry>
+      <cylinder radius="0.0387" length="0.0538"/>
+    </geometry>
+  </collision>
+</link>
+
+<joint name="velodyne_base_mount_joint" type="fixed">
+  <origin xyz="0.283305 0.116408 0.6375" rpy="0 0 0"/>
+  <parent link="base_link"/>
+  <child link="velodyne_base_link"/>
+</joint>
+
+<!-- IMU link -->
+<link name="imu_link">
+  <inertial>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <mass value="0.073695"/>
+    <inertia ixx="0.000799" iyy="0.000799" izz="0.000799" ixy="0" iyz="0" ixz="0"/>
+  </inertial>
+  <visual>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <geometry>
+      <box size="0.041662 0.034237 0.015"/>
+    </geometry>
+    <material name="dark_grey"/>
+  </visual>
+  <collision>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <geometry>
+      <box size="0.041662 0.034237 0.015"/>
+    </geometry>
+  </collision>
+</link>
+
+<joint name="imu_joint" type="fixed">
+  <origin xyz="0.283305 0.116408 0.57375" rpy="0 0 0"/>
+  <parent link="base_link"/>
+  <child link="imu_link"/>
+</joint>
+
+<!-- Camera link -->
+<link name="camera_link">
+  <inertial>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <mass value="0.04913"/>
+    <inertia ixx="0.000799" iyy="0.000799" izz="0.000799" ixy="0" iyz="0" ixz="0"/>
+  </inertial>
+  <visual>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <geometry>
+      <box size="0.024997 0.05478 0.0225"/>
+    </geometry>
+    <material name="dark_grey"/>
+  </visual>
+  <collision>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <geometry>
+      <box size="0.024997 0.05478 0.0225"/>
+    </geometry>
+  </collision>
+</link>
+
+<joint name="camera_joint" type="fixed">
+  <origin xyz="-0.070826 0.116408 0.6375" rpy="0 0 3.14159"/>
+  <parent link="base_link"/>
+  <child link="camera_link"/>
+</joint>
+
+<!-- Camera optical frame -->
+<link name="camera_optical_frame">
+  <inertial>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <mass value="0.004913"/>
+    <inertia ixx="0.00008" iyy="0.00008" izz="0.00008" ixy="0" iyz="0" ixz="0"/>
+  </inertial>
+</link>
+
+<joint name="camera_optical_joint" type="fixed">
+  <origin xyz="0 0 0" rpy="-1.5707963267948966 0 -1.5707963267948966"/>
+  <parent link="camera_link"/>
+  <child link="camera_optical_frame"/>
+</joint>
+
+</robot>

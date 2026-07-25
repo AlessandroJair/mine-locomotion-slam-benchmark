@@ -1,0 +1,51 @@
+<?xml version="1.0" ?>
+<sdf version="1.5">
+  <model name="smaze_wall">
+    <static>true</static>
+    <link name="link">
+      <pose>0 0 2.5 0 0 0</pose>
+      <collision name="collision">
+        <geometry>
+          <box>
+            <size>8 0.4 5</size>
+          </box>
+        </geometry>
+        <!--
+          Gallery wall friction.  NOT a drivable surface: this value only takes
+          effect when a robot grazes a wall, where a high mu makes the contact
+          stick instead of sliding along.
+
+          PARITY NOTE (fixed 2026-07): this <surface> block was present in the
+          rocker_bogie and differential packages but ABSENT in the tracked
+          package, where the walls therefore used the ODE default mu = 1.0.  A
+          tracked robot brushing a wall slid along it while the other two
+          snagged.  The value below (mu = 100, the setting 2 of the 3 packages
+          already used) is now canonical for all three.
+        -->
+        <surface>
+          <friction>
+            <ode>
+              <mu>100.0</mu>
+              <mu2>100.0</mu2>
+            </ode>
+          </friction>
+        </surface>
+      </collision>
+      <visual name="visual">
+<!--        <cast_shadows>false</cast_shadows>-->
+        <geometry>
+          <box>
+            <size>8 0.4 5</size>
+          </box>
+        </geometry>
+        <material>
+          <script>
+            <uri>model://smaze_wall/materials/scripts</uri>
+            <uri>model://smaze_wall/materials/textures</uri>
+            <name>vrc/smaze_wall</name>
+          </script>
+        </material>
+      </visual>
+    </link>
+  </model>
+</sdf>

@@ -1,0 +1,203 @@
+# =============================================================================
+# sim_config.yaml - single source of truth for the simulation setup
+# =============================================================================
+# Everything a reviewer needs in order to reproduce or audit the three-platform
+# comparison.  Two scripts read this file:
+#
+#   check_sim_parity.py  - asserts that what is written here is what is actually
+#                          in the .world / URDF / SDF files, and that the three
+#                          robot packages agree.  Run it before every campaign.
+#   run_campaign.sh      - drives the 3 runs x 3 robots experiment.
+#
+# Keep this file and the .world files in sync; check_sim_parity.py fails loudly
+# if they drift apart.
+# =============================================================================
+
+experiment:
+  name: "mine_exploration_comparison"
+  world: "lcmine.world"
+  runs_per_robot: 3
+  # Seconds discarded at the start of every log (Gazebo spawn / solver
+  # transient).  Applied identically to all robots by analyze_metrics.py.
+  warmup_s: 5.0
+
+# -----------------------------------------------------------------------------
+# REPRODUCIBILITY
+# -----------------------------------------------------------------------------
+# Run N of every robot is launched with `gzserver --seed (seed_base + N)`, so
+# runs 1/2/3 use seeds 1/2/3.  Different seeds mean different sensor noise,
+# which is exactly what the reported standard deviation measures - but each
+# individual run is now anchored and can be replayed:
+#
+#     roslaunch rocker_bogie lcmine_rocker_bogie_world.launch seed:=2
+#
+# The seed of each run is also written into its run_meta.yaml.  Before this was
+# wired, gzserver seeded from the system clock and no run could ever be
+# reproduced.
+reproducibility:
+  seed_base: 0
+  seed_rule: "gazebo_seed = seed_base + run_id"
+  # What the seed actually covers.  Established by symbol inspection (nm -D):
+  # the IMU plugin calls ignition::math::Rand, which the seed controls; the
+  # Velodyne plugin calls the C library's rand(), which it does not.  All LiDAR
+  # noise was therefore moved into the sensor's own <noise> block, which is
+  # Gazebo's seeded generator, and the plugin's <gaussianNoise> set to zero.
+  seeded_generators: ["ignition::math::Rand (Gazebo <noise> models)"]
+  unseeded_generators: ["C rand() in libgazebo_ros_velodyne_gpu_laser.so - now
+                         unused, its gaussianNoise is 0.0"]
+
+# -----------------------------------------------------------------------------
+# SENSOR NOISE - must be IDENTICAL for the three robots.
+# -----------------------------------------------------------------------------
+# Verified equal across the three models; this is what belongs in the paper's
+# sensor table.
+#
+# NOTE on the LiDAR figure: the models used to declare 0.008 in the sensor's
+# <noise> block AND 0.008 in the plugin's <gaussianNoise>.  Those are two
+# independent Gaussians, so the LiDAR really saw 0.008*sqrt(2) = 0.011314 m.
+# The effective level is unchanged, but it is now stated correctly and produced
+# by a single seeded generator.  Do not report 0.008.
+sensor_noise:
+  lidar_range_stddev_m: 0.011314
+  imu_angular_velocity_stddev_rad_s: 0.009
+  imu_linear_acceleration_stddev_m_s2: 0.021
+  camera_stddev: 0.007
+
+# -----------------------------------------------------------------------------
+# PHYSICS - must be IDENTICAL for the three robots.
+# These values are declared in the <physics> block of lcmine.world, which is
+# byte-identical in the three robot packages.
+# -----------------------------------------------------------------------------
+physics:
+  engine: "ode"                     # Gazebo classic 11, ODE backend
+  max_step_size_s: 0.001            # s
+  real_time_update_rate_hz: 1000    # Hz  -> target real_time_factor 1.0
+  real_time_factor: 1
+  solver:
+    type: "quick"                   # iterative LCP (projected Gauss-Seidel)
+    iters: 150
+    sor: 1.3
+    use_dynamic_moi_rescaling: true
+  constraints:
+    cfm: 0.0
+    erp: 0.2
+    contact_max_correcting_vel: 100.0
+    contact_surface_layer_m: 0.001
+  gravity_mps2: [0.0, 0.0, -9.81]
+
+  # Why 150 solver iterations and not the Gazebo default of 50:
+  # the Rocker-Bogie puts 6 wheel contacts and 5 passive pivots into a single
+  # constraint island.  At 50 iterations the LCP does not converge within a
+  # step, which appears as contact jitter and spurious wheel lift-off on the
+  # step obstacle - i.e. a solver artefact that is easy to mistake for real
+  # loss of ground contact.  Peak vertical acceleration on the step changes by
+  # < 2% between 150 and 300 iterations, so 150 is the converged setting.
+
+# -----------------------------------------------------------------------------
+# TERRAIN - identical for the three robots.  Declared in the world / model SDFs.
+# -----------------------------------------------------------------------------
+terrain:
+  lc_mine:      { mu1: 1.0, mu2: 1.0, note: "mine gallery mesh, drivable surface" }
+  grass_plane:  { mu1: 1.0, mu2: 1.0, note: "ground plane outside the gallery" }
+  ramp:         { mu1: 1.5, mu2: 1.5, note: "5 m long, 1.5 m high, 10 m wide" }
+  step:         { mu1: 1.5, mu2: 1.5, note: "the step obstacle, see below" }
+
+# The step-crossing obstacle.  This is the geometry used for the wheel-contact
+# experiment that replaces Fig. 2.
+step_obstacle:
+  model_name: "bump"
+  pose_xyzrpy: [54.0, -27.0, 5.35, 0.0, 0.0, 1.57]
+  size_m: [2.5, 10.0, 0.1]      # [along travel, across gallery, HEIGHT]
+  height_m: 0.1
+  # HISTORY: before 2026-07 this obstacle was 2.5 m @ y=-27.0 in the Husky and
+  # Tracked packages but 3.0 m @ y=-27.5 in the Rocker-Bogie package.  The three
+  # platforms were crossing different obstacles.  Any step result predating that
+  # fix is not comparable and must be regenerated.
+
+# -----------------------------------------------------------------------------
+# SPAWN POSE - x, y and physical heading identical for the three robots.
+# -----------------------------------------------------------------------------
+spawn:
+  common: { x: 33.5, y: 0.2 }
+  rocker_bogie:  { z: 1.3, yaw_rad: 3.14159, model_name: "rocker_bogie" }
+  differential:  { z: 1.5, yaw_rad: 0.0,     model_name: "differential" }
+  tracked:       { z: 1.0, yaw_rad: 0.0,     model_name: "two_track_robot" }
+  # yaw differs ONLY because the Rocker-Bogie URDF is authored with base_link
+  # facing -x; spawning it at yaw = pi gives the same physical heading as the
+  # other two at yaw = 0.  z is the per-platform drop height (chassis height
+  # above the floor); it is not a test condition.
+
+# -----------------------------------------------------------------------------
+# GROUND TRUTH - how the reference trajectory is obtained.
+# -----------------------------------------------------------------------------
+# This section answers the reviewer's question directly: the ground truth is the
+# EXACT pose of the model as integrated by the physics engine.  It is not
+# filtered, not smoothed, and carries no synthetic noise.
+ground_truth:
+  source_topic: "/gazebo/model_states"
+  message_type: "gazebo_msgs/ModelStates"
+  # ModelStates carries the canonical link pose of the model in the Gazebo world
+  # frame, taken straight from the ODE state vector at the end of the step.
+  filtering: "none"
+  added_noise: "none"
+  # The pose refers to the model's canonical link origin (base_link), NOT to the
+  # centre of mass and NOT to the IMU or LiDAR frame.  Sensor-frame offsets are
+  # listed in sensor_poses.csv (see extract_sensor_poses.py); the SLAM estimate
+  # is expressed in the same base_link frame, so no extrinsic compensation is
+  # applied when computing ATE/RPE.
+  logged_as: "gt_traj_<robot>_run<N>.tum   (TUM format: t tx ty tz qx qy qz qw)"
+  # ModelStates is published on the Gazebo update loop and carries NO header
+  # stamp.  metrics_logger.py timestamps every sample with the sim clock
+  # (/clock, use_sim_time:=true) at reception.  Publication rate is ~1 kHz,
+  # logging rate is 50 Hz, so the timestamping error is bounded by one physics
+  # step (1 ms) - three orders of magnitude below the ATE values of interest.
+  sim_time: true
+  log_rate_hz: 50
+
+# -----------------------------------------------------------------------------
+# SLAM
+# -----------------------------------------------------------------------------
+slam:
+  backend: "rtabmap"
+  odom_topic: "/rtabmap/odom"
+  info_topic: "/rtabmap/info"
+  odom_info_topic: "/rtabmap/odom_info"
+  cloud_map_topic: "/rtabmap/cloud_map"
+  # A tracking loss is recorded when RTAB-Map odometry reports a null/rejected
+  # transform (odom_info.lost) or when no odometry message arrives for longer
+  # than tracking_loss_timeout_s.
+  tracking_loss_timeout_s: 1.0
+
+# -----------------------------------------------------------------------------
+# PER-ROBOT TOPIC / NAMING MAP
+# -----------------------------------------------------------------------------
+robots:
+  rocker_bogie:
+    display_name: "Rocker-bogie"
+    cmd_vel_topic: "/cmd_vel"
+    model_name: "rocker_bogie"
+    base_frame: "rocker_bogie/base_link"
+    wheel_links: ["Rueda_1_1", "Rueda_2_1", "Rueda_3_1",
+                  "Rueda_4_1", "Rueda_5_1", "Rueda_6_1"]
+    # Mapping from mesh link name to physical position, needed to plot the
+    # contact figure with meaningful labels:
+    wheel_layout:
+      Rueda_5_1: "front_left"
+      Rueda_3_1: "middle_left"
+      Rueda_1_1: "rear_left"
+      Rueda_2_1: "front_right"
+      Rueda_4_1: "middle_right"
+      Rueda_6_1: "rear_right"
+  differential:
+    display_name: "Husky (differential)"
+    cmd_vel_topic: "/cmd_vel"
+    model_name: "differential"
+    base_frame: "husky/base_link"
+  tracked:
+    display_name: "Tracked"
+    cmd_vel_topic: "/cmd_vel"
+    model_name: "two_track_robot"
+    base_frame: "example_two_track/base_link"
+
+# Canonical column order for every generated table.
+robot_order: ["differential", "tracked", "rocker_bogie"]

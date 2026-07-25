@@ -1,0 +1,178 @@
+<?xml version="1.0" ?>
+<robot name="ensamblajeurdf" xmlns:xacro="http://www.ros.org/wiki/xacro" >
+
+<!-- Transmissions for the 6 wheel joints (rev_9 to rev_14) -->
+<!-- Using VelocityJointInterface for diff_drive compatibility -->
+
+<transmission name="rev_9_tran">
+  <type>transmission_interface/SimpleTransmission</type>
+  <joint name="rev_9">
+    <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
+  </joint>
+  <actuator name="rev_9_actr">
+    <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
+    <mechanicalReduction>1</mechanicalReduction>
+  </actuator>
+</transmission>
+
+<transmission name="rev_10_tran">
+  <type>transmission_interface/SimpleTransmission</type>
+  <joint name="rev_10">
+    <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
+  </joint>
+  <actuator name="rev_10_actr">
+    <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
+    <mechanicalReduction>1</mechanicalReduction>
+  </actuator>
+</transmission>
+
+<transmission name="rev_11_tran">
+  <type>transmission_interface/SimpleTransmission</type>
+  <joint name="rev_11">
+    <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
+  </joint>
+  <actuator name="rev_11_actr">
+    <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
+    <mechanicalReduction>1</mechanicalReduction>
+  </actuator>
+</transmission>
+
+<transmission name="rev_12_tran">
+  <type>transmission_interface/SimpleTransmission</type>
+  <joint name="rev_12">
+    <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
+  </joint>
+  <actuator name="rev_12_actr">
+    <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
+    <mechanicalReduction>1</mechanicalReduction>
+  </actuator>
+</transmission>
+
+<transmission name="rev_13_tran">
+  <type>transmission_interface/SimpleTransmission</type>
+  <joint name="rev_13">
+    <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
+  </joint>
+  <actuator name="rev_13_actr">
+    <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
+    <mechanicalReduction>1</mechanicalReduction>
+  </actuator>
+</transmission>
+
+<transmission name="rev_14_tran">
+  <type>transmission_interface/SimpleTransmission</type>
+  <joint name="rev_14">
+    <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
+  </joint>
+  <actuator name="rev_14_actr">
+    <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
+    <mechanicalReduction>1</mechanicalReduction>
+  </actuator>
+</transmission>
+
+<!--
+  ===========================================================================
+  PASSIVE SUSPENSION JOINTS
+  ===========================================================================
+  WHY THE BOGIE AND ROCKER TRANSMISSIONS WERE REMOVED
+
+  This file used to declare a hardware_interface/VelocityJointInterface
+  transmission for differential_joint, rocker_joint_r, rocker_joint_l, rev_3
+  and rev_4, each labelled "(passive)".  They were not passive.
+
+  gazebo_ros_control's DefaultRobotHWSim registers EVERY joint that appears in
+  a <transmission>, and in each writeSim() cycle it drives that joint towards
+  its stored command.  No controller was ever spawned for these five joints, so
+  their command stayed at its initialised value of zero - and the simulator
+  spent every time step actively forcing the suspension to zero angular
+  velocity.  Combined with damping = 80 N*m*s/rad in the URDF, the rocker-bogie
+  was running with a locked suspension while being described in the paper as a
+  compliant one.
+
+  A joint with NO transmission is never registered by gazebo_ros_control and is
+  integrated by ODE as a free hinge, subject only to its <dynamics> damping and
+  friction.  That is what a passive pivot must be, so rev_3 and rev_4 (the
+  bogies) now have no transmission at all.
+
+  The two rocker pivots are the exception, and only because the differential
+  has to act on them: they expose an EffortJointInterface.  An effort interface
+  with a zero command applies zero torque, i.e. it leaves the joint free - so
+  even these two are passive unless rocker_differential.py is running.
+  ===========================================================================
+-->
+
+<transmission name="rocker_pivot_left_tran">
+  <type>transmission_interface/SimpleTransmission</type>
+  <joint name="rocker_pivot_left">
+    <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+  </joint>
+  <actuator name="rocker_pivot_left_actr">
+    <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+    <mechanicalReduction>1</mechanicalReduction>
+  </actuator>
+</transmission>
+
+<transmission name="rocker_pivot_right_tran">
+  <type>transmission_interface/SimpleTransmission</type>
+  <joint name="rocker_pivot_right">
+    <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+  </joint>
+  <actuator name="rocker_pivot_right_actr">
+    <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+    <mechanicalReduction>1</mechanicalReduction>
+  </actuator>
+</transmission>
+
+<!--
+  NO transmission for rev_3 / rev_4 (the bogie pivots) and none for
+  rocker_joint_r / rocker_joint_l (now fixed joints).  Do not add one: any
+  transmission here re-locks the suspension.
+-->
+
+
+<!-- Steering joints (position controlled) -->
+<transmission name="rev_5_tran">
+  <type>transmission_interface/SimpleTransmission</type>
+  <joint name="rev_5">
+    <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+  </joint>
+  <actuator name="rev_5_actr">
+    <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+    <mechanicalReduction>1</mechanicalReduction>
+  </actuator>
+</transmission>
+
+<transmission name="rev_6_tran">
+  <type>transmission_interface/SimpleTransmission</type>
+  <joint name="rev_6">
+    <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+  </joint>
+  <actuator name="rev_6_actr">
+    <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+    <mechanicalReduction>1</mechanicalReduction>
+  </actuator>
+</transmission>
+
+<transmission name="rev_7_tran">
+  <type>transmission_interface/SimpleTransmission</type>
+  <joint name="rev_7">
+    <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+  </joint>
+  <actuator name="rev_7_actr">
+    <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+    <mechanicalReduction>1</mechanicalReduction>
+  </actuator>
+</transmission>
+
+<transmission name="rev_8_tran">
+  <type>transmission_interface/SimpleTransmission</type>
+  <joint name="rev_8">
+    <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+  </joint>
+  <actuator name="rev_8_actr">
+    <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+    <mechanicalReduction>1</mechanicalReduction>
+  </actuator>
+</transmission>
+
+</robot>

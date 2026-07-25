@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<launch>
+
+  <!-- Argumentos -->
+    <!-- The mine route. Generated from robot_metrics/config/route_mine.yaml
+       by generate_waypoints.py: all three platforms drive the same
+       physical path. Do not edit the generated file by hand. -->
+  <arg name="config_file" default="$(find differential)/config/waypoints_mine.yaml"/>
+  <arg name="use_rviz" default="true"/>
+  <arg name="use_move_base" default="true"/>
+
+  <!-- move_base (condicional) -->
+  <include file="$(find differential)/launch/move_base.launch" if="$(arg use_move_base)"/>
+
+  <!-- Nodo de navegacion por waypoints -->
+  <node pkg="differential" type="waypoint_navigator_yaml.py" name="waypoint_navigator" output="screen">
+    <param name="config_file" value="$(arg config_file)"/>
+    <param name="use_move_base" value="$(arg use_move_base)"/>
+  </node>
+
+  <!-- Repetition index for this run (1, 2, 3 ...). It MUST be declared here and
+       forwarded: metrics_logger.launch defaults it to 1, so without this the
+       three repetitions all write to run01 and overwrite each other, leaving
+       no per-run data and no standard deviation. run_campaign.sh passes it. -->
+  <arg name="run_id" default="1"/>
+
+  <!-- Metrics logger -->
+  <include file="$(find robot_metrics)/launch/metrics_logger.launch">
+    <arg name="robot_name" value="differential"/>
+    <arg name="model_name" value="husky"/>
+    <arg name="cmd_vel_topic" value="/cmd_vel"/>
+    <arg name="run_id" value="$(arg run_id)"/>
+    <!-- No wheel_links: this platform carries no Gazebo contact sensors, so
+         the contact columns are simply absent from its CSV. -->
+  </include>
+
+  <!-- RViz para visualizacion (opcional) -->
+  <group if="$(arg use_rviz)">
+    <node pkg="rviz" type="rviz" name="waypoint_rviz" args="-d $(find differential)/rviz/waypoint_navigation.rviz"/>
+  </group>
+
+</launch>

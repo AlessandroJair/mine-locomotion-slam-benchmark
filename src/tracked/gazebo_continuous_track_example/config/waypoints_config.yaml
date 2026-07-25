@@ -1,0 +1,40 @@
+# Configuración de waypoints para navegación
+# Formato: [x, y, yaw_degrees]
+
+waypoints:
+  - name: "Punto Inicial"
+    x: 0.0
+    y: 0.0
+    yaw: 0.0
+
+  - name: "Primer Giro"
+    x: 20.0
+    y: 0.0
+    yaw: 0.0
+
+  - name: "Segundo Giro"
+    x: 30.0
+    y: 0.0
+    yaw: 0.0
+
+  - name: "Tercer Giro"
+    x: 20.0
+    y: 0.0
+    yaw: 180.0
+
+  - name: "Cuarto Giro"
+    x: 0.0
+    y: 0.0
+    yaw: 180.0
+
+# Parámetros de navegación
+navigation_params:
+  goal_tolerance: 0.5  # metros (0.1 es muy agresivo con odometria SLAM)
+  angular_tolerance: 0.15  # radianes (~8.6 grados)
+  max_linear_speed: 0.5  # m/s
+  max_angular_speed: 1.0  # rad/s
+  linear_kp: 0.5  # Ganancia proporcional lineal
+  angular_kp: 1.0  # Ganancia proporcional angular
+  use_move_base: true  # true para usar move_base, false para control simple
+  move_base_timeout: 120.0  # segundos
+  move_base_retry_count: 2  # reintentos por waypoint

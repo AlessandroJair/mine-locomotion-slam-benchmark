@@ -1,0 +1,40 @@
+# DWA Local Planner - configuracion para mina con curvas pronunciadas
+DWAPlannerROS:
+  # Velocidades - igualadas entre los 3 robots
+  max_vel_x: 0.5
+  min_vel_x: 0.1
+  max_vel_y: 0.0
+  min_vel_y: 0.0
+  max_vel_trans: 0.5
+  min_vel_trans: 0.1
+  max_vel_theta: 1.0
+  min_vel_theta: 0.1
+
+  # Aceleraciones (tzacked necesita mas torque angular que diferencial)
+  acc_lim_x: 12.0
+  acc_lim_y: 0.0
+  acc_lim_theta: 35.0
+
+  # Simulacion
+  sim_time: 3.0
+  sim_granularity: 0.025
+  vx_samples: 15
+  vy_samples: 1
+  vtheta_samples: 30
+
+  # Tolerancias de objetivo
+  xy_goal_tolerance: 0.5
+  yaw_goal_tolerance: 0.3
+  latch_xy_goal_tolerance: true
+
+  # Pesos de la funcion de costo
+  path_distance_bias: 24.0
+  goal_distance_bias: 32.0
+  occdist_scale: 0.1
+
+  # Comportamiento de parada
+  oscillation_reset_dist: 0.2
+  oscillation_reset_angle: 0.3
+
+  # Punto de evaluacion adelante del robot
+  forward_point_distance: 0.4

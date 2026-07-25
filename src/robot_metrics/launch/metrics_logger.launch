@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<launch>
+
+  <!-- Argumentos -->
+  <arg name="robot_name" default="robot"/>
+  <arg name="cmd_vel_topic" default="/cmd_vel"/>
+  <arg name="output_dir" default="$(env HOME)/metrics_output"/>
+  <arg name="model_name" default="$(arg robot_name)"/>
+  <arg name="odom_topic" default="/rtabmap/odom"/>
+
+  <!-- Repetition index. Each run writes to
+       <output_dir>/<robot_name>/run<NN>/ so the three repetitions coexist
+       and aggregate_runs.py can report mean +/- std. -->
+  <arg name="run_id" default="1"/>
+
+  <!-- Wheel links carrying a Gazebo contact sensor. Empty for platforms that
+       do not have them; the contact columns are then simply absent. -->
+  <arg name="wheel_links" default=""/>
+
+  <!-- Seconds without an odometry message before tracking is declared lost. -->
+  <arg name="tracking_loss_timeout" default="1.0"/>
+  <!-- Ground-truth radius within which a reported loop closure counts as a
+       true positive. -->
+  <arg name="loop_true_radius" default="3.0"/>
+
+  <!-- Nodo de registro de metricas -->
+  <node pkg="robot_metrics" type="metrics_logger.py" name="metrics_logger" output="screen">
+    <param name="robot_name" value="$(arg robot_name)"/>
+    <param name="cmd_vel_topic" value="$(arg cmd_vel_topic)"/>
+    <param name="output_dir" value="$(arg output_dir)"/>
+    <param name="model_name" value="$(arg model_name)"/>
+    <param name="odom_topic" value="$(arg odom_topic)"/>
+    <param name="run_id" value="$(arg run_id)"/>
+    <param name="wheel_links" value="$(arg wheel_links)"/>
+    <param name="tracking_loss_timeout" value="$(arg tracking_loss_timeout)"/>
+    <param name="loop_true_radius" value="$(arg loop_true_radius)"/>
+  </node>
+
+</launch>

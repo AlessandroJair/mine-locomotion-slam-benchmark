@@ -1,0 +1,27 @@
+# =============================================================================
+# ICP Odometry parameters for RTAB-MAP - Rocker-Bogie
+# =============================================================================
+
+# IMU
+Imu/Enable: "true"
+
+# ICP parameters
+Icp/VoxelSize: "0.1"
+Icp/PointToPlaneK: "20"
+Icp/PointToPlane: "true"
+Icp/Iterations: "30"
+Icp/Epsilon: "0.0001"
+Icp/MaxTranslation: "2.0"
+Icp/MaxCorrespondenceDistance: "1.0"
+Icp/PM: "true"
+Icp/PMOutlierRatio: "0.85"
+
+# Odometry Strategy
+Odom/Strategy: "0"
+Odom/ScanKeyFrameThr: "0.9"
+Odom/ResetCountdown: "0"
+
+# Frame to Map
+OdomF2M/ScanSubtractRadius: "0.1"
+OdomF2M/ScanMaxSize: "15000"
+OdomF2M/BundleAdjustment: "1"

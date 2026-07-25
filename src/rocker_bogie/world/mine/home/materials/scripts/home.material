@@ -1,0 +1,16 @@
+material vrc/home
+{
+  receive_shadows off
+  technique
+  {
+    pass
+    {
+      texture_unit
+      {
+        texture home.png
+        scale 1 1
+        scroll_anim 0.15 0
+      }
+    }
+  }
+}

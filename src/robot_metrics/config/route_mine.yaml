@@ -1,0 +1,159 @@
+# =============================================================================
+# route_mine.yaml - the exploration route, defined ONCE in world coordinates
+# =============================================================================
+# The three platforms used to carry hand-edited, mutually inconsistent waypoint
+# files.  The Husky file even carried the comment
+#
+#     "Transformados desde rocker_bogie (x*-1, y*-1, yaw+180)"
+#
+# which is the right idea applied by hand, once, and never re-checked; the
+# Rocker-Bogie file meanwhile had drifted to a five-point out-and-back along a
+# single corridor while the others ran a fifteen-point loop.  The robots were
+# not driving the same route, so their SLAM results were not comparable.
+#
+# The fix is to stop maintaining three files.  The route is defined here, in
+# GAZEBO WORLD COORDINATES, and generate_waypoints.py projects it into each
+# robot's own map frame using that robot's spawn pose from sim_config.yaml.
+# Every platform therefore drives the same physical path through the same
+# gallery, and the per-robot YAML files become generated artefacts that should
+# never be edited by hand.
+#
+# -----------------------------------------------------------------------------
+# HOW THE POINTS WERE CHOSEN
+# -----------------------------------------------------------------------------
+# The corridors are NOT invented.  The mine is a 3D mesh (lc_mine/untitled2.dae)
+# whose drivable galleries cannot be read off the .world file, so the route
+# follows the same four corridors the previous Husky run demonstrably drove:
+#
+#     north gallery   y ~   0.2, x from 18 to 52
+#     east  gallery   x ~  54.0, y from 0 to -33
+#     south gallery   y ~ -38.8, x from 47 down to 20
+#     west  gallery   x ~  19.0, y from -34 up to 0
+#
+# (The old differential/config/waypoints_mine.yaml is in the map frame; adding
+# the spawn offset (33.5, 0.2) gives the world coordinates above.)  What has
+# changed is the DISTRIBUTION of points along those corridors, which is what
+# was actually criticised:
+#
+#   1. Even spacing.  The old file had gaps of 1.0 m next to gaps of 11.2 m,
+#      with five of its fifteen points inside a 5 m stretch of the south-west
+#      corner and nothing at all along the 19 m north gallery.  Points are now
+#      placed every 8-11 m along the whole loop.
+#   2. Coverage.  Every corridor now carries intermediate points, so the robot
+#      is driven along the full length of each rather than corner to corner.
+#   3. The step is straddled, not landed on.  Waypoints sit 4 m before and 4 m
+#      after the slab, never on it.  A waypoint on the obstacle makes the robot
+#      stop and re-orient with one axle raised, which measures the follower's
+#      tuning instead of the platform's ability to cross; straddling gives a
+#      clean run-up and exit and leaves the crossing as one uninterrupted
+#      segment that plot_wheel_contact.py can isolate.
+#   4. Loop closure.  The route returns to its origin along the same corridor
+#      it left by, so RTAB-Map gets a genuine revisit to detect and the
+#      loop-closure statistics mean something.
+#
+# Obstacles, from sim_config.yaml:
+#   step  centred (54.0, -27.0), 0.10 m high, 2.5 m along travel (y).
+#         It lies on the east gallery, which is why the route runs down x = 54.
+#
+#   ramp  centred (25.5, -9.5), 5 m long, 1.5 m high, 16.7 deg slope.  This is
+#         NOT a test obstacle: it and the other added blocks are terrain
+#         patching, placed to cover holes in the lc_mine mesh and verified
+#         visually in Gazebo.  It sits inside the loop rather than on any of
+#         the four corridors, and the previous Husky route did not cross it
+#         either, so no robot drives over it.  That is intended - but it does
+#         mean the paper cannot make any claim about slope or ramp climbing on
+#         the strength of these runs.  Doing so would need its own route and
+#         its own validated corridor; do not simply add a waypoint at
+#         (25.5, -9.5) and assume the robot can get there.
+#
+# Spawn pose (identical for all three): x = 33.5, y = 0.2
+# Travel direction: east, south, west, north - the same sense as the old route.
+# =============================================================================
+
+route:
+  name: "mine_loop_2026"
+  frame: "gazebo_world"
+
+  # yaw is the heading in world coordinates, degrees, CCW from +x.
+  waypoints:
+    - {name: "start",            x:  33.5, y:   0.2, yaw:    0.0}
+
+    # --- north gallery, heading east ---
+    - {name: "north_mid",        x:  43.0, y:   0.2, yaw:    0.0}
+    - {name: "ne_corner",        x:  52.5, y:   0.2, yaw:  300.0}
+
+    # --- east gallery, heading south, toward the step ---
+    - {name: "east_north",       x:  54.0, y:  -8.0, yaw:  270.0}
+    - {name: "east_mid",         x:  54.0, y: -17.0, yaw:  270.0}
+    - {name: "step_run_up",      x:  54.0, y: -23.0, yaw:  270.0}
+
+    # --- the step (y from -25.75 to -28.25) is crossed between these two ---
+    - {name: "step_exit",        x:  54.0, y: -31.0, yaw:  270.0}
+
+    - {name: "se_corner",        x:  50.5, y: -37.0, yaw:  210.0}
+
+    # --- south gallery, heading west ---
+    - {name: "south_east",       x:  41.0, y: -38.8, yaw:  180.0}
+    - {name: "south_mid",        x:  31.0, y: -39.5, yaw:  180.0}
+    - {name: "south_west",       x:  22.0, y: -38.5, yaw:  170.0}
+
+    # --- west gallery, heading north ---
+    - {name: "sw_corner",        x:  19.5, y: -33.0, yaw:   90.0}
+    - {name: "west_south",       x:  19.0, y: -24.0, yaw:   90.0}
+    - {name: "west_mid",         x:  18.5, y: -14.0, yaw:   90.0}
+    - {name: "nw_corner",        x:  18.0, y:  -4.0, yaw:   60.0}
+
+    # --- back east along the north gallery to close the loop ---
+    - {name: "north_west",       x:  25.5, y:   0.2, yaw:    0.0}
+    - {name: "loop_close",       x:  33.5, y:   0.2, yaw:    0.0}
+
+# -----------------------------------------------------------------------------
+# FOLLOWER TUNING
+# -----------------------------------------------------------------------------
+# These become the navigation_params block of every generated file, so the
+# three platforms are driven with identical gains and tolerances. Only the
+# minimum turn radius differs, because it is a property of the chassis.
+navigation_params:
+  # Arrival tolerance. 0.8 m is a little over one vehicle length for these
+  # platforms; tighter than that and a steered vehicle that cannot pivot on
+  # the spot oscillates around the point instead of moving on.
+  goal_tolerance: 0.8            # m
+  angular_tolerance: 0.15        # rad (~8.6 deg)
+
+  max_linear_speed: 0.4          # m/s - identical for all three platforms
+  max_angular_speed: 0.8         # rad/s
+
+  # Proportional gains of the fallback pure-pursuit-style follower.
+  linear_kp: 0.6
+  angular_kp: 1.2
+
+  # Slow down this far out so the robot arrives at a speed it can stop from
+  # instead of overshooting and re-approaching.
+  approach_distance: 2.0         # m
+  approach_speed: 0.2            # m/s
+
+  use_move_base: true
+  move_base_timeout: 180.0       # s
+  move_base_retry_count: 2
+
+# -----------------------------------------------------------------------------
+# PER-PLATFORM KINEMATIC LIMITS
+# -----------------------------------------------------------------------------
+# Only the turn radius is platform-specific, and it is a measured property of
+# the chassis, not a tuning choice:
+#
+#   Rocker-bogie  steered, cannot pivot cleanly. Minimum radius at full lock is
+#                 (wheelbase/2) / tan(max_steer) = 0.4266 / tan(0.5) = 0.781 m.
+#                 A margin is added because the follower should not be planning
+#                 turns that need full lock.
+#   Husky/Tracked skid steer: they can rotate in place, so the radius is 0.
+platform_limits:
+  rocker_bogie:
+    min_turn_radius: 1.2         # m
+    can_pivot_in_place: false
+  differential:
+    min_turn_radius: 0.0         # m
+    can_pivot_in_place: true
+  tracked:
+    min_turn_radius: 0.0         # m
+    can_pivot_in_place: true

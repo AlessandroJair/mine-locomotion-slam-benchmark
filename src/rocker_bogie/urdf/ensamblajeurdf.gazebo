@@ -1,0 +1,635 @@
+<?xml version="1.0" ?>
+<robot name="ensamblajeurdf" xmlns:xacro="http://www.ros.org/wiki/xacro" >
+
+<xacro:property name="body_color" value="Gazebo/Silver" />
+
+<!-- ================= GAZEBO ROS CONTROL ================= -->
+<gazebo>
+  <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
+    <robotNamespace>/rocker_bogie</robotNamespace>
+  </plugin>
+</gazebo>
+
+<!-- ================= BODY MATERIALS ================= -->
+<gazebo reference="base_link">
+  <material>${body_color}</material>
+  <mu1>0.2</mu1>
+  <mu2>1.0</mu2>
+  <self_collide>false</self_collide>
+  <gravity>true</gravity>
+</gazebo>
+
+<gazebo reference="AcopleRB_1_1">
+  <material>${body_color}</material>
+  <mu1>0.2</mu1>
+  <mu2>1.0</mu2>
+  <self_collide>false</self_collide>
+</gazebo>
+
+<gazebo reference="AcopleRB_2_1">
+  <material>${body_color}</material>
+  <mu1>0.2</mu1>
+  <mu2>1.0</mu2>
+  <self_collide>false</self_collide>
+</gazebo>
+
+<gazebo reference="Barra_acople_1_1">
+  <material>${body_color}</material>
+  <mu1>0.2</mu1>
+  <mu2>1.0</mu2>
+  <self_collide>false</self_collide>
+</gazebo>
+
+<gazebo reference="Barra_acople_2_1">
+  <material>${body_color}</material>
+  <mu1>0.2</mu1>
+  <mu2>1.0</mu2>
+  <self_collide>false</self_collide>
+</gazebo>
+
+<gazebo reference="BarraBR_1_1">
+  <material>${body_color}</material>
+  <mu1>0.2</mu1>
+  <mu2>1.0</mu2>
+  <self_collide>false</self_collide>
+</gazebo>
+
+<gazebo reference="BarraBR_2_1">
+  <material>${body_color}</material>
+  <mu1>0.2</mu1>
+  <mu2>1.0</mu2>
+  <self_collide>false</self_collide>
+</gazebo>
+
+<gazebo reference="BarraAcople1_1">
+  <material>${body_color}</material>
+  <self_collide>false</self_collide>
+</gazebo>
+
+<gazebo reference="BarraAcople2_1">
+  <material>${body_color}</material>
+  <self_collide>false</self_collide>
+</gazebo>
+
+<gazebo reference="AcopleTubo90_1_1">
+  <material>${body_color}</material>
+  <self_collide>false</self_collide>
+</gazebo>
+
+<gazebo reference="AcopleTubo90__2_1">
+  <material>${body_color}</material>
+  <self_collide>false</self_collide>
+</gazebo>
+
+<gazebo reference="Barra_Acople_R_1_1">
+  <material>${body_color}</material>
+  <self_collide>false</self_collide>
+</gazebo>
+
+<gazebo reference="Barra_Acople_R_2_1">
+  <material>${body_color}</material>
+  <self_collide>false</self_collide>
+</gazebo>
+
+<gazebo reference="Acople_Rodamiento_1_1">
+  <material>${body_color}</material>
+  <self_collide>false</self_collide>
+</gazebo>
+
+<gazebo reference="Acople_Rodamiento_2_1">
+  <material>${body_color}</material>
+  <self_collide>false</self_collide>
+</gazebo>
+
+<gazebo reference="BarraAcople3_1">
+  <material>${body_color}</material>
+  <self_collide>false</self_collide>
+</gazebo>
+
+<gazebo reference="BarraAcople4_1">
+  <material>${body_color}</material>
+  <self_collide>false</self_collide>
+</gazebo>
+
+<gazebo reference="BarraAcople5_1">
+  <material>${body_color}</material>
+  <self_collide>false</self_collide>
+</gazebo>
+
+<gazebo reference="BarraAcople6_1">
+  <material>${body_color}</material>
+  <self_collide>false</self_collide>
+</gazebo>
+
+<gazebo reference="AcopleTubo135_1_1">
+  <material>${body_color}</material>
+  <self_collide>false</self_collide>
+</gazebo>
+
+<gazebo reference="AcopleTubo135_2_1">
+  <material>${body_color}</material>
+  <self_collide>false</self_collide>
+</gazebo>
+
+<gazebo reference="ApoyoServomotor_1_1">
+  <material>${body_color}</material>
+  <self_collide>false</self_collide>
+</gazebo>
+
+<gazebo reference="ApoyoServomotor_2_1">
+  <material>${body_color}</material>
+  <self_collide>false</self_collide>
+</gazebo>
+
+<gazebo reference="ApoyoServomotor_3_1">
+  <material>${body_color}</material>
+  <self_collide>false</self_collide>
+</gazebo>
+
+<gazebo reference="ApoyoServomotor_4_1">
+  <material>${body_color}</material>
+  <self_collide>false</self_collide>
+</gazebo>
+
+<gazebo reference="BarraRuedas_1_1">
+  <material>${body_color}</material>
+  <self_collide>false</self_collide>
+</gazebo>
+
+<gazebo reference="BarraRuedas_2_1">
+  <material>${body_color}</material>
+  <self_collide>false</self_collide>
+</gazebo>
+
+<gazebo reference="BarraRuedas_3_1">
+  <material>${body_color}</material>
+  <self_collide>false</self_collide>
+</gazebo>
+
+<gazebo reference="BarraRuedas_4_1">
+  <material>${body_color}</material>
+  <self_collide>false</self_collide>
+</gazebo>
+
+<gazebo reference="BarraRuedas_5_1">
+  <material>${body_color}</material>
+  <self_collide>false</self_collide>
+</gazebo>
+
+<gazebo reference="BarraRuedas_6_1">
+  <material>${body_color}</material>
+  <self_collide>false</self_collide>
+</gazebo>
+
+<gazebo reference="SoporteMotor_1_1">
+  <material>${body_color}</material>
+  <self_collide>false</self_collide>
+</gazebo>
+
+<gazebo reference="SoporteMotor_2_1">
+  <material>${body_color}</material>
+  <self_collide>false</self_collide>
+</gazebo>
+
+<gazebo reference="SoporteMotor_3_1">
+  <material>${body_color}</material>
+  <self_collide>false</self_collide>
+</gazebo>
+
+<gazebo reference="SoporteMotor_4_1">
+  <material>${body_color}</material>
+  <self_collide>false</self_collide>
+</gazebo>
+
+<gazebo reference="SoporteMotor_5_1">
+  <material>${body_color}</material>
+  <self_collide>false</self_collide>
+</gazebo>
+
+<gazebo reference="SoporteMotor_6_1">
+  <material>${body_color}</material>
+  <self_collide>false</self_collide>
+</gazebo>
+
+<gazebo reference="Motor_1_1">
+  <material>${body_color}</material>
+  <self_collide>false</self_collide>
+</gazebo>
+
+<gazebo reference="Motor_2_1">
+  <material>${body_color}</material>
+  <self_collide>false</self_collide>
+</gazebo>
+
+<gazebo reference="Motor_3_1">
+  <material>${body_color}</material>
+  <self_collide>false</self_collide>
+</gazebo>
+
+<gazebo reference="Motor_4_1">
+  <material>${body_color}</material>
+  <self_collide>false</self_collide>
+</gazebo>
+
+<gazebo reference="Motor_5_1">
+  <material>${body_color}</material>
+  <self_collide>false</self_collide>
+</gazebo>
+
+<gazebo reference="Motor_6_1">
+  <material>${body_color}</material>
+  <self_collide>false</self_collide>
+</gazebo>
+
+<!-- ================= WHEEL FRICTION AND CONTACT ================= -->
+<!--
+  mu1  : traccion (rodadura)          mu2 : lateral (deslizamiento para giro)
+  fdir1: direccion de rodadura en frame del body (X=adelante)
+  kp/kd: rigidez y amortiguamiento normal del contacto (ODE)
+
+  CONTACT-STIFFNESS REVIEW (asked for in the revision)
+  ====================================================
+  Values in use, identical on all six wheels:
+
+      mu1      = 100.0        mu2      = 0.75
+      kp       = 1.0e5 N/m    kd       = 10.0 N*s/m
+      minDepth = 0.003 m      maxVel   = 1.0 m/s
+
+  Is kp too stiff, i.e. could it fake a loss of contact on the step?
+  With a total vehicle mass of ~40 kg the static load per wheel is ~65 N, which
+  at kp = 1e5 N/m gives an equilibrium penetration of 0.65 mm - soft, not
+  stiff.  For comparison, the stock Husky wheels use kp = 1e6...1e7.  maxVel
+  caps the contact-correcting velocity at 1 m/s, which is what actually
+  suppresses restitution, and minDepth = 3 mm keeps the solver from chattering
+  around zero penetration.  So the contact model itself is NOT the cause of the
+  lift-off observed on the step.
+
+  Two other things were, and both are now fixed:
+    1. the suspension was mechanically unable to articulate (see the URDF: the
+       two rocker sides were welded together and the pivots were held at zero
+       velocity by stray transmissions);
+    2. the world declared no <physics> block, so the ODE solver ran at its
+       default 50 iterations.  With 6 wheel contacts and the passive pivots in
+       one constraint island that does not converge inside a 1 ms step, and the
+       residual shows up as contact jitter.  lcmine.world now pins the solver
+       at 150 iterations.
+
+  From now on the claim is testable rather than argued: the contact sensors
+  declared further down log the real per-wheel contact state, and
+  plot_wheel_contact.py turns them into the figure that replaces Fig. 2.
+  If a sensitivity check is requested, sweep kp over 1e4 / 1e5 / 1e6 with
+  everything else fixed and compare the contact traces.
+-->
+<!-- Ruedas esquina: mu2=0.4 (facilitar giro), Ruedas medio: mu=0.75 (estabilidad) -->
+
+<!-- Rueda_1_1: esquina (rev_12 - RL) -->
+<gazebo reference="Rueda_1_1">
+  <material>Gazebo/DarkGrey</material>
+  <mu1>100.0</mu1>
+  <mu2>0.75</mu2>
+  <fdir1>1 0 0</fdir1>
+  <kp>100000.0</kp>
+  <kd>10.0</kd>
+  <minDepth>0.003</minDepth>
+  <maxVel>1.0</maxVel>
+  <self_collide>false</self_collide>
+</gazebo>
+
+<!-- Rueda_2_1: esquina (rev_9 - FR) -->
+<gazebo reference="Rueda_2_1">
+  <material>Gazebo/DarkGrey</material>
+  <mu1>100.0</mu1>
+  <mu2>0.75</mu2>
+  <fdir1>1 0 0</fdir1>
+  <kp>100000.0</kp>
+  <kd>10.0</kd>
+  <minDepth>0.003</minDepth>
+  <maxVel>1.0</maxVel>
+  <self_collide>false</self_collide>
+</gazebo>
+
+<!-- Rueda_3_1: MEDIO (rev_13 - ML) -->
+<gazebo reference="Rueda_3_1">
+  <material>Gazebo/DarkGrey</material>
+  <mu1>100.0</mu1>
+  <mu2>0.75</mu2>
+  <fdir1>1 0 0</fdir1>
+  <kp>100000.0</kp>
+  <kd>10.0</kd>
+  <minDepth>0.003</minDepth>
+  <maxVel>1.0</maxVel>
+  <self_collide>false</self_collide>
+</gazebo>
+
+<!-- Rueda_4_1: MEDIO (rev_10 - MR) -->
+<gazebo reference="Rueda_4_1">
+  <material>Gazebo/DarkGrey</material>
+  <mu1>100.0</mu1>
+  <mu2>0.75</mu2>
+  <fdir1>1 0 0</fdir1>
+  <kp>100000.0</kp>
+  <kd>10.0</kd>
+  <minDepth>0.003</minDepth>
+  <maxVel>1.0</maxVel>
+  <self_collide>false</self_collide>
+</gazebo>
+
+<!-- Rueda_5_1: esquina (rev_14 - FL) -->
+<gazebo reference="Rueda_5_1">
+  <material>Gazebo/DarkGrey</material>
+  <mu1>100.0</mu1>
+  <mu2>0.75</mu2>
+  <fdir1>1 0 0</fdir1>
+  <kp>100000.0</kp>
+  <kd>10.0</kd>
+  <minDepth>0.003</minDepth>
+  <maxVel>1.0</maxVel>
+  <self_collide>false</self_collide>
+</gazebo>
+
+<!-- Rueda_6_1: esquina (rev_11 - RR) -->
+<gazebo reference="Rueda_6_1">
+  <material>Gazebo/DarkGrey</material>
+  <mu1>100.0</mu1>
+  <mu2>0.75</mu2>
+  <fdir1>1 0 0</fdir1>
+  <kp>100000.0</kp>
+  <kd>10.0</kd>
+  <minDepth>0.003</minDepth>
+  <maxVel>1.0</maxVel>
+  <self_collide>false</self_collide>
+</gazebo>
+
+<gazebo reference="AcopleTuboRB_1_1">
+  <material>${body_color}</material>
+  <self_collide>false</self_collide>
+</gazebo>
+
+<gazebo reference="AcopleTuboRB_2_1">
+  <material>${body_color}</material>
+  <self_collide>false</self_collide>
+</gazebo>
+
+<!-- ================= WHEEL CONTACT SENSORS ================= -->
+<!--
+  One contact sensor per wheel, added to produce the measured wheel-ground
+  contact figure that replaces Fig. 2 (which was drawn from an idealised MATLAB
+  model and does not necessarily reflect what the physics engine does).
+
+  Each sensor publishes gazebo_msgs/ContactsState on
+      /wheel_contacts/<link name>
+  from which metrics_logger.py derives, per wheel and per sample:
+      * contact      - boolean, true when the states array is non-empty;
+      * normal force - |total_wrench.force|, in newtons.
+
+  The collision element referenced below is named "<link>_collision": that is
+  the name Gazebo's URDF parser assigns to a link's single unnamed <collision>.
+  If a wheel ever gains a second collision the names become
+  "<link>_collision_1" etc. and these references must be updated, otherwise the
+  sensor silently reports no contact for ever.
+
+  update_rate is 100 Hz, twice the 50 Hz logging rate, so a contact event
+  shorter than one log sample is still caught by the sensor and latched.
+
+  Wheel naming (see sim_config.yaml):
+      Rueda_5_1 front-left    Rueda_2_1 front-right
+      Rueda_3_1 middle-left   Rueda_4_1 middle-right
+      Rueda_1_1 rear-left     Rueda_6_1 rear-right
+-->
+
+<gazebo reference="Rueda_1_1">
+  <sensor name="contact_Rueda_1_1" type="contact">
+    <always_on>true</always_on>
+    <update_rate>100</update_rate>
+    <contact>
+      <collision>Rueda_1_1_collision</collision>
+    </contact>
+    <plugin name="bumper_Rueda_1_1" filename="libgazebo_ros_bumper.so">
+      <bumperTopicName>/wheel_contacts/Rueda_1_1</bumperTopicName>
+      <frameName>world</frameName>
+    </plugin>
+  </sensor>
+</gazebo>
+
+<gazebo reference="Rueda_2_1">
+  <sensor name="contact_Rueda_2_1" type="contact">
+    <always_on>true</always_on>
+    <update_rate>100</update_rate>
+    <contact>
+      <collision>Rueda_2_1_collision</collision>
+    </contact>
+    <plugin name="bumper_Rueda_2_1" filename="libgazebo_ros_bumper.so">
+      <bumperTopicName>/wheel_contacts/Rueda_2_1</bumperTopicName>
+      <frameName>world</frameName>
+    </plugin>
+  </sensor>
+</gazebo>
+
+<gazebo reference="Rueda_3_1">
+  <sensor name="contact_Rueda_3_1" type="contact">
+    <always_on>true</always_on>
+    <update_rate>100</update_rate>
+    <contact>
+      <collision>Rueda_3_1_collision</collision>
+    </contact>
+    <plugin name="bumper_Rueda_3_1" filename="libgazebo_ros_bumper.so">
+      <bumperTopicName>/wheel_contacts/Rueda_3_1</bumperTopicName>
+      <frameName>world</frameName>
+    </plugin>
+  </sensor>
+</gazebo>
+
+<gazebo reference="Rueda_4_1">
+  <sensor name="contact_Rueda_4_1" type="contact">
+    <always_on>true</always_on>
+    <update_rate>100</update_rate>
+    <contact>
+      <collision>Rueda_4_1_collision</collision>
+    </contact>
+    <plugin name="bumper_Rueda_4_1" filename="libgazebo_ros_bumper.so">
+      <bumperTopicName>/wheel_contacts/Rueda_4_1</bumperTopicName>
+      <frameName>world</frameName>
+    </plugin>
+  </sensor>
+</gazebo>
+
+<gazebo reference="Rueda_5_1">
+  <sensor name="contact_Rueda_5_1" type="contact">
+    <always_on>true</always_on>
+    <update_rate>100</update_rate>
+    <contact>
+      <collision>Rueda_5_1_collision</collision>
+    </contact>
+    <plugin name="bumper_Rueda_5_1" filename="libgazebo_ros_bumper.so">
+      <bumperTopicName>/wheel_contacts/Rueda_5_1</bumperTopicName>
+      <frameName>world</frameName>
+    </plugin>
+  </sensor>
+</gazebo>
+
+<gazebo reference="Rueda_6_1">
+  <sensor name="contact_Rueda_6_1" type="contact">
+    <always_on>true</always_on>
+    <update_rate>100</update_rate>
+    <contact>
+      <collision>Rueda_6_1_collision</collision>
+    </contact>
+    <plugin name="bumper_Rueda_6_1" filename="libgazebo_ros_bumper.so">
+      <bumperTopicName>/wheel_contacts/Rueda_6_1</bumperTopicName>
+      <frameName>world</frameName>
+    </plugin>
+  </sensor>
+</gazebo>
+
+<!-- ================= PASSIVE SUSPENSION JOINT STATES ================= -->
+<!--
+  The bogie pivots have no transmission (that is what makes them passive), so
+  gazebo_ros_control does not know about them and they never appear in
+  /rocker_bogie/joint_states.  Their angles are nonetheless the quantity of
+  interest for the suspension analysis, so they are published directly by
+  Gazebo on a dedicated topic.
+
+  rocker_differential.py consumes this topic, which also keeps the differential
+  independent of controller-spawn ordering.
+-->
+<gazebo>
+  <plugin name="suspension_joint_state_publisher"
+          filename="libgazebo_ros_joint_state_publisher.so">
+    <robotNamespace>/rocker_bogie</robotNamespace>
+    <jointName>rocker_pivot_left, rocker_pivot_right, rev_3, rev_4</jointName>
+    <topicName>suspension_joint_states</topicName>
+    <updateRate>200</updateRate>
+    <alwaysOn>true</alwaysOn>
+  </plugin>
+</gazebo>
+
+<!-- ================= VELODYNE VLP-16 SENSOR ================= -->
+<gazebo reference="velodyne_base_link">
+  <sensor name="velodyne-VLP16" type="gpu_ray">
+    <pose>0 0 0.0641 0 0 0</pose>
+    <visualize>false</visualize>
+    <update_rate>10</update_rate>
+    <ray>
+      <scan>
+        <horizontal>
+          <samples>1875</samples>
+          <resolution>1</resolution>
+          <min_angle>-3.14159</min_angle>
+          <max_angle>3.14159</max_angle>
+        </horizontal>
+        <vertical>
+          <samples>16</samples>
+          <resolution>1</resolution>
+          <min_angle>-0.261799</min_angle>
+          <max_angle>0.261799</max_angle>
+        </vertical>
+      </scan>
+      <range>
+        <min>0.3</min>
+        <max>130.0</max>
+        <resolution>0.001</resolution>
+      </range>
+      <!-- ==================== LIDAR NOISE ====================
+           Single seeded source.  This model used to declare 0.008 here AND
+           0.008 in the plugin's <gaussianNoise> below: two independent
+           Gaussians that add in quadrature, so the LiDAR actually saw
+           0.008*sqrt(2) = 0.011314 m, not the 0.008 the paper would state.
+           Worse, the plugin's half was outside any seed - symbol inspection
+           shows libgazebo_ros_velodyne_gpu_laser.so imports the C library's
+           rand(), while this <noise> block goes through Gazebo's
+           ignition::math::Rand, which the gzserver seed option does control.
+
+           The effective noise level is deliberately UNCHANGED at 0.011314 m so
+           this does not alter the experiment; it is simply moved entirely into
+           the seeded generator and stated correctly.
+           ==================================================== -->
+      <noise>
+        <type>gaussian</type>
+        <mean>0.0</mean>
+        <stddev>0.011314</stddev>
+      </noise>
+    </ray>
+    <plugin name="gazebo_ros_laser_controller" filename="libgazebo_ros_velodyne_gpu_laser.so">
+      <topicName>/velodyne_points</topicName>
+      <frameName>rocker_bogie/velodyne_base_link</frameName>
+      <min_range>0.9</min_range>
+      <max_range>130.0</max_range>
+      <!-- Zero: all LiDAR noise now comes from the seeded <noise> block. -->
+      <gaussianNoise>0.0</gaussianNoise>
+    </plugin>
+  </sensor>
+</gazebo>
+
+<!-- ================= IMU SENSOR ================= -->
+<gazebo reference="imu_link">
+  <gravity>true</gravity>
+  <sensor name="imu_sensor" type="imu">
+    <always_on>true</always_on>
+    <update_rate>100</update_rate>
+    <visualize>true</visualize>
+    <topic>__default_topic__</topic>
+    <plugin filename="libgazebo_ros_imu_sensor.so" name="imu_plugin">
+      <topicName>/imu/data</topicName>
+      <bodyName>imu_link</bodyName>
+      <updateRateHZ>100.0</updateRateHZ>
+      <gaussianNoise>0.0</gaussianNoise>
+      <xyzOffset>0 0 0</xyzOffset>
+      <rpyOffset>0 0 0</rpyOffset>
+      <frameName>rocker_bogie/imu_link</frameName>
+      <initialOrientationAsReference>false</initialOrientationAsReference>
+    </plugin>
+    <pose>0 0 0 0 0 0</pose>
+    <imu>
+      <angular_velocity>
+        <x><noise type="gaussian"><mean>0</mean><stddev>0.009</stddev></noise></x>
+        <y><noise type="gaussian"><mean>0</mean><stddev>0.009</stddev></noise></y>
+        <z><noise type="gaussian"><mean>0</mean><stddev>0.009</stddev></noise></z>
+      </angular_velocity>
+      <linear_acceleration>
+        <x><noise type="gaussian"><mean>0</mean><stddev>0.021</stddev></noise></x>
+        <y><noise type="gaussian"><mean>0</mean><stddev>0.021</stddev></noise></y>
+        <z><noise type="gaussian"><mean>0</mean><stddev>0.021</stddev></noise></z>
+      </linear_acceleration>
+    </imu>
+  </sensor>
+</gazebo>
+
+<!-- ================= CAMERA SENSOR ================= -->
+<gazebo reference="camera_link">
+  <sensor name="camera_sensor" type="camera">
+    <update_rate>30</update_rate>
+    <camera name="head">
+      <horizontal_fov>1.3962634</horizontal_fov>
+      <image>
+        <width>640</width>
+        <height>480</height>
+        <format>R8G8B8</format>
+      </image>
+      <clip>
+        <near>0.02</near>
+        <far>300</far>
+      </clip>
+      <noise>
+        <type>gaussian</type>
+        <mean>0.0</mean>
+        <stddev>0.007</stddev>
+      </noise>
+    </camera>
+    <plugin name="camera_controller" filename="libgazebo_ros_camera.so">
+      <alwaysOn>true</alwaysOn>
+      <updateRate>0.0</updateRate>
+      <cameraName>camera</cameraName>
+      <imageTopicName>/camera/image_raw</imageTopicName>
+      <cameraInfoTopicName>/camera/camera_info</cameraInfoTopicName>
+      <frameName>rocker_bogie/camera_optical_frame</frameName>
+      <hackBaseline>0.07</hackBaseline>
+      <distortionK1>0.0</distortionK1>
+      <distortionK2>0.0</distortionK2>
+      <distortionK3>0.0</distortionK3>
+      <distortionT1>0.0</distortionT1>
+      <distortionT2>0.0</distortionT2>
+    </plugin>
+  </sensor>
+</gazebo>
+
+</robot>

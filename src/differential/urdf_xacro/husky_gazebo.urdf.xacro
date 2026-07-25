@@ -1,0 +1,256 @@
+<?xml version="1.0"?>
+<robot name="husky" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+    <xacro:include filename="husky.urdf.xacro" />
+
+    <!-- Controlador diff_drive definido en model/differential/model.sdf -->
+    <!-- No usar gazebo_ros_control aqui: el SDF usa libgazebo_ros_diff_drive.so -->
+
+    <!-- ================= VELODYNE SENSOR PLUGIN ================= -->
+    <gazebo reference="velodyne_base_link">
+        <sensor type="gpu_ray" name="velodyne-VLP16">
+            <pose>0 0 0.0377 0 0 0</pose>
+            <visualize>false</visualize>
+            <update_rate>10</update_rate>
+            <ray>
+                <scan>
+                    <horizontal>
+                        <samples>1875</samples>
+                        <resolution>1</resolution>
+                        <min_angle>-${pi}</min_angle>
+                        <max_angle>${pi}</max_angle>
+                    </horizontal>
+                    <vertical>
+                        <samples>16</samples>
+                        <resolution>1</resolution>
+                        <min_angle>-${15.0*pi/180.0}</min_angle>
+                        <max_angle>${15.0*pi/180.0}</max_angle>
+                    </vertical>
+                </scan>
+                <range>
+                    <min>0.3</min>
+                    <max>130.0</max>
+                    <resolution>0.001</resolution>
+                </range>
+                <noise>
+                    <type>gaussian</type>
+                    <mean>0.0</mean>
+                    <stddev>0.008</stddev>
+                </noise>
+            </ray>
+            <plugin name="gazebo_ros_laser_controller" filename="libgazebo_ros_velodyne_gpu_laser.so">
+                <topicName>/velodyne_points</topicName>
+                <frameName>husky/velodyne_base_link</frameName>
+                <min_range>0.9</min_range>
+                <max_range>130.0</max_range>
+                <gaussianNoise>0.008</gaussianNoise>
+            </plugin>
+        </sensor>
+    </gazebo>
+
+    <!-- Material del Velodyne -->
+    <gazebo reference="velodyne_base_link">
+        <material>Gazebo/Black</material>
+    </gazebo>
+
+    <!-- ================= IMU SENSOR PLUGIN ================= -->
+    <gazebo reference="imu_link">
+        <gravity>true</gravity>
+        <sensor name="imu_sensor" type="imu">
+            <always_on>true</always_on>
+            <update_rate>100</update_rate>
+            <visualize>true</visualize>
+            <topic>__default_topic__</topic>
+            <plugin filename="libgazebo_ros_imu_sensor.so" name="imu_plugin">
+                <topicName>/imu/data</topicName>
+                <bodyName>imu_link</bodyName>
+                <updateRateHZ>100.0</updateRateHZ>
+                <gaussianNoise>0.0</gaussianNoise>
+                <xyzOffset>0 0 0</xyzOffset>
+                <rpyOffset>0 0 0</rpyOffset>
+                <frameName>husky/imu_link</frameName>
+                <initialOrientationAsReference>false</initialOrientationAsReference>
+            </plugin>
+            <pose>0 0 0 0 0 0</pose>
+
+            <!-- Configuracion del ruido del IMU -->
+            <imu>
+                <angular_velocity>
+                    <x>
+                        <noise type="gaussian">
+                            <mean>0</mean>
+                            <stddev>0.009</stddev>
+                            <bias_mean>0.00075</bias_mean>
+                            <bias_stddev>0.005</bias_stddev>
+                            <dynamic_bias_stddev>0.00002</dynamic_bias_stddev>
+                            <dynamic_bias_correlation_time>400.0</dynamic_bias_correlation_time>
+                            <precision>0.00025</precision>
+                        </noise>
+                    </x>
+                    <y>
+                        <noise type="gaussian">
+                            <mean>0</mean>
+                            <stddev>0.009</stddev>
+                            <bias_mean>0.00075</bias_mean>
+                            <bias_stddev>0.005</bias_stddev>
+                            <dynamic_bias_stddev>0.00002</dynamic_bias_stddev>
+                            <dynamic_bias_correlation_time>400.0</dynamic_bias_correlation_time>
+                            <precision>0.00025</precision>
+                        </noise>
+                    </y>
+                    <z>
+                        <noise type="gaussian">
+                            <mean>0</mean>
+                            <stddev>0.009</stddev>
+                            <bias_mean>0.00075</bias_mean>
+                            <bias_stddev>0.005</bias_stddev>
+                            <dynamic_bias_stddev>0.00002</dynamic_bias_stddev>
+                            <dynamic_bias_correlation_time>400.0</dynamic_bias_correlation_time>
+                            <precision>0.00025</precision>
+                        </noise>
+                    </z>
+                </angular_velocity>
+                <linear_acceleration>
+                    <x>
+                        <noise type="gaussian">
+                            <mean>0</mean>
+                            <stddev>0.021</stddev>
+                            <bias_mean>0.05</bias_mean>
+                            <bias_stddev>0.0075</bias_stddev>
+                            <dynamic_bias_stddev>0.000375</dynamic_bias_stddev>
+                            <dynamic_bias_correlation_time>175.0</dynamic_bias_correlation_time>
+                            <precision>0.005</precision>
+                        </noise>
+                    </x>
+                    <y>
+                        <noise type="gaussian">
+                            <mean>0</mean>
+                            <stddev>0.021</stddev>
+                            <bias_mean>0.05</bias_mean>
+                            <bias_stddev>0.0075</bias_stddev>
+                            <dynamic_bias_stddev>0.000375</dynamic_bias_stddev>
+                            <dynamic_bias_correlation_time>175.0</dynamic_bias_correlation_time>
+                            <precision>0.005</precision>
+                        </noise>
+                    </y>
+                    <z>
+                        <noise type="gaussian">
+                            <mean>0</mean>
+                            <stddev>0.021</stddev>
+                            <bias_mean>0.05</bias_mean>
+                            <bias_stddev>0.0075</bias_stddev>
+                            <dynamic_bias_stddev>0.000375</dynamic_bias_stddev>
+                            <dynamic_bias_correlation_time>175.0</dynamic_bias_correlation_time>
+                            <precision>0.005</precision>
+                        </noise>
+                    </z>
+                </linear_acceleration>
+            </imu>
+        </sensor>
+    </gazebo>
+
+    <!-- ================= CAMERA PLUGIN ================= -->
+    <gazebo reference="camera_link">
+        <sensor type="camera" name="camera_sensor">
+            <update_rate>30.0</update_rate>
+            <camera name="head">
+                <horizontal_fov>1.3962634</horizontal_fov>
+                <image>
+                    <width>640</width>
+                    <height>480</height>
+                    <format>R8G8B8</format>
+                </image>
+                <clip>
+                    <near>0.02</near>
+                    <far>300</far>
+                </clip>
+                <noise>
+                    <type>gaussian</type>
+                    <mean>0.0</mean>
+                    <stddev>0.007</stddev>
+                </noise>
+            </camera>
+            <plugin name="camera_controller" filename="libgazebo_ros_camera.so">
+                <alwaysOn>true</alwaysOn>
+                <updateRate>0.0</updateRate>
+                <cameraName>camera</cameraName>
+                <imageTopicName>/camera/image_raw</imageTopicName>
+                <cameraInfoTopicName>/camera/camera_info</cameraInfoTopicName>
+                <frameName>husky/camera_optical_frame</frameName>
+                <hackBaseline>0.07</hackBaseline>
+                <distortionK1>0.0</distortionK1>
+                <distortionK2>0.0</distortionK2>
+                <distortionK3>0.0</distortionK3>
+                <distortionT1>0.0</distortionT1>
+                <distortionT2>0.0</distortionT2>
+            </plugin>
+        </sensor>
+    </gazebo>
+
+    <gazebo reference="camera_link">
+        <material>Gazebo/Black</material>
+    </gazebo>
+
+    <!-- ================= MATERIALS FOR WHEELS ================= -->
+    <gazebo reference="back_left_wheel">
+        <material>Gazebo/DarkGrey</material>
+        <mu1>1.0</mu1>
+        <mu2>1.0</mu2>
+        <kp>1000000.0</kp>
+        <kd>100.0</kd>
+        <minDepth>0.001</minDepth>
+        <maxVel>1.0</maxVel>
+    </gazebo>
+
+    <gazebo reference="back_right_wheel">
+        <material>Gazebo/DarkGrey</material>
+        <mu1>1.0</mu1>
+        <mu2>1.0</mu2>
+        <kp>1000000.0</kp>
+        <kd>100.0</kd>
+        <minDepth>0.001</minDepth>
+        <maxVel>1.0</maxVel>
+    </gazebo>
+
+    <gazebo reference="front_left_wheel">
+        <material>Gazebo/DarkGrey</material>
+        <mu1>1.0</mu1>
+        <mu2>1.0</mu2>
+        <kp>1000000.0</kp>
+        <kd>100.0</kd>
+        <minDepth>0.001</minDepth>
+        <maxVel>1.0</maxVel>
+    </gazebo>
+
+    <gazebo reference="front_right_wheel">
+        <material>Gazebo/DarkGrey</material>
+        <mu1>1.0</mu1>
+        <mu2>1.0</mu2>
+        <kp>1000000.0</kp>
+        <kd>100.0</kd>
+        <minDepth>0.001</minDepth>
+        <maxVel>1.0</maxVel>
+    </gazebo>
+
+    <!-- ================= MATERIALS FOR BODY ================= -->
+    <gazebo reference="base_link">
+        <material>Gazebo/FlatBlack</material>
+    </gazebo>
+
+    <gazebo reference="top_plate_link">
+        <material>Gazebo/Yellow</material>
+    </gazebo>
+
+    <gazebo reference="user_rail_link">
+        <material>Gazebo/Grey</material>
+    </gazebo>
+
+    <gazebo reference="front_bumper_link">
+        <material>Gazebo/FlatBlack</material>
+    </gazebo>
+
+    <gazebo reference="rear_bumper_link">
+        <material>Gazebo/FlatBlack</material>
+    </gazebo>
+
+</robot>

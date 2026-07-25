@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<launch>
+
+  <arg name="odom_topic" default="/rtabmap/odom"/>
+
+  <!-- move_base node para navegacion global + local del Husky -->
+  <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
+
+    <!-- Remappings -->
+    <remap from="cmd_vel" to="/husky/cmd_vel"/>
+    <remap from="odom" to="$(arg odom_topic)"/>
+
+    <!-- Parametros generales de move_base -->
+    <rosparam file="$(find differential)/config/move_base/move_base_params.yaml" command="load"/>
+
+    <!-- Parametros comunes de costmap -->
+    <rosparam file="$(find differential)/config/move_base/costmap_common_params.yaml" command="load" ns="global_costmap"/>
+    <rosparam file="$(find differential)/config/move_base/costmap_common_params.yaml" command="load" ns="local_costmap"/>
+
+    <!-- Global costmap -->
+    <rosparam file="$(find differential)/config/move_base/global_costmap_params.yaml" command="load"/>
+
+    <!-- Local costmap -->
+    <rosparam file="$(find differential)/config/move_base/local_costmap_params.yaml" command="load"/>
+
+    <!-- DWA Local Planner -->
+    <rosparam file="$(find differential)/config/move_base/base_local_planner_params.yaml" command="load"/>
+
+  </node>
+
+</launch>

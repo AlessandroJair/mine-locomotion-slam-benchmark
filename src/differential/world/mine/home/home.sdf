@@ -1,0 +1,35 @@
+<?xml version="1.0" ?>
+<sdf version='1.5'>
+<model name='home'>
+
+<static>true</static>
+<link name="link">
+  <pose frame=''>0 0 0.05 0 0 0</pose>
+  <collision name="collision">
+    <geometry>
+      <cylinder>
+        <radius>1.0</radius>
+        <length>0.08</length>
+      </cylinder>
+    </geometry>
+  </collision>
+
+  <visual name="visual">
+    <cast_shadows>false</cast_shadows>
+    <geometry>
+      <box>
+        <size>2 2 .05</size>
+      </box>
+    </geometry>
+    <material>
+      <script>
+        <uri>model://home/materials/scripts</uri>
+        <uri>model://home/materials/textures</uri>
+        <name>vrc/home</name>
+      </script>
+    </material>
+  </visual>
+
+</link>
+</model>
+</sdf>

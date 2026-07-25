@@ -1,0 +1,48 @@
+<?xml version="1.0" ?>
+<sdf version="1.5">
+  <model name="rocker_bogie">
+    <pose>0 0 0.5 0 0 0</pose>
+    <static>false</static>
+
+    <!-- This model is loaded from URDF via the launch file.
+         The SDF here is a placeholder for Gazebo model database.
+         The actual robot description comes from the xacro URDF
+         loaded by robot_state_publisher in the launch file. -->
+
+    <link name="base_link">
+      <inertial>
+        <mass>12.548</mass>
+        <pose>0.2 0.1 0.451 0 0 0</pose>
+        <inertia>
+          <ixx>0.08978</ixx>
+          <ixy>0.0</ixy>
+          <ixz>6e-06</ixz>
+          <iyy>0.224081</iyy>
+          <iyz>0.0</iyz>
+          <izz>0.272077</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <pose>0.2 0.1 0.45 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.60 0.50 0.20</size>
+          </box>
+        </geometry>
+      </collision>
+      <visual name="base_visual">
+        <pose>0 0 0 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.60 0.50 0.20</size>
+          </box>
+        </geometry>
+        <material>
+          <script>
+            <name>Gazebo/Silver</name>
+          </script>
+        </material>
+      </visual>
+    </link>
+  </model>
+</sdf>

@@ -1,0 +1,339 @@
+<robot name="husky" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+    <!-- URDF file for general ROS systems such as ros_control, rviz, etc.           -->
+    <!-- Clearpath Robotics Husky A200 - Differential Drive Robot                     -->
+
+    <xacro:macro name="make_box_inertia" params="mass size_x size_y size_z">
+        <inertial>
+            <mass value="${mass}" />
+            <inertia ixx="${mass * (size_y * size_y + size_z * size_z) / 12}" ixy="0" ixz="0" iyy="${mass * (size_z * size_z + size_x * size_x) / 12}" iyz="0" izz="${mass * (size_x * size_x + size_y * size_y) / 12}" />
+        </inertial>
+    </xacro:macro>
+
+    <xacro:macro name="make_wheel_inertia" params="mass radius length">
+        <inertial>
+            <mass value="${mass}" />
+            <!-- assuming axis of cylinder is y, not z -->
+            <inertia ixx="${mass * (radius * radius / 4 + length * length / 12)}" ixy="0" ixz="0" iyy="${mass * radius * radius / 2}" iyz="0" izz="${mass * (radius * radius / 4 + length * length / 12)}" />
+        </inertial>
+    </xacro:macro>
+
+    <!-- ================= Husky Dimensions ================= -->
+    <xacro:property name="wheel_radius" value="0.17775" />
+    <xacro:property name="wheel_length" value="0.1143" />
+    <xacro:property name="wheel_mass" value="2.6357" />
+    <xacro:property name="wheel_separation" value="0.5709" />
+    <xacro:property name="wheel_base" value="0.512" />
+
+    <!-- ================= MAIN BODY (ROOT LINK) ================= -->
+
+    <link name="base_link">
+        <inertial>
+            <mass value="33.855" />
+            <origin xyz="-0.0856132 -0.000839955 0.238145" rpy="0 0 0" />
+            <inertia ixx="2.2343" ixy="-0.023642" ixz="0.275174" iyy="3.42518" iyz="0.00239624" izz="2.1241" />
+        </inertial>
+
+        <visual name="base">
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="package://differential/model/meshes/base_link.stl" />
+            </geometry>
+        </visual>
+
+        <visual name="top_plate">
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="package://differential/model/meshes/top_plate.stl" />
+            </geometry>
+        </visual>
+
+        <visual name="front_bumper">
+            <origin xyz="0.47 0 0.091" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="package://differential/model/meshes/bumper.stl" />
+            </geometry>
+        </visual>
+
+        <visual name="rear_bumper">
+            <origin xyz="-0.47 0 0.091" rpy="0 0 ${pi}" />
+            <geometry>
+                <mesh filename="package://differential/model/meshes/bumper.stl" />
+            </geometry>
+        </visual>
+
+        <visual name="user_rail">
+            <origin xyz="0.272 0 0.245" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="package://differential/model/meshes/user_rail.stl" />
+            </geometry>
+        </visual>
+
+        <collision name="collision">
+            <origin xyz="0 0 0.1" rpy="0 0 0" />
+            <geometry>
+                <box size="1.0074 0.5709 0.2675" />
+            </geometry>
+        </collision>
+    </link>
+
+    <!-- ================= BACK LEFT WHEEL ================= -->
+
+    <link name="back_left_wheel">
+        <xacro:make_wheel_inertia mass="${wheel_mass}" radius="${wheel_radius}" length="${wheel_length}" />
+
+        <visual>
+            <origin xyz="0 0 0" rpy="${-pi} 0 0" />
+            <geometry>
+                <mesh filename="package://differential/model/meshes/wheel.stl" />
+            </geometry>
+        </visual>
+
+        <collision>
+            <origin xyz="0 0 0" rpy="${-pi/2} 0 0" />
+            <geometry>
+                <cylinder radius="${wheel_radius}" length="${wheel_length}" />
+            </geometry>
+        </collision>
+    </link>
+
+    <joint name="back_left_joint" type="continuous">
+        <origin xyz="${-wheel_base/2} ${wheel_separation/2} 0.035" rpy="0 0 0" />
+        <parent link="base_link" />
+        <child link="back_left_wheel" />
+        <axis xyz="0 1 0" />
+    </joint>
+
+    <transmission name="back_left_transmission">
+        <type>transmission_interface/SimpleTransmission</type>
+        <joint name="back_left_joint">
+            <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
+        </joint>
+        <actuator name="back_left_actuator">
+            <mechanicalReduction>1</mechanicalReduction>
+        </actuator>
+    </transmission>
+
+    <!-- ================= BACK RIGHT WHEEL ================= -->
+
+    <link name="back_right_wheel">
+        <xacro:make_wheel_inertia mass="${wheel_mass}" radius="${wheel_radius}" length="${wheel_length}" />
+
+        <visual>
+            <origin xyz="0 0 0" rpy="${-pi} 0 0" />
+            <geometry>
+                <mesh filename="package://differential/model/meshes/wheel.stl" />
+            </geometry>
+        </visual>
+
+        <collision>
+            <origin xyz="0 0 0" rpy="${-pi/2} 0 0" />
+            <geometry>
+                <cylinder radius="${wheel_radius}" length="${wheel_length}" />
+            </geometry>
+        </collision>
+    </link>
+
+    <joint name="back_right_joint" type="continuous">
+        <origin xyz="${-wheel_base/2} ${-wheel_separation/2} 0.035" rpy="0 0 0" />
+        <parent link="base_link" />
+        <child link="back_right_wheel" />
+        <axis xyz="0 1 0" />
+    </joint>
+
+    <transmission name="back_right_transmission">
+        <type>transmission_interface/SimpleTransmission</type>
+        <joint name="back_right_joint">
+            <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
+        </joint>
+        <actuator name="back_right_actuator">
+            <mechanicalReduction>1</mechanicalReduction>
+        </actuator>
+    </transmission>
+
+    <!-- ================= FRONT LEFT WHEEL ================= -->
+
+    <link name="front_left_wheel">
+        <xacro:make_wheel_inertia mass="${wheel_mass}" radius="${wheel_radius}" length="${wheel_length}" />
+
+        <visual>
+            <origin xyz="0 0 0" rpy="${-pi} 0 0" />
+            <geometry>
+                <mesh filename="package://differential/model/meshes/wheel.stl" />
+            </geometry>
+        </visual>
+
+        <collision>
+            <origin xyz="0 0 0" rpy="${-pi/2} 0 0" />
+            <geometry>
+                <cylinder radius="${wheel_radius}" length="${wheel_length}" />
+            </geometry>
+        </collision>
+    </link>
+
+    <joint name="front_left_joint" type="continuous">
+        <origin xyz="${wheel_base/2} ${wheel_separation/2} 0.035" rpy="0 0 0" />
+        <parent link="base_link" />
+        <child link="front_left_wheel" />
+        <axis xyz="0 1 0" />
+    </joint>
+
+    <transmission name="front_left_transmission">
+        <type>transmission_interface/SimpleTransmission</type>
+        <joint name="front_left_joint">
+            <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
+        </joint>
+        <actuator name="front_left_actuator">
+            <mechanicalReduction>1</mechanicalReduction>
+        </actuator>
+    </transmission>
+
+    <!-- ================= FRONT RIGHT WHEEL ================= -->
+
+    <link name="front_right_wheel">
+        <xacro:make_wheel_inertia mass="${wheel_mass}" radius="${wheel_radius}" length="${wheel_length}" />
+
+        <visual>
+            <origin xyz="0 0 0" rpy="${-pi} 0 0" />
+            <geometry>
+                <mesh filename="package://differential/model/meshes/wheel.stl" />
+            </geometry>
+        </visual>
+
+        <collision>
+            <origin xyz="0 0 0" rpy="${-pi/2} 0 0" />
+            <geometry>
+                <cylinder radius="${wheel_radius}" length="${wheel_length}" />
+            </geometry>
+        </collision>
+    </link>
+
+    <joint name="front_right_joint" type="continuous">
+        <origin xyz="${wheel_base/2} ${-wheel_separation/2} 0.035" rpy="0 0 0" />
+        <parent link="base_link" />
+        <child link="front_right_wheel" />
+        <axis xyz="0 1 0" />
+    </joint>
+
+    <transmission name="front_right_transmission">
+        <type>transmission_interface/SimpleTransmission</type>
+        <joint name="front_right_joint">
+            <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
+        </joint>
+        <actuator name="front_right_actuator">
+            <mechanicalReduction>1</mechanicalReduction>
+        </actuator>
+    </transmission>
+
+    <!-- ================= VELODYNE LIDAR ================= -->
+
+    <link name="velodyne_base_link">
+        <xacro:make_box_inertia mass="0.83" size_x="0.1032" size_y="0.1032" size_z="0.0717" />
+
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <cylinder radius="0.0516" length="0.0717" />
+            </geometry>
+            <material name="velodyne_dark">
+                <color rgba="0.1 0.1 0.1 1.0" />
+            </material>
+        </visual>
+
+        <collision>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <cylinder radius="0.0516" length="0.0717" />
+            </geometry>
+        </collision>
+    </link>
+
+    <joint name="velodyne_base_mount_joint" type="fixed">
+        <origin xyz="0 0 0.4" rpy="0 0 0" />
+        <parent link="base_link" />
+        <child link="velodyne_base_link" />
+    </joint>
+
+    <!-- ================= IMU ================= -->
+
+    <link name="imu_link">
+        <inertial>
+            <mass value="0.015" />
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.0001" iyz="0" izz="0.0001" />
+        </inertial>
+
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <box size="0.05 0.05 0.02" />
+            </geometry>
+            <material name="imu_grey">
+                <color rgba="0.3 0.3 0.3 1.0" />
+            </material>
+        </visual>
+
+        <collision>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <box size="0.05 0.05 0.02" />
+            </geometry>
+        </collision>
+    </link>
+
+    <joint name="imu_joint" type="fixed">
+        <origin xyz="0 0 0.2" rpy="0 0 0" />
+        <parent link="base_link" />
+        <child link="imu_link" />
+    </joint>
+
+    <!-- ================= CAMERA ================= -->
+
+    <link name="camera_link">
+        <inertial>
+            <mass value="0.01" />
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.0001" iyz="0" izz="0.0001" />
+        </inertial>
+
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <box size="0.03 0.08 0.03" />
+            </geometry>
+            <material name="camera_black">
+                <color rgba="0.1 0.1 0.1 1.0" />
+            </material>
+        </visual>
+
+        <collision>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <box size="0.03 0.08 0.03" />
+            </geometry>
+        </collision>
+    </link>
+
+    <joint name="camera_joint" type="fixed">
+        <origin xyz="0.52 0 0.35" rpy="0 0 0" />
+        <parent link="base_link" />
+        <child link="camera_link" />
+    </joint>
+
+    <!-- Optical frame (importante para ROS - convencion de camaras) -->
+    <link name="camera_optical_frame">
+        <inertial>
+            <mass value="0.001" />
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <inertia ixx="0.00001" ixy="0" ixz="0" iyy="0.00001" iyz="0" izz="0.00001" />
+        </inertial>
+    </link>
+
+    <joint name="camera_optical_joint" type="fixed">
+        <!-- Rotacion para alinear con convencion ROS (Z adelante, X derecha, Y abajo) -->
+        <origin xyz="0 0 0" rpy="${-pi/2} 0 ${-pi/2}" />
+        <parent link="camera_link" />
+        <child link="camera_optical_frame" />
+    </joint>
+
+</robot>

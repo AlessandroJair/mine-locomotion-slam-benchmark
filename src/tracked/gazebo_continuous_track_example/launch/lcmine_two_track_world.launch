@@ -1,0 +1,112 @@
+<launch>
+
+    <!-- these are the arguments you can pass this launch file, for example paused:=true -->
+    <arg name="paused" default="true" />
+    <arg name="use_sim_time" default="true" />
+    <arg name="gui" default="true" />
+    <arg name="headless" default="false" />
+    <arg name="debug" default="false" />
+
+    <!-- =====================================================================
+         RANDOM SEED
+         =====================================================================
+         Gazebo's noise models (the IMU, and the <noise> block of the Velodyne's
+         <ray>) draw from ignition::math::Rand.  Left alone, gzserver seeds that
+         generator from the system clock, so no run can ever be repeated: the
+         sensor noise of a given run exists once and is gone.
+
+         run_campaign.sh passes seed:=<run_id>, so run 1 / 2 / 3 get seeds
+         1 / 2 / 3.  The runs still differ from each other - different seeds
+         give different noise, which is what the reported standard deviation
+         measures - but each one is now anchored and can be reproduced.
+
+         seed:=0 restores clock seeding (gzserver treats 0 as "pick your own").
+         ===================================================================== -->
+    <arg name="seed" default="0" />
+
+    <!-- We resume the logic in empty_world.launch, changing only the name of the world to be launched -->
+    <include file="$(find gazebo_ros)/launch/empty_world.launch">
+        <arg name="world_name" value="$(find gazebo_continuous_track_example)/world/mine/lcmine.world" />
+        <arg name="debug" value="$(arg debug)" />
+        <arg name="gui" value="$(arg gui)" />
+        <arg name="paused" value="$(arg paused)" />
+        <arg name="use_sim_time" value="$(arg use_sim_time)" />
+        <arg name="headless" value="$(arg headless)" />
+        <arg name="extra_gazebo_args" value="--seed $(arg seed)" />
+    </include>
+
+    <!--
+      Spawn pose - MUST match the other two platforms (see sim_config.yaml).
+      The robot used to be instantiated by an <include> inside lcmine.world,
+      which made the world file differ between packages.  It is now spawned
+      here so that the world file is byte-identical for the three robots.
+    -->
+    <arg name="spawn_x" default="33.5" />
+    <arg name="spawn_y" default="0.2" />
+    <arg name="spawn_z" default="1.0" />
+    <arg name="spawn_Y" default="0.0" />
+
+    <node name="spawn_two_track" pkg="gazebo_ros" type="spawn_model"
+          args="-database two_track_robot -sdf -model two_track_robot
+                -x $(arg spawn_x) -y $(arg spawn_y) -z $(arg spawn_z) -Y $(arg spawn_Y)"
+          output="screen" />
+
+    <group ns="example_two_track">
+
+        <!-- gazebo 7 has a bug which zeros the velocity of a position-controlled joint in every simulation step. -->
+        <!-- a workaround is to set pid gains for these joints like below.                                        -->
+        <!-- this enables effort-based position control in the simulated hardware,                                -->
+        <!-- instead of directly setting the position of joint                                                    -->
+        <!-->
+        <rosparam>
+            gazebo_ros_control:
+                pid_gains:
+                    sprocket_axle_left: {p: 1800.0, i: 0.0, d: 10.0}
+                    sprocket_axle_right: {p: 1800.0, i: 0.0, d: 10.0}
+        </rosparam>
+        <!-->
+
+        <!-- Load the URDF into the ROS Parameter Server -->
+        <param name="robot_description" command="xacro --inorder '$(find gazebo_continuous_track_example)/urdf_xacro/two_track_robot_gazebo.urdf.xacro'" />
+        
+        <rosparam>
+            joint_state_controller:
+                type: joint_state_controller/JointStateController
+                publish_rate: 10
+
+            sprocket_velocity_controller_left:
+                type: velocity_controllers/JointVelocityController
+                joint: left_sprocket_axle
+
+            sprocket_velocity_controller_right:
+                type: velocity_controllers/JointVelocityController
+                joint: right_sprocket_axle
+
+            gazebo_ros_control:
+                pid_gains:
+                    left_sprocket_axle:
+                        p: 18.0
+                        i: 3.0
+                        d: 0.0
+                    right_sprocket_axle:
+                        p: 18.0
+                        i: 3.0
+                        d: 0.0
+        </rosparam>
+
+        <!-- load and start the controllers -->
+        <node name="controller_starter" pkg="controller_manager" type="controller_manager" args="spawn joint_state_controller sprocket_velocity_controller_left sprocket_velocity_controller_right" output="screen" />
+
+        <!-- convert joint states to TF transforms for rviz, etc -->
+        <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" output="screen">
+            <param name="tf_prefix" value="example_two_track" />
+        </node>
+
+        <!-- twist_to_tracks: convierte cmd_vel (Twist) a velocidades de sprockets -->
+        <node name="twist_to_tracks" pkg="gazebo_continuous_track_example" type="twist_to_tracks.py" output="screen">
+            <param name="track_separation" value="0.5709" />
+            <param name="sprocket_radius" value="0.178" />
+        </node>
+    </group>
+
+</launch>

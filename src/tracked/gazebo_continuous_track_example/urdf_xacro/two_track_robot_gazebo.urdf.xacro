@@ -1,0 +1,242 @@
+<robot name="two_track_robot" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+    <xacro:include filename="$(find gazebo_continuous_track)/urdf_xacro/macros_track_gazebo.urdf.xacro" />
+    <xacro:include filename="two_track_robot.urdf.xacro" />
+
+    
+    <xacro:property name="track_material">
+        <material>
+            <ambient>0.1 0.1 0.3 1</ambient>
+            <diffuse>0.2 0.2 0.2 1</diffuse>
+            <specular>0 0 0 1</specular>
+            <emissive>0 0 0 1</emissive>
+        </material>
+    </xacro:property>
+
+    <xacro:make_track name="left_track" mass="${1.5*mass_scale}" length="0.85" radius="0.2" width="0.15" parent="left_body" sprocket_joint="left_sprocket_axle" pitch_diameter="0.35">
+        <xacro:insert_block name="track_material" />
+        <pattern>
+            <elements_per_round>40</elements_per_round>
+            <element>
+                <xacro:make_box_element pose="0 0 0 0 0 0" size="0.02 0.5 0.02">
+                    <xacro:insert_block name="track_material" />
+                </xacro:make_box_element>
+            </element>
+            <element>
+                <xacro:make_polyline_element pose="0 0.25 0 ${pi / 2} 0 0">
+                    <polyline>
+                        <point>-0.02 -0.01</point>
+                        <point>-0.01 0.01</point>
+                        <point>0.01 0.01</point>
+                        <point>0.02 -0.01</point>
+                        <height>0.3</height>
+                    </polyline>
+                    <xacro:insert_block name="track_material" />
+                </xacro:make_polyline_element>
+            </element>
+        </pattern>
+    </xacro:make_track>
+
+    <xacro:make_track name="right_track" mass="${1.5*mass_scale}" length="0.85" radius="0.2" width="0.15" parent="right_body" sprocket_joint="right_sprocket_axle" pitch_diameter="0.35">
+        <xacro:insert_block name="track_material" />
+        <pattern>
+            <elements_per_round>40</elements_per_round>
+            <element>
+                <xacro:make_box_element pose="0 0 0 0 0 0" size="0.02 0.5 0.02">
+                    <xacro:insert_block name="track_material" />
+                </xacro:make_box_element>
+            </element>
+            <element>
+                <xacro:make_polyline_element pose="0 0.25 0 ${pi / 2} 0 0">
+                    <polyline>
+                        <point>-0.02 -0.01</point>
+                        <point>-0.01 0.01</point>
+                        <point>0.01 0.01</point>
+                        <point>0.02 -0.01</point>
+                        <height>0.3</height>
+                    </polyline>
+                    <xacro:insert_block name="track_material" />
+                </xacro:make_polyline_element>
+            </element>
+        </pattern>
+    </xacro:make_track>
+
+    <!-- ros_control for gazebo -->
+    <gazebo>
+        <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
+            <robotSimType>gazebo_ros_control/DefaultRobotHWSim</robotSimType>
+            <legacyModeNS>false</legacyModeNS>
+        </plugin>
+    </gazebo>
+
+    <!-- ================= VELODYNE SENSOR PLUGIN ================= -->
+    <gazebo reference="velodyne_base_link">
+        <sensor type="gpu_ray" name="velodyne-VLP16">
+            <pose>0 0 0.0377 0 0 0</pose>
+            <visualize>false</visualize>
+            <update_rate>10</update_rate>
+            <ray>
+                <scan>
+                    <horizontal>
+                        <samples>1875</samples>
+                        <resolution>1</resolution>
+                        <min_angle>-${pi}</min_angle>
+                        <max_angle>${pi}</max_angle>
+                    </horizontal>
+                    <vertical>
+                        <samples>16</samples>
+                        <resolution>1</resolution>
+                        <min_angle>-${15.0*pi/180.0}</min_angle>
+                        <max_angle>${15.0*pi/180.0}</max_angle>
+                    </vertical>
+                </scan>
+                <range>
+                    <min>0.3</min>
+                    <max>130.0</max>
+                    <resolution>0.001</resolution>
+                </range>
+                <!-- ==================== LIDAR NOISE ====================
+                     Single seeded source.  This model used to declare 0.008
+                     here AND 0.008 in the plugin's <gaussianNoise> below: two
+                     independent Gaussians that add in quadrature, so the LiDAR
+                     actually saw 0.008*sqrt(2) = 0.011314 m, not the 0.008 the
+                     paper would state.  Worse, the plugin's half was outside
+                     any seed - symbol inspection shows
+                     libgazebo_ros_velodyne_gpu_laser.so imports the C library's
+                     rand(), while this <noise> block goes through Gazebo's
+                     ignition::math::Rand, which the gzserver seed option does
+                     control.
+
+                     The effective noise level is deliberately UNCHANGED at
+                     0.011314 m so this does not alter the experiment; it is
+                     simply moved entirely into the seeded generator and stated
+                     correctly.
+                     ==================================================== -->
+                <noise>
+                    <type>gaussian</type>
+                    <mean>0.0</mean>
+                    <stddev>0.011314</stddev>
+                </noise>
+            </ray>
+            <plugin name="gazebo_ros_laser_controller" filename="libgazebo_ros_velodyne_gpu_laser.so">
+                <topicName>/velodyne_points</topicName>
+                <frameName>example_two_track/velodyne_base_link</frameName>
+                <min_range>0.9</min_range>
+                <max_range>130.0</max_range>
+                <!-- Zero: all LiDAR noise now comes from the seeded <noise>
+                     block. -->
+                <gaussianNoise>0.0</gaussianNoise>
+            </plugin>
+        </sensor>
+    </gazebo>
+
+    <gazebo reference="velodyne_base_link">
+        <material>Gazebo/Red</material>
+    </gazebo>
+
+    <!-- ================= IMU PLUGIN ================= -->
+    <gazebo reference="imu_link">
+        <gravity>true</gravity>
+        <sensor name="imu_sensor" type="imu">
+            <always_on>true</always_on>
+            <update_rate>100</update_rate>
+            <visualize>true</visualize>
+            <topic>__default_topic__</topic>
+            <plugin filename="libgazebo_ros_imu_sensor.so" name="imu_plugin">
+                <topicName>/imu/data</topicName>
+                <bodyName>imu_link</bodyName>
+                <updateRateHZ>100.0</updateRateHZ>
+                <gaussianNoise>0.0</gaussianNoise>
+                <xyzOffset>0 0 0</xyzOffset>
+                <rpyOffset>0 0 0</rpyOffset>
+                <frameName>example_two_track/imu_link</frameName>
+                <initialOrientationAsReference>false</initialOrientationAsReference>
+            </plugin>
+            <pose>0 0 0 0 0 0</pose>
+            <!-- Configuración mejorada del IMU -->
+            <imu>
+                <angular_velocity>
+                    <x>
+                        <noise type="gaussian">
+                            <mean>0</mean>
+                            <stddev>0.009</stddev>
+                        </noise>
+                    </x>
+                    <y>
+                        <noise type="gaussian">
+                            <mean>0</mean>
+                            <stddev>0.009</stddev>
+                        </noise>
+                    </y>
+                    <z>
+                        <noise type="gaussian">
+                            <mean>0</mean>
+                            <stddev>0.009</stddev>
+                        </noise>
+                    </z>
+                </angular_velocity>
+                <linear_acceleration>
+                    <x>
+                        <noise type="gaussian">
+                            <mean>0</mean>
+                            <stddev>0.021</stddev>
+                        </noise>
+                    </x>
+                    <y>
+                        <noise type="gaussian">
+                            <mean>0</mean>
+                            <stddev>0.021</stddev>
+                        </noise>
+                    </y>
+                    <z>
+                        <noise type="gaussian">
+                            <mean>0</mean>
+                            <stddev>0.021</stddev>
+                        </noise>
+                    </z>
+                </linear_acceleration>
+            </imu>
+        </sensor>
+    </gazebo>
+    <!-- ================= CAMERA PLUGIN ================= -->
+    <gazebo reference="camera_link">
+        <sensor type="camera" name="camera_sensor">
+            <update_rate>30.0</update_rate>
+            <camera name="head">
+                <horizontal_fov>1.3962634</horizontal_fov>
+                <image>
+                    <width>640</width>
+                    <height>480</height>
+                    <format>R8G8B8</format>
+                </image>
+                <clip>
+                    <near>0.02</near>
+                    <far>300</far>
+                </clip>
+                <noise>
+                    <type>gaussian</type>
+                    <mean>0.0</mean>
+                    <stddev>0.007</stddev>
+                </noise>
+            </camera>
+            <plugin name="camera_controller" filename="libgazebo_ros_camera.so">
+                <alwaysOn>true</alwaysOn>
+                <updateRate>0.0</updateRate>
+                <cameraName>camera</cameraName>
+                <imageTopicName>/camera/image_raw</imageTopicName>
+                <cameraInfoTopicName>/camera/camera_info</cameraInfoTopicName>
+                <frameName>camera_optical_frame</frameName>
+                <hackBaseline>0.07</hackBaseline>
+                <distortionK1>0.0</distortionK1>
+                <distortionK2>0.0</distortionK2>
+                <distortionK3>0.0</distortionK3>
+                <distortionT1>0.0</distortionT1>
+                <distortionT2>0.0</distortionT2>
+            </plugin>
+        </sensor>
+    </gazebo>
+
+    <gazebo reference="camera_link">
+        <material>Gazebo/Black</material>
+    </gazebo>
+</robot>

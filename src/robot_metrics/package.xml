@@ -1,0 +1,44 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>robot_metrics</name>
+  <version>0.0.0</version>
+  <description>Metrics logging and analysis for robot locomotion comparison</description>
+
+  <maintainer email="alessandro@todo.todo">alessandro</maintainer>
+
+  <license>TODO</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>rospy</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>sensor_msgs</build_depend>
+  <build_depend>nav_msgs</build_depend>
+  <build_depend>geometry_msgs</build_depend>
+  <build_export_depend>rospy</build_export_depend>
+  <build_export_depend>std_msgs</build_export_depend>
+  <build_export_depend>sensor_msgs</build_export_depend>
+  <build_export_depend>nav_msgs</build_export_depend>
+  <build_export_depend>geometry_msgs</build_export_depend>
+  <exec_depend>rospy</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>nav_msgs</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>tf</exec_depend>
+  <exec_depend>tf2_ros</exec_depend>
+  <!-- Ground truth (/gazebo/model_states) and wheel contacts
+       (gazebo_msgs/ContactsState). -->
+  <exec_depend>gazebo_msgs</exec_depend>
+  <!-- SLAM introspection: loop closures, odometry inliers, tracking loss.
+       The logger degrades gracefully if these messages are unavailable. -->
+  <exec_depend>rtabmap_msgs</exec_depend>
+  <!-- Analysis scripts. numpy, pandas, matplotlib and yaml only - no scipy,
+       no open3d: everything they would provide is implemented in
+       slam_metrics.py and pointcloud_io.py so the results can be reproduced
+       without installing anything extra. -->
+  <exec_depend>python3-numpy</exec_depend>
+  <exec_depend>python3-pandas</exec_depend>
+  <exec_depend>python3-matplotlib</exec_depend>
+  <exec_depend>python3-yaml</exec_depend>
+
+</package>
