@@ -12,9 +12,25 @@ This project implements a complete simulation and evaluation pipeline to compare
 | **Differential Drive** | Husky A200 equivalent, 4-wheel skid-steer |
 | **Tracked** | Continuous track system |
 
-Each robot traverses a ~60m route through an underground mine environment while collecting IMU, odometry, and SLAM data for post-run comparative analysis.
+Each robot traverses the same **137.7 m, 17-waypoint closed loop** (`mine_loop_2026`)
+through an underground mine environment while collecting IMU, odometry, and SLAM
+data for post-run comparative analysis.
+
+The route is defined **once**, in Gazebo world coordinates, in
+`robot_metrics/config/route_mine.yaml`. `generate_waypoints.py` projects it into
+each robot's own map frame using that platform's spawn pose from
+`sim_config.yaml`, producing the per-robot `config/waypoints_mine.yaml` files.
+Those are **generated artefacts — do not edit them by hand**: doing so puts one
+platform on a different route from the other two and invalidates the comparison.
 
 ### Key Findings
+
+> **These figures are pre-revision.** They come from the earlier runs, when the
+> three platforms carried hand-edited, mutually inconsistent waypoint files and
+> were therefore *not driving the same route* — see the rationale at the top of
+> `robot_metrics/config/route_mine.yaml`. They must be regenerated against
+> `mine_loop_2026` before being cited. Raw data from those runs is in
+> `~/metrics_output_prerevision`.
 
 - Rocker-bogie achieves **54% reduction in vertical shock** vs. tracked vehicle
 - Rocker-bogie achieves **lowest ATE (0.72m)** — 50% lower than Husky, 59% lower than tracked
@@ -65,11 +81,15 @@ The vineyard experiment lives in a separate workspace, `~/journal_vineyard_compa
 
 ### Simulated Sensors
 
+Identical across the three platforms — `check_sim_parity.py` enforces this, and
+`extract_sensor_poses.py --standardize` reports the mounting poses.
+
 | Sensor | Specs |
 |--------|-------|
-| Velodyne VLP-16 LiDAR | 16 channels, 360° FOV, 10 Hz, 130m range |
+| Velodyne VLP-16 LiDAR | 16 channels, 1875 samples/scan, 360° FOV, 10 Hz, 130m range |
 | IMU (6-axis) | 100 Hz, angular velocity + linear acceleration |
-| RGB Camera | 640×480 px, 15–30 Hz |
+| RGB Camera | 640×480 px, 30 Hz |
+| Wheel/track contact sensors | 100 Hz (2× the 50 Hz logging rate) |
 
 ## Prerequisites
 
@@ -79,16 +99,78 @@ The vineyard experiment lives in a separate workspace, `~/journal_vineyard_compa
 - **Python 3.8+** with `rospy`, `pandas`, `numpy`, `matplotlib`, `scipy`, `pyyaml`, `actionlib`
 - ROS packages: `gazebo_ros`, `gazebo_ros_control`, `controller_manager`, `move_base`, `rtabmap_ros`, `robot_state_publisher`
 
+### Build
+
+```bash
+cd ~/journal_comparison
+catkin_make
+source devel/setup.bash
+```
+
+## Running
+
+### Full campaign (what produces the paper tables)
+
+The experiment is 3 platforms x 3 runs, driven by a script rather than by hand
+so that no parameter can drift between runs. It refuses to start unless
+`check_sim_parity.py` confirms the three platforms share the same world, physics
+and terrain, and `generate_waypoints.py --check` confirms no waypoint file has
+been hand-edited away from the shared route.
+
+```bash
+rosrun robot_metrics run_campaign.sh --dry-run      # print what would happen
+rosrun robot_metrics run_campaign.sh                # all 3 robots, runs 1-3
+rosrun robot_metrics run_campaign.sh --robots rocker_bogie --runs 5
+```
+
+Results land in `~/metrics_output/<robot>/runNN/`, with aggregated tables and
+figures in `~/metrics_output/paper_tables/`. Gazebo's RNG seed for run *N* is
+`seed_base + N`, recorded in each `run_meta.yaml`, so any single run can be
+replayed exactly.
+
+Map quality is still scored by hand after the campaign:
+
+```bash
+rosrun rtabmap_ros rtabmap-export --cloud map.pcd ~/.ros/rtabmap.db
+rosrun robot_metrics map_vs_groundtruth.py --map map.pcd \
+    --run ~/metrics_output/<robot>/run01 --output_dir ~/metrics_output/paper_tables
+```
+
+### A single run by hand
+
+Three terminals, in order — the world, then SLAM, then navigation:
+
+```bash
+# 1. World + robot  (pick one)
+roslaunch rocker_bogie                    lcmine_rocker_bogie_world.launch paused:=false
+roslaunch differential                    lcmine_husky_world.launch        paused:=false
+roslaunch gazebo_continuous_track_example lcmine_two_track_world.launch    paused:=false
+
+# 2. RTAB-Map (same package as the robot)
+roslaunch <pkg> rtabmap_3d_slam.launch
+
+# 3. Waypoint navigation + metrics logging
+roslaunch <pkg> waypoint_navigation.launch run_id:=1
+```
+
 ### Launch Parameters
 
-| Parameter | Values | Description |
-|-----------|--------|-------------|
-| `paused` | `true/false` | Start Gazebo paused |
-| `gui` | `true/false` | Run with/without GUI |
-| `use_move_base` | `true/false` | Navigation stack or direct control |
-| `config_file` | path | Waypoint YAML file |
+| Parameter | Where | Values | Description |
+|-----------|-------|--------|-------------|
+| `paused` | world | `true/false` | Start Gazebo paused (default `true`) |
+| `gui` | world | `true/false` | Run with/without the Gazebo client |
+| `headless` | world | `true/false` | Suppress rendering entirely |
+| `seed` | world | int | Gazebo RNG seed, for reproducible sensor noise |
+| `differential_enabled` | world (rocker-bogie) | `true/false` | Enforce the rocker differential coupling |
+| `use_move_base` | navigation | `true/false` | Navigation stack or the fallback follower |
+| `use_rviz` | navigation | `true/false` | Open RViz (set `false` for batch runs) |
+| `config_file` | navigation | path | Waypoint YAML (default `config/waypoints_mine.yaml`) |
+| `run_id` | navigation | int | Repetition index; selects the output directory |
+| `odom_topic` | navigation | topic | Odometry source (default `/rtabmap/odom`) |
 
 ## Results
+
+> Pre-revision — see the note under **Key Findings**. Regenerate before citing.
 
 ### Mechanical Stability
 
