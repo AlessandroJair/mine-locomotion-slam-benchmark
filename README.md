@@ -41,15 +41,18 @@ journal_comparison/
 │   │   ├── gazebo_continuous_track/
 │   │   └── gazebo_continuous_track_example/
 │   └── robot_metrics/          # Metrics logging and analysis
+│       ├── config/             # route_mine.yaml, sim_config.yaml
 │       └── scripts/
 │           ├── metrics_logger.py
-│           └── analyze_metrics.py
-├── plots/                      # Generated CSV data and EPS plots
-├── generate_sdf.py             # SDF model generator (mass normalization)
-├── plot_rocker_bogie.py        # 2D rocker-bogie geometry visualization
-├── plot_rocker_bogie.m         # MATLAB visualization script
-└── temp_stats.py               # Statistics computation across trials
+│           ├── analyze_metrics.py
+│           ├── aggregate_runs.py
+│           ├── slam_metrics.py
+│           ├── scale_masses.py     # mass normalization across platforms
+│           └── run_campaign.sh     # multi-trial campaign driver
+└── .mass_backup/               # original model.sdf masses before scaling
 ```
+
+The vineyard experiment lives in a separate workspace, `~/journal_vineyard_comparison`.
 
 ## Technologies
 
