@@ -4,16 +4,18 @@ footprint: [[-0.50,-0.30],[-0.50,0.30],[0.50,0.30],[0.50,-0.30]]
 
 robot_radius: 0.0  # Se usa footprint en lugar de radio
 
-# Fuente de obstaculos: Velodyne LiDAR 3D
-observation_sources: velodyne_cloud
+# Fuente de obstaculos: nube ya segmentada por rtabmap_util/obstacles_detection
+# (ver move_base.launch).  Filtro de altura desactivado a proposito: el suelo,
+# incluido el suelo en pendiente, ya viene quitado.
+observation_sources: obstacle_cloud
 
-velodyne_cloud:
+obstacle_cloud:
   sensor_frame: example_two_track/velodyne_base_link
   data_type: PointCloud2
-  topic: /velodyne_points
+  topic: /example_two_track/obstacles_cloud
   marking: true
   clearing: true
-  min_obstacle_height: 0.2
-  max_obstacle_height: 2.0
+  min_obstacle_height: -99999.0
+  max_obstacle_height:  99999.0
   obstacle_range: 5.0
   raytrace_range: 6.0

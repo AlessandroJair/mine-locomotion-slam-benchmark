@@ -4,6 +4,52 @@
   <arg name="odom_topic" default="/rtabmap/odom"/>
 
   <!-- move_base node para navegacion global + local del Husky -->
+  <!-- Segmentacion suelo/obstaculo antes del costmap.  La explicacion completa
+       esta en rocker_bogie/launch/move_base.launch; en resumen, el filtro
+       min_obstacle_height del costmap mide altura ABSOLUTA en el frame odom, de
+       modo que al subir una pendiente el propio suelo pasaba a ser obstaculo y
+       el robot quedaba encerrado dentro de su costmap.  Parametros identicos en
+       los tres robots: solo cambian los frames. -->
+  <node pkg="nodelet" type="nodelet" name="obstacles_detection"
+        args="standalone rtabmap_util/obstacles_detection" output="screen">
+    <remap from="cloud"     to="/velodyne_points"/>
+    <remap from="obstacles" to="/husky/obstacles_cloud"/>
+    <remap from="ground"    to="/husky/ground_cloud"/>
+
+    <param name="frame_id"           type="string" value="husky/base_link"/>
+    <param name="wait_for_transform"  type="bool"  value="true"/>
+
+    <param name="Grid/NormalsSegmentation" type="string" value="true"/>
+    <!-- 45 -> 35 on 2026-08-20.  This is the line between "ground" and
+         "obstacle": a surface whose normal is within this angle of the local
+         vertical is published on the ground cloud and NEVER reaches the
+         costmap, so move_base plans straight over it however unclimbable it
+         is.  At 45 that included faces no wheeled platform here can climb.
+         Both differential rollovers of that date were exactly this: it drove
+         into a face that was not in its map, could not climb it, and the
+         traction torque reared the chassis over.  The pitch it reached was
+         43.7 deg at the step descent and 44.5 deg in the south-west corner -
+         both just under the 45 that made the face invisible.
+         Tried at 35, then lowered to 30 on the same date: 35 still left the
+         faces the differential reared against close to the boundary.
+         30 keeps ramps the platforms can actually take as ground and turns
+         the steeper faces into obstacles to be planned around.
+         VERIFY THE 0.10 m STEP IS STILL CROSSED after changing this - the step
+         crossing is an experiment in its own right (plot_wheel_contact.py).
+         EQUAL ON ALL THREE PLATFORMS. -->
+    <param name="Grid/MaxGroundAngle"      type="string" value="30"/>
+    <!-- Desactivado (0): rtabmap lo aplica tambien en modo normales, y al ser
+         un techo relativo al robot marcaba como obstaculo el suelo de toda
+         pendiente sostenida.  Ver la nota completa en
+         rocker_bogie/launch/move_base.launch. -->
+    <param name="Grid/MaxGroundHeight"     type="string" value="0.0"/>
+    <param name="Grid/MaxObstacleHeight"   type="string" value="2.0"/>
+    <param name="Grid/NormalK"             type="string" value="20"/>
+    <param name="Grid/ClusterRadius"       type="string" value="0.1"/>
+    <param name="Grid/MinClusterSize"      type="string" value="10"/>
+    <param name="Grid/RangeMax"            type="string" value="5.0"/>
+  </node>
+
   <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
 
     <!-- Remappings -->

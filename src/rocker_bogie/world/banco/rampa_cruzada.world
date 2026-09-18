@@ -1,0 +1,63 @@
+<?xml version="1.0" ?>
+<!-- Banco de rampa cruzada: media via del rocker sobre un plano inclinado 20
+     grados y la otra media sobre suelo llano.
+
+     La cara superior de la caja inclinada pasa exactamente por la recta
+     y = 0, z = 0 y sube hacia +y con pendiente tan(20 deg).  Para y < 0 la
+     caja queda POR DEBAJO del ground_plane, asi que ese lado apoya en el
+     llano.  Asi el vehiculo cruza la arista con una via en cada superficie,
+     que es la condicion que un rocker-bogie deberia absorber articulando.
+
+     Geometria: una caja de grosor T girada un angulo th sobre el eje x tiene
+     su cara superior pasando por el origen si se centra en
+         y = (T/2) sin(th),  z = -(T/2) cos(th)
+     Con T = 1 y th = 20 deg:  y = 0.171010,  z = -0.469846
+-->
+<sdf version="1.6">
+  <world name="rampa_cruzada">
+    <include><uri>model://sun</uri></include>
+    <include><uri>model://ground_plane</uri></include>
+
+    <model name="rampa_20">
+      <static>true</static>
+      <pose>0 0.171010 -0.469846 0.3490659 0 0</pose>
+      <link name="link">
+        <collision name="col">
+          <geometry><box><size>40 6 1</size></box></geometry>
+          <surface>
+            <friction>
+              <ode><mu>1.0</mu><mu2>1.0</mu2></ode>
+            </friction>
+            <contact>
+              <ode>
+                <kp>1000000.0</kp>
+                <kd>1.0</kd>
+                <min_depth>0.003</min_depth>
+                <max_vel>1.0</max_vel>
+              </ode>
+            </contact>
+          </surface>
+        </collision>
+        <visual name="vis">
+          <geometry><box><size>40 6 1</size></box></geometry>
+          <material>
+            <ambient>0.4 0.35 0.3 1</ambient>
+            <diffuse>0.55 0.5 0.42 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <physics type="ode">
+      <max_step_size>0.0005</max_step_size>
+      <real_time_update_rate>1000</real_time_update_rate>
+      <ode>
+        <solver>
+          <type>quick</type>
+          <iters>100</iters>
+          <sor>1.3</sor>
+        </solver>
+      </ode>
+    </physics>
+  </world>
+</sdf>

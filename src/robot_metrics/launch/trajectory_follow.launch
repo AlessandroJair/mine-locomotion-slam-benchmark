@@ -1,0 +1,199 @@
+<?xml version="1.0"?>
+<launch>
+
+  <!-- FIXED-TRAJECTORY EXPERIMENT
+       ===========================
+       All three platforms drive one path, taken from the rocker_bogie run that
+       closed the loop, under ground-truth control.  move_base is NOT started:
+       the SLAM runs alongside and is recorded, but cannot steer.
+
+       This is the companion to the autonomous experiment, not a replacement.
+       Ground truth is not available to a real robot, so this run says nothing
+       about whether a platform can navigate the mine.  What it does give is a
+       SLAM comparison that is not contaminated by each platform having driven
+       somewhere different - which, measured over this route, is a 0.4-0.9 m
+       difference at the step alone. -->
+
+  <arg name="model_name"/>
+  <arg name="cmd_vel_topic"/>
+  <arg name="run_id" default="1"/>
+  <arg name="output_dir" default="$(env HOME)/metrics_output"/>
+  <arg name="robot_name" default="$(arg model_name)"/>
+  <arg name="wheel_links" default=""/>
+  <arg name="suspension_joints" default=""/>
+  <arg name="effort_joints" default=""/>
+  <arg name="velocity_joints" default=""/>
+  <arg name="suspension_topic" default="/rocker_bogie/joint_states"/>
+  <arg name="use_rviz" default="false"/>
+
+  <arg name="path_file"
+       default="$(find robot_metrics)/config/reference_path_mine.yaml"/>
+
+  <!-- Driven under the same speed ceilings the planner is given, so the
+       platforms are still moved under equal conditions. -->
+  <arg name="max_vel_x"     default="0.5"/>
+  <arg name="max_vel_theta" default="1.0"/>
+  <arg name="lookahead"     default="1.0"/>
+  <!-- Cierre del lazo.  close_tolerance es lo cerca que hay que quedar del
+       ULTIMO punto de la ruta para dar la vuelta por buena; es aparte de
+       goal_tolerance, que es la de navegacion.  close_timeout es el
+       salvavidas: pasados esos segundos rondando el final se cierra igual y
+       se deja escrito el hueco.  Ver trajectory_follower.py. -->
+  <arg name="close_tolerance" default="0.15"/>
+  <arg name="close_timeout"   default="15.0"/>
+  <!-- Por debajo de min_aim_dist no se apunta al objetivo: el vector es
+       ruido de posicion.  Ver trajectory_follower.py. -->
+  <arg name="min_aim_dist"    default="0.25"/>
+  <!-- GANANCIAS DEL SEGUIDOR.  Comunes a las tres plataformas: este launch
+       es uno solo y run_campaign.sh lo invoca igual para todas, cambiando
+       nada mas el modelo, el topico y el yaw de spawn.  Estaban como valores
+       por defecto dentro de trajectory_follower.py, o sea equivalentes por
+       accidente y sin que nada lo comprobara.  Ahora se declaran aqui y en
+       sim_config.yaml, y check_sim_parity.py verifica que coinciden. -->
+  <arg name="k_xte"           default="2.5"/>
+  <arg name="xte_curv_max"    default="0.5"/>
+  <!-- Acortado el 2026-09-04: L = 0.30 + 0.8*v, tope 1.0.  El error lateral
+       medio del differential baja de 0.103 a 0.041 m en el banco frio, y las
+       tres mejoran con el mismo valor.  Ver trajectory_follower.py. -->
+  <arg name="lookahead_min"   default="0.30"/>
+  <arg name="lookahead_max"   default="1.0"/>
+  <arg name="lookahead_k"     default="0.8"/>
+  <arg name="align_threshold" default="0.8"/>
+  <arg name="curve_slowdown"  default="0.6"/>
+  <arg name="w_v_floor"       default="0.10"/>
+
+  <!-- The reference path is in world coordinates and the map frame is anchored
+       at the spawn, so the follower needs the spawn pose to draw the path where
+       the robot actually is.  From sim_config.yaml: x and y are common, the yaw
+       differs only because the Rocker-Bogie URDF faces -x. -->
+  <arg name="spawn_x"   default="33.5"/>
+  <arg name="spawn_y"   default="0.2"/>
+  <arg name="spawn_yaw" default="0.0"/>
+  <!-- Cuanto hay que sumarle al yaw del modelo para obtener el rumbo
+       fisico.  pi en el Rocker-Bogie, cuyo base_link mira a -x. -->
+  <arg name="base_yaw_offset" default="0.0"/>
+  <!-- Vueltas a la ruta.  1 = el recorrido original. -->
+  <arg name="laps" default="1"/>
+  <!-- Stall guard.  Same numbers as rearing_guard.launch on purpose: that node
+       guards the move_base runs and cannot guard these ones, because it works
+       by cancelling a move_base goal and there is no move_base here.  Change
+       them in BOTH places or in neither. -->
+  <arg name="commanded_min" default="0.15"/>
+  <arg name="speed_max"     default="0.05"/>
+  <arg name="stall_time"    default="1.0"/>
+  <arg name="backoff_speed" default="-0.25"/>
+  <arg name="backoff_time"  default="2.0"/>
+  <arg name="cooldown"      default="5.0"/>
+  <arg name="max_stalls"    default="8"/>
+  <arg name="viz_frame" default="map"/>
+
+  <!-- VIGIA DE CORRIDA (scripts/run_guard.py).  Apagado por defecto:
+       run_campaign.sh lo enciende y le pasa el archivo de aviso.  Es la
+       capa POR ENCIMA del stall guard del seguidor: aquel se recupera,
+       este declara la corrida perdida para que la campana la repita.
+       Por eso stuck_time (25 s) es muy superior al stall_time (1 s) del
+       seguidor - un back-off normal no debe dispararlo. -->
+  <arg name="use_run_guard"      default="false"/>
+  <arg name="guard_trip_file"    default=""/>
+  <arg name="guard_grace"        default="30.0"/>
+  <arg name="guard_stuck_time"   default="25.0"/>
+  <!-- Excursion maxima desde el inicio de la ventana, NO camino recorrido:
+       ver el comentario de progress_min en scripts/run_guard.py.  1.5 m en
+       25 s deja 3x de margen contra la conduccion normal (4.4-9.8 m medidos
+       sobre differential/run01) y sigue muy por encima de los ~0.5 m que
+       mueve el back-off del seguidor.
+       OJO: este default PISA al del nodo.  Cambiar uno solo no sirve. -->
+  <arg name="guard_progress_min" default="1.5"/>
+  <!-- Avance angular minimo cuando lo comandado es un giro.  Sin esto un
+       giro en el sitio -excursion lineal ~0 por definicion- se leia como
+       encaje.  Igual que arriba: este default PISA al del nodo. -->
+  <arg name="guard_yaw_progress_min" default="0.5"/>
+  <arg name="guard_roll_limit"   default="50.0"/>
+  <arg name="guard_pitch_limit"  default="60.0"/>
+
+  <!-- required: cuando el seguidor termina la ruta apaga la corrida
+       entera, en vez de quedarse idle hasta el tope de duration.
+       Sin esto toda corrida quedaba marcada timed_out: true aunque
+       hubiera cumplido, y desperdiciaba el resto del tiempo de
+       pared.  Contrapartida: si el seguidor muere al arrancar, la
+       corrida se cae - que es lo correcto, una corrida sin seguidor
+       no sirve. -->
+  <node pkg="robot_metrics" type="trajectory_follower.py"
+        name="trajectory_follower" output="screen" required="true">
+    <param name="path_file"     value="$(arg path_file)"/>
+    <param name="model_name"    value="$(arg model_name)"/>
+    <param name="cmd_vel_topic" value="$(arg cmd_vel_topic)"/>
+    <param name="max_vel_x"     value="$(arg max_vel_x)"/>
+    <param name="max_vel_theta" value="$(arg max_vel_theta)"/>
+    <param name="lookahead"     value="$(arg lookahead)"/>
+    <param name="close_tolerance" value="$(arg close_tolerance)"/>
+    <param name="close_timeout" value="$(arg close_timeout)"/>
+    <param name="min_aim_dist" value="$(arg min_aim_dist)"/>
+    <param name="k_xte"           value="$(arg k_xte)"/>
+    <param name="xte_curv_max"    value="$(arg xte_curv_max)"/>
+    <param name="lookahead_min"   value="$(arg lookahead_min)"/>
+    <param name="lookahead_max"   value="$(arg lookahead_max)"/>
+    <param name="lookahead_k"     value="$(arg lookahead_k)"/>
+    <param name="align_threshold" value="$(arg align_threshold)"/>
+    <param name="curve_slowdown"  value="$(arg curve_slowdown)"/>
+    <param name="w_v_floor"       value="$(arg w_v_floor)"/>
+    <param name="spawn_x"       value="$(arg spawn_x)"/>
+    <param name="spawn_y"       value="$(arg spawn_y)"/>
+    <param name="spawn_yaw"     value="$(arg spawn_yaw)"/>
+    <param name="base_yaw_offset" value="$(arg base_yaw_offset)"/>
+    <param name="laps"          value="$(arg laps)"/>
+    <param name="commanded_min" value="$(arg commanded_min)"/>
+    <param name="speed_max"     value="$(arg speed_max)"/>
+    <param name="stall_time"    value="$(arg stall_time)"/>
+    <param name="backoff_speed" value="$(arg backoff_speed)"/>
+    <param name="backoff_time"  value="$(arg backoff_time)"/>
+    <param name="cooldown"      value="$(arg cooldown)"/>
+    <param name="max_stalls"    value="$(arg max_stalls)"/>
+    <param name="viz_frame"     value="$(arg viz_frame)"/>
+    <!-- El mismo archivo que usa run_guard.  Los dos detectan cosas
+         distintas (el seguidor, que su propia recuperacion fracaso; el
+         vigia, encaje o vuelco sobre ground truth) y cualquiera de los
+         dos invalida la corrida, asi que comparten el aviso. -->
+    <param name="trip_file"     value="$(arg guard_trip_file)"/>
+  </node>
+
+  <!-- required: un disparo del vigia tiene que bajar la corrida entera,
+       y bajarla ORDENADAMENTE (roslaunch manda SIGINT al resto), que es
+       lo unico que hace correr el shutdown hook de metrics_logger.  Sin
+       eso el intento fallido no deja ni metrics.csv para mirar. -->
+  <group if="$(arg use_run_guard)">
+    <node pkg="robot_metrics" type="run_guard.py" name="run_guard"
+          output="screen" required="true">
+      <param name="model_name"    value="$(arg model_name)"/>
+      <param name="cmd_vel_topic" value="$(arg cmd_vel_topic)"/>
+      <param name="trip_file"     value="$(arg guard_trip_file)"/>
+      <param name="grace"         value="$(arg guard_grace)"/>
+      <param name="stuck_time"    value="$(arg guard_stuck_time)"/>
+      <param name="progress_min"  value="$(arg guard_progress_min)"/>
+      <param name="yaw_progress_min" value="$(arg guard_yaw_progress_min)"/>
+      <param name="roll_limit"    value="$(arg guard_roll_limit)"/>
+      <param name="pitch_limit"   value="$(arg guard_pitch_limit)"/>
+    </node>
+  </group>
+
+  <group if="$(arg use_rviz)">
+    <node pkg="rviz" type="rviz" name="fixed_trajectory_rviz"
+          args="-d $(find robot_metrics)/config/fixed_trajectory.rviz"/>
+  </group>
+
+  <!-- Same logger as the autonomous runs, so the two experiments produce
+       directly comparable metrics.csv files. -->
+  <include file="$(find robot_metrics)/launch/metrics_logger.launch">
+    <arg name="output_dir"    value="$(arg output_dir)"/>
+    <arg name="robot_name"    value="$(arg robot_name)"/>
+    <arg name="model_name"    value="$(arg model_name)"/>
+    <arg name="cmd_vel_topic" value="$(arg cmd_vel_topic)"/>
+    <arg name="run_id"        value="$(arg run_id)"/>
+    <arg name="wheel_links"   value="$(arg wheel_links)"/>
+    <arg name="suspension_joints" value="$(arg suspension_joints)"/>
+    <arg name="effort_joints" value="$(arg effort_joints)"/>
+    <arg name="velocity_joints" value="$(arg velocity_joints)"/>
+    <arg name="suspension_topic" value="$(arg suspension_topic)"/>
+  </include>
+
+</launch>

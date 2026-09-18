@@ -3,6 +3,82 @@
 
   <arg name="odom_topic" default="/rtabmap/odom"/>
 
+  <!-- =====================================================================
+       GROUND / OBSTACLE SEGMENTATION
+       =====================================================================
+       The costmap used to read /velodyne_points directly and separate ground
+       from obstacles with min_obstacle_height, which costmap_2d applies to the
+       point's z in the costmap's own frame - odom for the local costmap.  That
+       is an ABSOLUTE height above wherever the robot happened to start, so on
+       any sustained climb the ground itself rose past the threshold and was
+       marked as an obstacle.  The robot ended up inside its own costmap
+       obstacle: DWA found no valid trajectory ("DWA planner failed to produce
+       path" at 10 Hz), and rotate_recovery refused to run because the footprint
+       cost came back -1.  The run stalled and never recovered.
+
+       Raising or lowering the threshold cannot fix that - it is the wrong
+       frame, not the wrong number.  So the segmentation is done here instead,
+       by normals: a surface whose normal is within Grid/MaxGroundAngle of the
+       local vertical is ground, however high it sits.  A 45 deg ramp is
+       traversable; a wall is not.  The costmap then consumes a cloud that
+       already contains obstacles only, with its own height filter disabled.
+
+       Grid/MaxGroundHeight is a guard for the 0.10 m step on the east gallery,
+       whose vertical face is exactly the geometry normals segmentation is
+       prone to call an obstacle.  Blocking it would silently destroy the step
+       crossing, which is the experiment plot_wheel_contact.py reports on, so
+       VERIFY A STEP CROSSING after changing anything here.
+       ===================================================================== -->
+  <node pkg="nodelet" type="nodelet" name="obstacles_detection"
+        args="standalone rtabmap_util/obstacles_detection" output="screen">
+    <remap from="cloud"     to="/velodyne_points"/>
+    <remap from="obstacles" to="/rocker_bogie/obstacles_cloud"/>
+    <remap from="ground"    to="/rocker_bogie/ground_cloud"/>
+
+    <param name="frame_id"           type="string" value="rocker_bogie/base_link"/>
+    <param name="wait_for_transform"  type="bool"  value="true"/>
+
+    <param name="Grid/NormalsSegmentation" type="string" value="true"/>
+    <!-- 45 -> 35 on 2026-08-20.  This is the line between "ground" and
+         "obstacle": a surface whose normal is within this angle of the local
+         vertical is published on the ground cloud and NEVER reaches the
+         costmap, so move_base plans straight over it however unclimbable it
+         is.  At 45 that included faces no wheeled platform here can climb.
+         Both differential rollovers of that date were exactly this: it drove
+         into a face that was not in its map, could not climb it, and the
+         traction torque reared the chassis over.  The pitch it reached was
+         43.7 deg at the step descent and 44.5 deg in the south-west corner -
+         both just under the 45 that made the face invisible.
+         Tried at 35, then lowered to 30 on the same date: 35 still left the
+         faces the differential reared against close to the boundary.
+         30 keeps ramps the platforms can actually take as ground and turns
+         the steeper faces into obstacles to be planned around.
+         VERIFY THE 0.10 m STEP IS STILL CROSSED after changing this - the step
+         crossing is an experiment in its own right (plot_wheel_contact.py).
+         EQUAL ON ALL THREE PLATFORMS. -->
+    <param name="Grid/MaxGroundAngle"      type="string" value="30"/>
+    <!-- DESACTIVADO (0 = disabled), y no es un descuido.
+         Se puso en 0.15 como guarda para que la cara vertical del escalon de
+         0.10 m no se marcara como obstaculo.  Resulta que rtabmap SI aplica
+         este techo en modo normales, y es un techo relativo al robot: con
+         Grid/RangeMax=5.0, el suelo de una pendiente de 16 grados esta 1.38 m
+         por encima del plano del robot a 5 m de distancia, o sea muy por
+         encima de 0.15.  Toda la subida dentro del alcance del sensor pasaba a
+         obstaculo y move_base dejaba de emitir comando: medido, 0 de 2246
+         muestras con cmd_vx > 0.01 durante un atasco de 45 s a pitch -16 deg.
+         Era el mismo bug del filtro de altura absoluta, reintroducido en el
+         frame del robot en vez del de odom.
+         La segmentacion por normales sola ya distingue pendiente de pared
+         (Grid/MaxGroundAngle, 35 desde 2026-08-20).  Queda pendiente verificar que el escalon
+         siga siendo transitable sin esta guarda. -->
+    <param name="Grid/MaxGroundHeight"     type="string" value="0.0"/>
+    <param name="Grid/MaxObstacleHeight"   type="string" value="2.0"/>
+    <param name="Grid/NormalK"             type="string" value="20"/>
+    <param name="Grid/ClusterRadius"       type="string" value="0.1"/>
+    <param name="Grid/MinClusterSize"      type="string" value="10"/>
+    <param name="Grid/RangeMax"            type="string" value="5.0"/>
+  </node>
+
   <!-- move_base node para navegacion global + local del rocker-bogie -->
   <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
 

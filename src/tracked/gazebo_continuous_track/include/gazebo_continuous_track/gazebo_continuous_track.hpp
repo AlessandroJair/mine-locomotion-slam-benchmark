@@ -460,6 +460,20 @@ private:
           SetJointMotorVelocity(segment.variants[variant_id].joint, 0,
                                 track_vel / segment.joint_to_track);
         } else {
+          // LA VARIANTE INACTIVA TAMBIEN SE REPOSICIONA - no basta con
+          // deshabilitarla.  Un link deshabilitado se queda donde esta en el
+          // MUNDO, y el vehiculo se va: los segmentos de arco quedan atados
+          // por su joint revoluto, pero los rectos son prismaticos con
+          // limites de +/-1e16 y deslizan sin tope por su eje.  Se los ve
+          // flotando lejos del robot (el mensaje ~/visual que deberia
+          // ocultarlos no surte efecto en Gazebo 11), y al reactivarse
+          // vuelven de golpe con preserveWorldVelocity=true, inyectando el
+          // impulso de teleportar su masa desde donde hayan quedado.
+          // Reposicionarlos aca cuesta una llamada por paso y los mantiene
+          // pegados al vehiculo.  Medido 2026-08-22 sobre Gazebo 11.15.1.
+          wrap::SetPosition(segment.variants[variant_id].joint, 0,
+                            track_pos_per_element / segment.joint_to_track, true);
+          SetJointMotorVelocity(segment.variants[variant_id].joint, 0, 0.);
           segment.variants[variant_id].link->SetEnabled(false);
         }
       }

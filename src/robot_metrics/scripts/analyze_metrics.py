@@ -21,7 +21,8 @@ import matplotlib.pyplot as plt
 import os as _os
 import sys as _sys
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
-from metrics_io import load_metrics  # noqa: E402
+from metrics_io import (load_metrics, vibration_magnitude,  # noqa: E402
+                        vibration_rms)
 
 # ---- Journal-quality plot style (single-column paper) ----
 COLUMN_WIDTH_IN = 6.5   # single-column text width (inches)
@@ -101,10 +102,27 @@ def has_slam_columns(df):
     return all(c in df.columns for c in slam_cols)
 
 
+def _col(df, preferida, alterna, n):
+    """La columna de verdad-terreno si el logger la escribio, si no la del IMU."""
+    if preferida in df.columns:
+        return df[preferida].values
+    if alterna in df.columns:
+        return df[alterna].values
+    return np.zeros(n)
+
+
 def compute_stability(df):
-    pitch = df['pitch'].values
-    roll = df['roll'].values if 'roll' in df.columns else np.zeros(len(df))
-    yaw = df['yaw'].values if 'yaw' in df.columns else np.zeros(len(df))
+    # ACTITUD Y VIBRACION: de la verdad-terreno.  El IMU lleva ruido sembrado,
+    # sesgo y el termino de gravedad; ninguno de los tres es movimiento del
+    # chasis, que es lo que estas cifras dicen medir.  La vibracion sale de
+    # metrics_io.vibration_rms, que es la UNICA definicion del repositorio y
+    # devuelve n/a -no un numero del IMU- en las corridas sin gt_a*.
+    n = len(df)
+    pitch = _col(df, 'gt_pitch', 'pitch', n)
+    roll = _col(df, 'gt_roll', 'roll', n)
+    yaw = _col(df, 'gt_yaw', 'yaw', n)
+    # accel_*_rms se quedan en el IMU A PROPOSITO: dicen "accel", son la
+    # lectura del sensor, y valen para comparar sensor contra verdad.
     ax = df['accel_x'].values
     ay = df['accel_y'].values if 'accel_y' in df.columns else np.zeros(len(df))
     az = df['accel_z'].values
@@ -123,7 +141,7 @@ def compute_stability(df):
         'accel_y_rms': np.sqrt(np.mean(ay**2)),
         'accel_z_rms': np.sqrt(np.mean((az - GRAVITY)**2)),
         'accel_z_max': np.max(np.abs(az - GRAVITY)),
-        'vibration_rms': np.sqrt(np.mean(ax**2 + ay**2 + (az - GRAVITY)**2)),
+        'vibration_rms': vibration_rms(df),
         'angular_accel_x_max': np.max(np.abs(angular_accel_x)),
         'angular_accel_z_max': np.max(np.abs(angular_accel_z)),
     }
@@ -176,9 +194,30 @@ def align_gt_to_odom(df):
     gt_x0, gt_y0 = df['gt_x'].iloc[0], df['gt_y'].iloc[0]
     odom_x0, odom_y0 = df['odom_x'].iloc[0], df['odom_y'].iloc[0]
 
-    # Initial yaw of GT (used to rotate GT into odom frame)
-    if 'gt_yaw' in df.columns:
-        yaw0 = df['gt_yaw'].iloc[0]
+    # Initial heading of the GT track, taken from WHERE IT GOES rather than
+    # from the logged gt_yaw.
+    #
+    # gt_yaw is /gazebo/model_states' model yaw, and the Rocker-Bogie's URDF
+    # authors base_link facing -x, so for that platform it is 180 deg from the
+    # direction of travel.  Rotating by -gt_yaw[0] mirrored its whole
+    # trajectory: measured 2026-08-25, its loop ran y = 0..+38 while the
+    # tracked and differential ran y = 0..-38 over the same physical route,
+    # and gt_vs_estimated_trajectory.png drew the three in three frames.
+    # compute_ate() below uses this same function, so that ATE - a second
+    # implementation, independent of slam_metrics - carried the error too.
+    #
+    # A direction of travel cannot be got wrong by a convention.  Averaged over
+    # the first travel_m metres so that a stationary first sample, or the
+    # settling twitch at spawn, does not set the frame for the whole run.
+    travel_m = 2.0
+    gx = df['gt_x'].values
+    gy = df['gt_y'].values
+    step = np.hypot(np.diff(gx), np.diff(gy))
+    far = np.searchsorted(np.cumsum(step), travel_m)
+    if far < len(gx) - 1 and np.hypot(gx[far] - gx[0], gy[far] - gy[0]) > 0.1:
+        yaw0 = float(np.arctan2(gy[far] - gy[0], gx[far] - gx[0]))
+    elif 'gt_yaw' in df.columns:
+        yaw0 = float(df['gt_yaw'].iloc[0])
     else:
         yaw0 = 0.0
 
@@ -198,9 +237,24 @@ def align_gt_to_odom(df):
     gt_y_aligned = sin_y * dx + cos_y * dy
     gt_z_aligned = df['gt_z'].values - df['gt_z'].iloc[0]
 
-    # Translate odom to origin (no rotation needed, odom frame is reference)
-    odom_x_aligned = df['odom_x'].values - odom_x0
-    odom_y_aligned = df['odom_y'].values - odom_y0
+    # The odom frame is NOT automatically a common reference: it is anchored at
+    # the spawn, and the Rocker-Bogie spawns at yaw 180 deg, so its estimate
+    # loops through the opposite half-plane from every other platform's.  Give
+    # odom the same start-heading normalisation as the GT above, measured the
+    # same way, so the two are in one frame and so are the three platforms.
+    ox = df['odom_x'].values
+    oy = df['odom_y'].values
+    ostep = np.hypot(np.diff(ox), np.diff(oy))
+    ofar = np.searchsorted(np.cumsum(ostep), travel_m)
+    if ofar < len(ox) - 1 and np.hypot(ox[ofar] - ox[0], oy[ofar] - oy[0]) > 0.1:
+        oyaw0 = float(np.arctan2(oy[ofar] - oy[0], ox[ofar] - ox[0]))
+    else:
+        oyaw0 = 0.0
+    ocos, osin = np.cos(-oyaw0), np.sin(-oyaw0)
+    odx = ox - odom_x0
+    ody = oy - odom_y0
+    odom_x_aligned = ocos * odx - osin * ody
+    odom_y_aligned = osin * odx + ocos * ody
     odom_z_aligned = df['odom_z'].values - df['odom_z'].iloc[0]
 
     return (gt_x_aligned, gt_y_aligned, gt_z_aligned,
@@ -407,6 +461,18 @@ def print_slam_table(names, slam_metrics, rpe_metrics=None, ate_metrics=None):
 
 # ---- Locomotion plots ----
 
+
+def save(fig, out_dir, name):
+    """Write a figure as both EPS and PNG.
+
+    Same helper, same formats and same dpi as aggregate_runs.save, so the two
+    scripts' figures are interchangeable.  EPS is the submission format; the
+    PNG exists so the figure can actually be looked at without ghostscript.
+    """
+    for ext in ('eps', 'png'):
+        fig.savefig(os.path.join(out_dir, '{}.{}'.format(name, ext)), dpi=200)
+    plt.close(fig)
+
 def plot_pitch(datasets, names, output_dir):
     fig, axes = plt.subplots(2, 1, figsize=(COLUMN_WIDTH_IN, FIG_HEIGHT_DOUBLE), sharex=True)
     for i, (df, name) in enumerate(zip(datasets, names)):
@@ -421,8 +487,7 @@ def plot_pitch(datasets, names, output_dir):
     axes[1].set_ylabel('Roll (deg)')
     axes[1].legend()
     fig.tight_layout(h_pad=0.3)
-    fig.savefig(os.path.join(output_dir, 'pitch_roll_comparison.eps'))
-    plt.close(fig)
+    save(fig, output_dir, 'pitch_roll_comparison')
 
 
 def plot_acceleration(datasets, names, output_dir):
@@ -438,17 +503,23 @@ def plot_acceleration(datasets, names, output_dir):
     axes[1].set_ylabel(r'$a_z - g$ (m/s$^2$)')
     axes[1].legend()
     fig.tight_layout(h_pad=0.3)
-    fig.savefig(os.path.join(output_dir, 'acceleration_comparison.eps'))
-    plt.close(fig)
+    save(fig, output_dir, 'acceleration_comparison')
 
 
 def plot_vibration(datasets, names, output_dir):
+    """Serie temporal de la MISMA vibracion que informan las tablas.
+
+    Antes esta figura leia el IMU con `accel_z - 9.81` mientras la barra
+    "Vibration RMS" de metrics_bar_comparison leia gt_a*, asi que las dos
+    ordenaban las plataformas al reves la una de la otra sobre la misma
+    corrida: en la serie el husky iba por encima del rocker, en la barra por
+    debajo.  Ahora las dos salen de metrics_io.vibration_magnitude.
+    """
     fig, ax = plt.subplots(figsize=(COLUMN_WIDTH_IN, FIG_HEIGHT_SINGLE))
     for i, (df, name) in enumerate(zip(datasets, names)):
-        ax_val = df['accel_x'].values
-        ay_val = df['accel_y'].values if 'accel_y' in df.columns else np.zeros(len(df))
-        az_val = df['accel_z'].values - GRAVITY
-        vib = np.sqrt(ax_val**2 + ay_val**2 + az_val**2)
+        vib = vibration_magnitude(df, name)
+        if not np.isfinite(vib).any():
+            continue          # corrida sin gt_a*: no se dibuja nada inventado
         window = min(50, len(vib) // 10)
         if window > 1:
             vib_smooth = np.convolve(vib, np.ones(window)/window, mode='same')
@@ -460,8 +531,7 @@ def plot_vibration(datasets, names, output_dir):
     ax.set_ylabel(r'Vibration magnitude (m/s$^2$)')
     ax.legend()
     fig.tight_layout()
-    fig.savefig(os.path.join(output_dir, 'vibration_comparison.eps'))
-    plt.close(fig)
+    save(fig, output_dir, 'vibration_comparison')
 
 
 def plot_slip(datasets, names, output_dir):
@@ -480,8 +550,7 @@ def plot_slip(datasets, names, output_dir):
     ax.set_ylabel('Slip (%)')
     ax.legend()
     fig.tight_layout()
-    fig.savefig(os.path.join(output_dir, 'slip_comparison.eps'))
-    plt.close(fig)
+    save(fig, output_dir, 'slip_comparison')
 
 
 def plot_trajectory(datasets, names, output_dir):
@@ -508,8 +577,7 @@ def plot_trajectory(datasets, names, output_dir):
     ax.legend()
     ax.set_aspect('equal')
     fig.tight_layout()
-    fig.savefig(os.path.join(output_dir, 'trajectory_comparison.eps'))
-    plt.close(fig)
+    save(fig, output_dir, 'trajectory_comparison')
 
 
 # ---- SLAM plots ----
@@ -535,8 +603,7 @@ def plot_slam_icp(datasets, names, output_dir):
     axes[2].set_ylabel('ICP correspondences')
     axes[2].legend()
     fig.tight_layout(h_pad=0.3)
-    fig.savefig(os.path.join(output_dir, 'slam_icp_comparison.eps'))
-    plt.close(fig)
+    save(fig, output_dir, 'slam_icp_comparison')
 
 
 def plot_slam_tf_corrections(datasets, names, output_dir):
@@ -555,8 +622,7 @@ def plot_slam_tf_corrections(datasets, names, output_dir):
     axes[1].set_ylabel('Yaw correction (deg)')
     axes[1].legend()
     fig.tight_layout(h_pad=0.3)
-    fig.savefig(os.path.join(output_dir, 'slam_tf_corrections.eps'))
-    plt.close(fig)
+    save(fig, output_dir, 'slam_tf_corrections')
 
 
 def plot_slam_loop_closures(datasets, names, output_dir):
@@ -570,8 +636,7 @@ def plot_slam_loop_closures(datasets, names, output_dir):
     ax.set_ylabel('Cumulative loop closures')
     ax.legend()
     fig.tight_layout()
-    fig.savefig(os.path.join(output_dir, 'slam_loop_closures.eps'))
-    plt.close(fig)
+    save(fig, output_dir, 'slam_loop_closures')
 
 
 # ---- New plots for paper tables ----
@@ -587,8 +652,7 @@ def plot_yaw(datasets, names, output_dir):
     ax.set_ylabel(r'$\psi$ (deg)')
     ax.legend()
     fig.tight_layout()
-    fig.savefig(os.path.join(output_dir, 'yaw_comparison.eps'))
-    plt.close(fig)
+    save(fig, output_dir, 'yaw_comparison')
 
 
 def plot_angular_acceleration(datasets, names, output_dir):
@@ -606,8 +670,7 @@ def plot_angular_acceleration(datasets, names, output_dir):
     axes[1].set_ylabel(r'$\dot{\omega}_z$ (rad/s$^2$)')
     axes[1].legend()
     fig.tight_layout(h_pad=0.3)
-    fig.savefig(os.path.join(output_dir, 'angular_acceleration_comparison.eps'))
-    plt.close(fig)
+    save(fig, output_dir, 'angular_acceleration_comparison')
 
 
 def plot_ate_over_time(datasets, names, ate_results, output_dir):
@@ -621,8 +684,7 @@ def plot_ate_over_time(datasets, names, ate_results, output_dir):
     ax.set_ylabel('ATE (m)')
     ax.legend()
     fig.tight_layout()
-    fig.savefig(os.path.join(output_dir, 'ate_over_time.eps'))
-    plt.close(fig)
+    save(fig, output_dir, 'ate_over_time')
 
 
 def plot_gt_vs_estimated(datasets, names, output_dir):
@@ -641,8 +703,7 @@ def plot_gt_vs_estimated(datasets, names, output_dir):
     ax.legend(fontsize=8)
     ax.set_aspect('equal')
     fig.tight_layout()
-    fig.savefig(os.path.join(output_dir, 'gt_vs_estimated_trajectory.eps'))
-    plt.close(fig)
+    save(fig, output_dir, 'gt_vs_estimated_trajectory')
 
 
 # ---- Correlation plot: vibration vs SLAM degradation ----
@@ -688,8 +749,7 @@ def plot_vibration_vs_ate(names, stabilities, ate_metrics, output_dir):
     ax.set_ylabel('ATE RMSE (m)')
     ax.legend()
     fig.tight_layout()
-    fig.savefig(os.path.join(output_dir, 'vibration_vs_ate.eps'))
-    plt.close(fig)
+    save(fig, output_dir, 'vibration_vs_ate')
 
 
 # ---- Bar summary ----
@@ -724,8 +784,7 @@ def plot_bar_summary(names, stabilities, slips, trajectories, slam_metrics, outp
                     '{:.3f}'.format(val), ha='center', va='bottom', fontsize=6)
 
     fig.tight_layout()
-    fig.savefig(os.path.join(output_dir, 'metrics_bar_comparison.eps'))
-    plt.close(fig)
+    save(fig, output_dir, 'metrics_bar_comparison')
 
 
 # ---- Main ----

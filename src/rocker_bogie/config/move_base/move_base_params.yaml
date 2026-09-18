@@ -15,13 +15,42 @@ planner_patience: 15.0
 controller_patience: 15.0
 
 # Permitir rotacion in-situ para recuperarse en giros cerrados
-clearing_rotation_allowed: true
+clearing_rotation_allowed: false
 
-# Recovery behaviors: solo rotacion, sin borrar el costmap SLAM
-recovery_behavior_enabled: true
-recovery_behaviors:
-  - {name: rotate_recovery, type: rotate_recovery/RotateRecovery}
+# Recovery behaviors: NINGUNO.
+# =============================================================================
+# El unico que habia era rotate_recovery, que comanda rotacion pura sobre el eje
+# (linear.x = 0, angular.z != 0).  Este es un chasis DIRECCIONADO, y esa orden
+# no cae en la rama Ackermann de twist_to_wheels sino en spin_turn(), que como
+# dice su propio docstring no tiene solucion: las ruedas del medio no dirigen,
+# las de esquina quedan clampeadas lejos de la tangente, y los dos lados se
+# empujan en sentidos opuestos.  El desbalance longitudinal resultante entre la
+# rueda delantera y la trasera de cada rocker es un momento alrededor del
+# pivote; con los pivotes casi sin friccion y +/-0.6 rad de recorrido los brazos
+# llegan a los topes y el robot VUELCA.  Verificado en teleoperacion.
+#
+# El bug del costmap lo tenia tapado: rotate_recovery llegaba a dispararse
+# ("Rotate recovery behavior started." en navigation.log) pero abortaba porque
+# la huella daba coste -1.  Al arreglar el costmap la recuperacion pasa a
+# ejecutarse de verdad, asi que habia que quitarla antes de la proxima campana.
+#
+# Se quita en las TRES plataformas, no solo en la que vuelca.  El skid-steer y
+# el tracked si pueden rotar en el sitio, pero dejarles una recuperacion que el
+# tercero no puede ejecutar haria que el paper midiera que maniobras tenia
+# disponible cada robot en lugar de su locomocion.  Ahora un robot que se
+# atasca se atasca de verdad, y eso es un resultado medible y comparable.
+# La lista vacia es OBLIGATORIA, no redundante.  Si se omite el parametro,
+# move_base::loadRecoveryBehaviors() falla y cae en loadDefaultRecoveryBehaviors(),
+# que carga las de fabrica - rotate_recovery incluida, justo la que vuelca este
+# robot.  Con la lista vacia se cargan cero comportamientos.
+recovery_behavior_enabled: false
+recovery_behaviors: []
 
 # Oscilacion: valores altos para no dispararse en pasillos estrechos
-oscillation_timeout: 60.0
+# 15.0, was 60.0.  move_base only intervenes once the robot has failed to
+# cover oscillation_distance (0.5 m) for this long.  At 60 s the differential
+# accumulated 44 s of commanded-but-immobile driving against a face it could
+# not climb, and the traction torque reared the chassis past its tip-over
+# angle before anything stopped it.  EQUAL ON ALL THREE PLATFORMS.
+oscillation_timeout: 15.0
 oscillation_distance: 0.5

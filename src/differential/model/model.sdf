@@ -115,16 +115,37 @@
 
     <!-- ================= VELODYNE VLP-16 LIDAR ================= -->
     <link name="velodyne_base_link">
-      <!-- SENSOR STANDARDIZATION (see robot_metrics/config/sensor_standardization.yaml).
+      <!-- SENSOR STANDARDIZATION (see robot_metrics/README.md section 1.5).
            Native pose was "0 0 0.4", i.e. 0.4 + 0.0377 (internal sensor pose)
            - (-0.1428) (contact plane) = 0.5805 m above the wheel contact plane.
-           All three platforms are now referred to the Rocker-Bogie's LiDAR
-           height of 0.8248 m so that a given chassis tilt displaces every
-           LiDAR by the same amount:
-             z_link = 0.8248 + (-0.1428) - 0.0377 = 0.6443
+           All three platforms are referred to a COMMON ray-origin height so
+           that a given chassis tilt displaces every LiDAR by the same amount:
+
+             z_link = 0.9000 + (-0.1428) - 0.0377 = 0.7195
+
+           RAISED FROM 0.8248 m TO 0.9000 m on 2026-08-26.  0.8248 m was the
+           Rocker-Bogie's native height and it sits so close to the chassis
+           tops that the LOWEST of the 16 rings clips the robot's own geometry:
+           swept over the visuals of every link, the -15 deg ring was blocked
+           by 7.5 deg here (by camera_link, at r = 0.371 m), and 0.87% of the
+           sphere came back empty.  The monolithic gpu_ray never showed it -
+           Gazebo does not let a ray sensor see the visual of its own link, and
+           the Velodyne hangs off exactly that link - but the sliced LiDAR's
+           wedge rides on a link of its own (velodyne_rotor_link), so the whole
+           robot turns opaque to it and those rings simply vanish.  At 0.9000 m
+           every ring clears every part of all three chassis: margin 3.5 deg
+           here, 5.3 deg on the tracked, 4.2 deg on the Rocker-Bogie.
+
            The 0.83 kg sensor mass is retained at the new height; the mast that
-           carries it is treated as massless (see README section 1.5). -->
-      <pose>0 0 0.6443 0 0 0</pose>
+           carries it is treated as massless (see README section 1.5).
+
+           KEEP IN SYNC with differential/urdf_xacro/husky.urdf.xacro.  This
+           SDF is what Gazebo spawns; the xacro is what robot_state_publisher
+           turns into TF.  They disagreed by 0.2443 m until 2026-08-26 - the
+           xacro still carried the native 0.4 - so every cloud was transformed
+           as if its rays had left a quarter of a metre below where they
+           actually did. -->
+      <pose>0 0 0.7195 0 0 0</pose>
       <inertial>
         <mass>0.825345</mass>
         <pose>0 0 0 0 0 0</pose>
@@ -228,10 +249,11 @@
 
     <!-- ================= IMU SENSOR ================= -->
     <link name='imu_link'>
-      <!-- SENSOR STANDARDIZATION: native "0 0 0.2" = 0.3428 m above the contact
-           plane. Referred to the Rocker-Bogie IMU height of 0.6969 m:
-             z_link = 0.6969 + (-0.1428) = 0.5541 -->
-      <pose>0 0 0.5541 0 0 0</pose>
+      <!-- SENSOR STANDARDIZATION: el IMU va en el CENTRO DE MASAS; el
+           razonamiento completo esta en model/differential/model.sdf, que es
+           el fichero que Gazebo spawnea.  Esta copia existe solo para que
+           extract_robot_specs.py lea lo mismo.  MUST MATCH aquel. -->
+      <pose>-0.063983 -0.000629 0.199726 0 0 0</pose>
       <inertial>
         <mass>0.0149159</mass>
         <inertia>
@@ -343,7 +365,7 @@
         </imu>
         
         <plugin name='imu_plugin' filename='libgazebo_ros_imu_sensor.so'>
-          <topicName>/imu/data</topicName>
+          <topicName>/imu/data_raw</topicName>
           <bodyName>imu_link</bodyName>
           <updateRateHZ>100.0</updateRateHZ>
           <gaussianNoise>0.0</gaussianNoise>
@@ -381,7 +403,7 @@
         <pose>0 0 0 -1.5707 0 0</pose>
         <geometry>
           <cylinder>
-            <radius>0.17775</radius>
+            <radius>0.148</radius>
             <length>0.1143</length>
           </cylinder>
         </geometry>
@@ -401,6 +423,7 @@
         <geometry>
           <mesh>
             <uri>model://husky/meshes/wheel.stl</uri>
+            <scale>0.832396 1.0 0.832396</scale>
           </mesh>
         </geometry>
         <material>
@@ -447,7 +470,7 @@
         <pose>0 0 0 -1.5707 0 0</pose>
         <geometry>
           <cylinder>
-            <radius>0.17775</radius>
+            <radius>0.148</radius>
             <length>0.1143</length>
           </cylinder>
         </geometry>
@@ -467,6 +490,7 @@
         <geometry>
           <mesh>
             <uri>model://husky/meshes/wheel.stl</uri>
+            <scale>0.832396 1.0 0.832396</scale>
           </mesh>
         </geometry>
         <material>
@@ -513,7 +537,7 @@
         <pose>0 0 0 -1.5707 0 0</pose>
         <geometry>
           <cylinder>
-            <radius>0.17775</radius>
+            <radius>0.148</radius>
             <length>0.1143</length>
           </cylinder>
         </geometry>
@@ -533,6 +557,7 @@
         <geometry>
           <mesh>
             <uri>model://husky/meshes/wheel.stl</uri>
+            <scale>0.832396 1.0 0.832396</scale>
           </mesh>
         </geometry>
         <material>
@@ -579,7 +604,7 @@
         <pose>0 0 0 -1.5707 0 0</pose>
         <geometry>
           <cylinder>
-            <radius>0.17775</radius>
+            <radius>0.148</radius>
             <length>0.1143</length>
           </cylinder>
         </geometry>
@@ -599,6 +624,7 @@
         <geometry>
           <mesh>
             <uri>model://husky/meshes/wheel.stl</uri>
+            <scale>0.832396 1.0 0.832396</scale>
           </mesh>
         </geometry>
         <material>
@@ -672,7 +698,7 @@
 
       <!-- Sensor de Camara -->
       <sensor name='camera_sensor' type='camera'>
-        <update_rate>30</update_rate>
+        <update_rate>10</update_rate>
         <camera name='head'>
           <horizontal_fov>1.3962634</horizontal_fov>
           <image>
@@ -734,26 +760,33 @@
     </joint>
 
     <!-- ================= CONTROLLER PLUGIN ================= -->
-    <!-- Diff drive: maneja velocidades lineales+angulares simultaneamente -->
-    <plugin name='diff_drive' filename='libgazebo_ros_diff_drive.so'>
+    <!--
+      gazebo_ros_control, the SAME loop the Rocker-Bogie and the Tracked
+      platform run.  This replaced libgazebo_ros_skid_steer_drive.so.
+
+      Why the plugin had to go: it does not run a controller at all.  It writes
+      a target velocity and an fmax straight onto the ODE joint motor, which is
+      a RIGID velocity source - it tracks the command with ZERO droop until it
+      saturates at fmax.  The other two platforms reach their torque ceiling
+      through a soft PID velocity loop that sags under load.  Equalising the
+      torque ceilings did not make the three comparable while one of them had a
+      fundamentally different response to load; K_F was infinite here and
+      2333.98 N/(m/s) on the other two.  See the velocity_loop section of
+      sim_config.yaml for the gains, which are derived from that same K_F.
+
+      Two per-platform command-path fudges went with the plugin:
+        - a 2.0 m/s^2 command slew rate the other two never had;
+        - the plugin's own odometry, already disabled because the study takes
+          odometry from RTAB-Map.
+      cmd_vel is now converted to wheel velocities by differential/scripts/
+      twist_to_wheels.py, mirroring twist_to_tracks.py on the tracked platform,
+      and joint states come from joint_state_controller instead of the fake
+      joint_state_publisher that used to stand in for them.
+    -->
+    <plugin name='gazebo_ros_control' filename='libgazebo_ros_control.so'>
       <robotNamespace>/husky</robotNamespace>
-      <leftJoint>front_left_joint</leftJoint>
-      <rightJoint>front_right_joint</rightJoint>
-      <leftJoint>back_left_joint</leftJoint>
-      <rightJoint>back_right_joint</rightJoint>
-      <wheelSeparation>0.5709</wheelSeparation>
-      <wheelDiameter>0.3555</wheelDiameter>
-      <wheelTorque>70</wheelTorque>
-      <wheelAcceleration>2.0</wheelAcceleration>
-      <odometryFrame>odom</odometryFrame>
-      <robotBaseFrame>husky/base_link</robotBaseFrame>
-      <publishOdom>false</publishOdom>
-      <publishOdomTF>false</publishOdomTF>
-      <publishWheelTF>false</publishWheelTF>
-      <publishWheelJointState>true</publishWheelJointState>
-      <commandTopic>cmd_vel</commandTopic>
-      <odometryTopic>odom</odometryTopic>
-      <updateRate>100</updateRate>
+      <robotSimType>gazebo_ros_control/DefaultRobotHWSim</robotSimType>
+      <legacyModeNS>false</legacyModeNS>
     </plugin>
 
   </model>

@@ -40,6 +40,7 @@ import yaml
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import model_parser as mp                                  # noqa: E402
 from extract_robot_specs import ROBOTS, ORDER, wheel_geometry   # noqa: E402
+from check_sim_parity import SPAWN_SOURCE                      # noqa: E402
 
 
 # How each platform names the three sensor mounts.
@@ -61,7 +62,8 @@ def find_sensor_link(model, candidates):
     return None
 
 
-def sensor_poses(model, contact_z, centre_x=0.0, forward=1):
+def sensor_poses(model, contact_z, centre_x=0.0, forward=1, com=None,
+                 base=None):
     """{sensor: {x, y, z, roll, pitch, yaw, height_above_contact, forward_offset}}
 
     `height_above_contact_m` and `forward_offset_m` are the two comparable
@@ -83,15 +85,29 @@ def sensor_poses(model, contact_z, centre_x=0.0, forward=1):
             T = T @ link.sensors[0]['pose']
         xyz = T[:3, 3]
         rpy = mp.rot_to_rpy(T[:3, :3])
+        # x/y/z se informan RELATIVOS AL LINK BASE.  No es lo mismo que el
+        # marco del modelo: en el model.sdf del tracked `body` esta 0.35 m
+        # arriba del origen.  Las alturas y los offsets de mas abajo se
+        # refieren al plano de contacto y al centro del poligono de apoyo, que
+        # ya viven en el marco del modelo, asi que esos no llevan la resta.
+        b = np.zeros(3) if base is None else np.asarray(base, dtype=float)
+        xyz_base = xyz - b
         out[sensor] = {
             'link': link_name,
-            'x_m': float(xyz[0]), 'y_m': float(xyz[1]), 'z_m': float(xyz[2]),
+            'x_m': float(xyz_base[0]), 'y_m': float(xyz_base[1]),
+            'z_m': float(xyz_base[2]),
             'roll_deg': float(np.degrees(rpy[0])),
             'pitch_deg': float(np.degrees(rpy[1])),
             'yaw_deg': float(np.degrees(rpy[2])),
             'height_above_contact_m': float(xyz[2] - contact_z),
             'forward_offset_m': float(forward * (xyz[0] - centre_x)),
-            'lateral_offset_m': float(forward * xyz[1]),
+            'lateral_offset_m': float(forward * xyz_base[1]),
+            # Desde el CENTRO DE MASAS: es el origen que decide lo que mide un
+            # inercial, a_sensor = a_cm + alpha x r + omega x (omega x r).
+            'lateral_from_com_m': (float(forward * (xyz[1] - com[1]))
+                                   if com is not None else float('nan')),
+            'lever_arm_from_com_m': (float(np.linalg.norm(xyz - com))
+                                     if com is not None else float('nan')),
             'sensor_type': (link.sensors[0]['type'] if link.sensors else None),
             'update_rate_hz': (link.sensors[0].get('update_rate')
                                if link.sensors else None),
@@ -101,7 +117,15 @@ def sensor_poses(model, contact_z, centre_x=0.0, forward=1):
 
 
 def analyse(key, spec, src):
-    path = os.path.join(src, spec['description'])
+    # EL FICHERO QUE GAZEBO SPAWNEA, no el que describe extract_robot_specs.
+    # Dos plataformas declaran cada montaje dos veces y solo una copia llega a
+    # la fisica; leyendo la otra esta tabla ha llegado a confirmar un spread de
+    # 1 mm que en Gazebo no existia (2026-08-26: errores de 0.24 a 0.35 m).  En
+    # el tracked las dos copias siguen sin coincidir - su CM sale 15.6 mm mas
+    # adelante en el SDF que en el xacro, porque alli los idlers estan lumpeados
+    # en left_body/right_body sin desplazar el origen inercial - asi que la
+    # eleccion cambia el numero.  Manda lo que se simula.
+    path = os.path.join(src, SPAWN_SOURCE.get(key, spec['description']))
     if not os.path.isfile(path):
         return None
     try:
@@ -111,11 +135,19 @@ def analyse(key, spec, src):
               .format(key, exc))
         return None
 
+    # Como se llama el link base en ESTE fichero: el tracked lo llama `body`.
+    base_name = ('base_link' if 'base_link' in model.links else 'body')
+
     wg = wheel_geometry(model, spec['wheel_pattern'])
     radius = wg.get('radius', float('nan'))
     axle_h = wg.get('axle_height', float('nan'))
-    contact_z = (axle_h - radius
-                 if np.isfinite(axle_h) and np.isfinite(radius) else 0.0)
+    # The drop from the axle to the ground is DECLARED per platform
+    # ('contact_offset_m'), not taken as the wheel radius: the tracked robot
+    # rests on its belt 0.210 m below the axle, not on its 0.178 m sprockets,
+    # and every height on this table is referred to that plane.
+    drop = spec.get('contact_offset_m', radius)
+    contact_z = (axle_h - drop
+                 if np.isfinite(axle_h) and np.isfinite(drop) else 0.0)
 
     # Longitudinal origin for the comparison: the centre of the ground contact
     # polygon, i.e. midway between the front-most and rear-most wheel centres.
@@ -134,7 +166,11 @@ def analyse(key, spec, src):
         'contact_z': contact_z,
         'contact_centre_x': centre_x,
         'forward_axis_x': forward,
-        'sensors': sensor_poses(model, contact_z, centre_x, forward),
+        'sensors': sensor_poses(
+            model, contact_z, centre_x, forward,
+            com=np.asarray(model.center_of_mass(), dtype=float),
+            base=(model.links[base_name].pose[:3, 3]
+                  if base_name in model.links else None)),
     }
 
 
@@ -145,7 +181,9 @@ ROWS = [
     ('z_m', 'z (base_link)', 'm'),
     ('height_above_contact_m', 'Height above contact plane', 'm'),
     ('forward_offset_m', 'Forward offset from contact centre', 'm'),
-    ('lateral_offset_m', 'Lateral offset (left +)', 'm'),
+    ('lateral_offset_m', 'Lateral offset from base_link (left +)', 'm'),
+    ('lateral_from_com_m', 'Lateral offset from CoM (left +)', 'm'),
+    ('lever_arm_from_com_m', 'Lever arm from CoM |r|', 'm'),
     ('roll_deg', 'roll', 'deg'),
     ('pitch_deg', 'pitch', 'deg'),
     ('yaw_deg', 'yaw', 'deg'),
@@ -188,6 +226,8 @@ def render(results, keys):
     lines.append('')
     lines.append('LEVER ARM  (sensor height above the contact plane; a chassis')
     lines.append('rotation of dtheta displaces the sensor by height * dtheta)')
+    lines.append('El IMU ya no se iguala por altura: va en el centro de masas,')
+    lines.append('asi que sus tres alturas son distintas a proposito.')
     lines.append(header)
     lines.append('-' * len(header))
     for sensor in ('lidar', 'camera', 'imu'):
@@ -212,19 +252,51 @@ def render(results, keys):
     lines.append('SPREAD ACROSS PLATFORMS (max - min)')
     lines.append('-' * len(header))
     worst = 0.0
-    for sensor in ('lidar', 'camera', 'imu'):
+    # El IMU NO entra aqui: se le iguala el brazo desde el centro de masas, no
+    # la altura sobre el suelo, y como cada chasis tiene el CM en otro sitio su
+    # altura y su offset adelante tienen que salir distintos.  Ver el bloque
+    # siguiente y sensor_mounting en sim_config.yaml.
+    for sensor in ('lidar', 'camera'):
         vals = [results[k]['sensors'][sensor]['height_above_contact_m']
                 for k in keys if results[k]['sensors'].get(sensor)]
         # Compared from the contact-polygon centre along each platform's own
         # forward axis. Raw base_link x is not comparable: the origins differ.
         fwd = [results[k]['sensors'][sensor]['forward_offset_m']
                for k in keys if results[k]['sensors'].get(sensor)]
+        # LATERAL, medido desde el CENTRO DE MASAS y no desde base_link.
+        # Hasta 2026-09-04 el lateral se calculaba y no entraba nunca en el
+        # veredicto, asi que la tabla podia declarar "same pose, spread <= 1
+        # mm" sin haber mirado y en el eje y. Y desde base_link no vale: el
+        # origen del Rocker-Bogie esta 116 mm fuera de su linea central, asi
+        # que sus tres sensores leian -0.1164 m estando centrados.
+        lat = [results[k]['sensors'][sensor]['lateral_from_com_m']
+               for k in keys if results[k]['sensors'].get(sensor)]
         if len(vals) < 2:
             continue
         dh, dx = max(vals) - min(vals), max(fwd) - min(fwd)
-        worst = max(worst, dh, dx)
+        dy = max(lat) - min(lat) if lat else 0.0
+        worst = max(worst, dh, dx, dy)
         lines.append('  {:<10s} height spread {:.4f} m,  forward-offset spread '
-                     '{:.4f} m'.format(sensor, dh, dx))
+                     '{:.4f} m,  lateral (desde el CM) spread {:.4f} m'
+                     .format(sensor, dh, dx, dy))
+    # El brazo desde el CENTRO DE MASAS: lo que decide lo que mide un inercial.
+    # No entra en `worst` para el LiDAR y la camara -a esos se les iguala la
+    # altura sobre el suelo a proposito, y sus brazos siguen difiriendo un
+    # factor 1.4-1.6- pero SI para el IMU.
+    lines.append('')
+    lines.append('BRAZO DESDE EL CENTRO DE MASAS  |r| [m]')
+    lines.append('-' * len(header))
+    for sensor in ('lidar', 'camera', 'imu'):
+        arms = [results[k]['sensors'][sensor]['lever_arm_from_com_m']
+                for k in keys if results[k]['sensors'].get(sensor)]
+        if len(arms) < 2:
+            continue
+        nota = ''
+        if sensor == 'imu':
+            worst = max(worst, max(arms))
+            nota = '   <- tiene que ser 0: ver sensor_mounting en sim_config'
+        lines.append('  {:<10s} {}{}'.format(
+            sensor, '  '.join('{:.4f}'.format(a) for a in arms), nota))
     lines.append('')
     if worst <= 1e-3:
         lines.append('All three platforms carry their sensors at the same pose')
@@ -324,9 +396,16 @@ def write_standardization(results, keys, path):
                 'height_above_contact_m': round(
                     float(max(hs('camera'))) if hs('camera') else common_h, 4),
                 'roll_deg': 0.0, 'pitch_deg': 0.0, 'yaw_deg': 0.0},
-            'imu': {'forward_offset_m': 0.0, 'y_m': 0.0,
-                    'height_above_contact_m': round(
-                        float(max(hs('imu'))) if hs('imu') else common_h, 4),
+            # El IMU no lleva altura comun: va en el CENTRO DE MASAS de
+            # cada plataforma, que esta a una altura distinta en cada una.  Es
+            # deliberado; ver sensor_mounting en sim_config.yaml.
+            'imu': {'rule': 'at_centre_of_mass',
+                    'lever_arm_from_com_m': 0.0,
+                    'height_above_contact_m': {
+                        results[k]['display']: round(
+                            results[k]['sensors']['imu'][
+                                'height_above_contact_m'], 4)
+                        for k in keys if results[k]['sensors'].get('imu')},
                     'roll_deg': 0.0, 'pitch_deg': 0.0, 'yaw_deg': 0.0},
         },
         'note_on_x': (

@@ -96,6 +96,10 @@ class Link(object):
         self.inertial_origin = np.eye(4)   # in the link frame
         self.inertia = None
         self.collisions = []               # [(T_in_link, geometry dict)]
+        # Lo que el gpu_ray ve es el VISUAL, no la colision: en el rocker los
+        # eslabones estructurales llevan visual y no llevan colision, asi que
+        # una cuenta de ocultacion hecha sobre collisions no ve el vehiculo.
+        self.visuals = []                  # [(T_in_link, geometry dict)]
         self.sensors = []                  # [dict]
         self.pose = np.eye(4)              # in the base frame (filled by FK)
 
@@ -242,8 +246,14 @@ def _parse_geometry(node):
     mesh = node.find('mesh')
     if mesh is not None:
         uri = mesh.find('uri')
+        # La ESCALA hace falta: las mallas de este estudio son exports de CAD
+        # en unidades propias (la rueda del rocker va a 0.002588 0.002126
+        # 0.002329).  Sin ella una caja envolvente sale mil veces mas grande.
+        sc = mesh.find('scale')
         return {'type': 'mesh',
-                'uri': uri.text if uri is not None else mesh.get('filename', '')}
+                'uri': uri.text if uri is not None else mesh.get('filename', ''),
+                'scale': parse_xyz(sc.text if sc is not None
+                                   else mesh.get('scale'), (1.0, 1.0, 1.0))}
     return None
 
 
@@ -284,13 +294,15 @@ def load_urdf(path):
                 link.inertia = {k: float(i.get(k, 0.0))
                                 for k in ('ixx', 'iyy', 'izz',
                                           'ixy', 'ixz', 'iyz')}
-        for coll in ln.findall('collision'):
-            o = coll.find('origin')
-            T = make_T(parse_xyz(o.get('xyz') if o is not None else None),
-                       parse_xyz(o.get('rpy') if o is not None else None))
-            geom = _parse_geometry(coll.find('geometry'))
-            if geom:
-                link.collisions.append((T, geom))
+        for tag, sink in (('collision', link.collisions),
+                          ('visual', link.visuals)):
+            for node in ln.findall(tag):
+                o = node.find('origin')
+                T = make_T(parse_xyz(o.get('xyz') if o is not None else None),
+                           parse_xyz(o.get('rpy') if o is not None else None))
+                geom = _parse_geometry(node.find('geometry'))
+                if geom:
+                    sink.append((T, geom))
         model.links[link.name] = link
 
     for jn in root.findall('joint'):
@@ -391,11 +403,13 @@ def load_sdf(path):
                                 for k in ('ixx', 'iyy', 'izz',
                                           'ixy', 'ixz', 'iyz')}
 
-        for coll in ln.findall('collision'):
-            T = parse_pose(_text(coll.find('pose')))
-            geom = _parse_geometry(coll.find('geometry'))
-            if geom:
-                link.collisions.append((T, geom))
+        for tag, sink in (('collision', link.collisions),
+                          ('visual', link.visuals)):
+            for node in ln.findall(tag):
+                T = parse_pose(_text(node.find('pose')))
+                geom = _parse_geometry(node.find('geometry'))
+                if geom:
+                    sink.append((T, geom))
 
         for s in ln.findall('sensor'):
             info = _sensor_info(s)
@@ -425,7 +439,16 @@ def load_sdf(path):
     for p in mnode.findall('plugin'):
         model.plugins.append(_plugin_info(p, None))
 
-    # SDF link poses are already model-relative.  Re-express them relative to
+    # SDF 1.7: <pose relative_to="X"> is expressed in X's frame, NOT the
+    # model's.  Ignoring the attribute silently mislocates every link that
+    # carries it, and on the tracked platform that is twenty of them - both
+    # track sides, every belt segment and the Velodyne, which came out at 0.35 m
+    # instead of 0.70 m.  Every number this parser feeds (sensor heights, CoG,
+    # wheelbase, ground clearance) was wrong for that platform by whatever the
+    # reference frame's own offset was.
+    _resolve_relative_poses(model, mnode)
+
+    # Link poses are now model-relative.  Re-express them relative to
     # base_link so the three platforms are compared in the same frame.
     base = 'base_link' if 'base_link' in model.links else None
     model.base = base or model.name
@@ -438,6 +461,62 @@ def load_sdf(path):
             l.pose = model_pose @ l.pose
 
     return model
+
+
+def _sdf_frame_graph(mnode):
+    """{name: (local pose, name of the frame it is expressed in)}.
+
+    Every SDFormat element that can be named in a `relative_to` goes in, not
+    just the links: a link commonly hangs off a JOINT frame (the tracked
+    platform's sprockets are posed relative_to their axle joints), and
+    resolving only link-to-link leaves those at the model origin - which reads
+    as wheels buried in the chassis rather than as an unresolved reference.
+
+    The defaults are the ones SDFormat 1.7 specifies:
+      <link>   relative to the model frame
+      <joint>  relative to the joint's CHILD LINK
+      <frame>  relative to its attached_to, else the model frame
+    """
+    graph = {}
+    for ln in mnode.findall('link'):
+        p = ln.find('pose')
+        graph[ln.get('name')] = (parse_pose(_text(p)),
+                                 p.get('relative_to') if p is not None else None)
+    for jn in mnode.findall('joint'):
+        p = jn.find('pose')
+        ref = p.get('relative_to') if p is not None else None
+        graph[jn.get('name')] = (parse_pose(_text(p)),
+                                 ref or _text(jn.find('child')))
+    for fn in mnode.findall('frame'):
+        p = fn.find('pose')
+        ref = p.get('relative_to') if p is not None else None
+        graph[fn.get('name')] = (parse_pose(_text(p)),
+                                 ref or fn.get('attached_to'))
+    return graph
+
+
+def _resolve_relative_poses(model, mnode):
+    """Compose every <pose relative_to="X"> chain down to the model frame."""
+    graph = _sdf_frame_graph(mnode)
+    done = {}
+
+    def resolve(name, depth=0):
+        if name in done:
+            return done[name]
+        entry = graph.get(name)
+        if entry is None or depth > 32:
+            # A reference this parser cannot see (or a cycle) is left at the
+            # model frame rather than given an invented offset.
+            return np.eye(4)
+        T, ref = entry
+        done[name] = T if not ref else resolve(ref, depth + 1) @ T
+        return done[name]
+
+    for name in graph:
+        resolve(name)
+    for name, link in model.links.items():
+        if name in done:
+            link.pose = done[name]
 
 
 def _text(node):

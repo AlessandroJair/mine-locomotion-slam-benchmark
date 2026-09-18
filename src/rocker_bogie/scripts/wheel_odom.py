@@ -13,7 +13,7 @@ class WheelOdom:
         rospy.init_node('wheel_odom', anonymous=False)
 
         self.wheel_separation = rospy.get_param('~wheel_separation', 0.6775)
-        self.wheel_radius = rospy.get_param('~wheel_radius', 0.178)
+        self.wheel_radius = rospy.get_param('~wheel_radius', 0.148)
 
         # Joints: left = rev_14(fl), rev_13(ml), rev_12(rl)
         #         right = rev_9(fr), rev_10(mr), rev_11(rr)
@@ -100,7 +100,7 @@ class WheelOdom:
             (self.x, self.y, 0.0),
             odom_quat,
             now,
-            "rocker_bogie/base_link_nav",
+            "rocker_bogie/base_link",
             "odom"
         )
 
@@ -108,7 +108,7 @@ class WheelOdom:
         odom = Odometry()
         odom.header.stamp = now
         odom.header.frame_id = "odom"
-        odom.child_frame_id = "rocker_bogie/base_link_nav"
+        odom.child_frame_id = "rocker_bogie/base_link"
 
         odom.pose.pose.position.x = self.x
         odom.pose.pose.position.y = self.y

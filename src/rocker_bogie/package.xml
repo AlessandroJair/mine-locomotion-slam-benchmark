@@ -4,9 +4,9 @@
   <version>0.0.0</version>
   <description>The rocker_bogie package - 6-wheel rocker-bogie robot for mine navigation comparison</description>
 
-  <maintainer email="alessandro@todo.todo">alessandro</maintainer>
+  <maintainer email="alessandro.lugo@utec.edu.pe">Alessandro Lugo</maintainer>
 
-  <license>TODO</license>
+  <license>MIT</license>
 
   <buildtool_depend>catkin</buildtool_depend>
   <build_depend>roscpp</build_depend>

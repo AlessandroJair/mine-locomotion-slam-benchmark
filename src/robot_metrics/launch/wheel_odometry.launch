@@ -1,0 +1,105 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- =======================================================================
+       ODOMETRIA DE RUEDAS - la geometria de las tres plataformas, en un sitio
+       =======================================================================
+       Existe para alimentar guess_frame_id de icp_odometry, que es lo que
+       rompe el lazo del de-skew.  Ver la cabecera de wheel_odometry.py.
+
+       Las coordenadas de rueda van en el MARCO DE NAVEGACION: +x adelante,
+       +y a la izquierda, que es REP-103.  Salen de extract_robot_specs.py y
+       de las tablas de mapeo de los launch de cada mundo.
+
+       El nodo se lanza SOLO cuando se deskewa.  Si corriera siempre, el arm
+       -deskew off dejaria de ser comparable con las campanas anteriores por
+       dos motivos: guess_frame_id le daria a ICP una semilla de movimiento
+       que antes no tenia, y un nodo mas a 50 Hz cambia el reparto de CPU, que
+       en esta campana mueve cuantas nubes procesa el SLAM.
+       ======================================================================= -->
+
+  <arg name="robot" />
+  <arg name="odom_frame" default="wheel_odom" />
+
+  <!-- - -->
+  <!-- HUSKY - skid-steer de 4 ruedas.                                     -->
+  <!-- track 0.5709 y radio 0.17775 son los mismos numeros que usa su      -->
+  <!-- twist_to_wheels.py para MANDAR, asi que leer y mandar son inversos  -->
+  <!-- exactos y cualquier error de geometria se ve como deriva, no como   -->
+  <!-- un sesgo que se cancela.                                            -->
+  <!-- - -->
+  <group if="$(eval arg('robot') == 'differential')">
+    <node name="wheel_odometry" pkg="robot_metrics" type="wheel_odometry.py"
+          output="screen">
+      <env name="PYTHONUNBUFFERED" value="1" />
+      <param name="wheel_radius" value="0.17775" />
+      <param name="joint_sign"   value="1.0" />
+      <param name="base_frame"   value="husky/base_link" />
+      <param name="odom_frame"   value="$(arg odom_frame)" />
+      <param name="joint_states_topic" value="/husky/joint_states" />
+      <rosparam param="wheels">
+        - {joint: front_left_joint,  x:  0.256, y:  0.28545}
+        - {joint: front_right_joint, x:  0.256, y: -0.28545}
+        - {joint: back_left_joint,   x: -0.256, y:  0.28545}
+        - {joint: back_right_joint,  x: -0.256, y: -0.28545}
+      </rosparam>
+    </node>
+  </group>
+
+  <!-- - -->
+  <!-- TRACKED - skid-steer de dos orugas.                                 -->
+  <!-- El radio es el del SPROCKET (0.178), no el 0.210 del plano de       -->
+  <!-- contacto: la oruga avanza a la velocidad de la superficie del       -->
+  <!-- sprocket, y que el suelo quede 32 mm mas abajo no cambia esa        -->
+  <!-- velocidad.  Lo confirma la campana: mando 0.4507 m/s, real 0.4547.  -->
+  <!-- - -->
+  <group if="$(eval arg('robot') == 'tracked')">
+    <node name="wheel_odometry" pkg="robot_metrics" type="wheel_odometry.py"
+          output="screen">
+      <env name="PYTHONUNBUFFERED" value="1" />
+      <param name="wheel_radius" value="0.178" />
+      <param name="joint_sign"   value="1.0" />
+      <param name="base_frame"   value="example_two_track/body" />
+      <param name="odom_frame"   value="$(arg odom_frame)" />
+      <param name="joint_states_topic" value="/example_two_track/joint_states" />
+      <rosparam param="wheels">
+        - {joint: left_sprocket_axle,  x: 0.0, y:  0.28545}
+        - {joint: right_sprocket_axle, x: 0.0, y: -0.28545}
+      </rosparam>
+    </node>
+  </group>
+
+  <!-- - -->
+  <!-- ROCKER-BOGIE - Ackermann de 6 ruedas, 4 de ellas directrices.       -->
+  <!--                                                                     -->
+  <!-- joint_sign = -1: base_link mira a -x, y su twist_to_wheels invierte -->
+  <!-- el mando una vez.  Al LEER las articulaciones hay que deshacerlo.   -->
+  <!-- Los angulos de direccion NO se invierten: giran sobre z, y z es el  -->
+  <!-- mismo eje en base_link y en base_link_nav.                          -->
+  <!--                                                                     -->
+  <!-- Posiciones en nav = base_link rotado 180 deg sobre el centro del    -->
+  <!-- vehiculo, que esta en (x=+0.2835, y=+0.116) de base_link:           -->
+  <!--     nav_x = -(base_x - 0.2835)    nav_y = -(base_y - 0.116)         -->
+  <!-- Comprobacion: da via 0.596 delante y 0.782 detras, y batalla 0.853, -->
+  <!-- que son los tres numeros que declara extract_robot_specs.py.        -->
+  <!-- - -->
+  <group if="$(eval arg('robot') == 'rocker_bogie')">
+    <node name="wheel_odometry" pkg="robot_metrics" type="wheel_odometry.py"
+          output="screen">
+      <env name="PYTHONUNBUFFERED" value="1" />
+      <param name="wheel_radius" value="0.178" />
+      <param name="joint_sign"   value="-1.0" />
+      <param name="base_frame"   value="rocker_bogie/base_link" />
+      <param name="odom_frame"   value="$(arg odom_frame)" />
+      <param name="joint_states_topic" value="/rocker_bogie/joint_states" />
+      <rosparam param="wheels">
+        - {joint: rev_11, x:  0.4265, y:  0.298, steer: rev_5}
+        - {joint: rev_12, x:  0.4265, y: -0.298, steer: rev_7}
+        - {joint: rev_10, x:  0.0,    y:  0.391}
+        - {joint: rev_13, x:  0.0,    y: -0.391}
+        - {joint: rev_9,  x: -0.4265, y:  0.391, steer: rev_6}
+        - {joint: rev_14, x: -0.4265, y: -0.391, steer: rev_8}
+      </rosparam>
+    </node>
+  </group>
+
+</launch>

@@ -1,0 +1,24 @@
+<?xml version="1.0" ?>
+<!-- Suelo plano de referencia, explicito.
+
+     Es exactamente el mundo por defecto de Gazebo (sun + ground_plane), pero
+     escrito aqui en vez de dejado al azar de la resolucion de rutas: el banco
+     de circulo anterior pedia $(find gazebo_ros)/worlds/empty.world, que en
+     esta instalacion NO EXISTE -gazebo_ros trae launch pero no worlds-, y
+     Gazebo cargaba su mundo por defecto sin decir nada.  Funcionaba, pero por
+     accidente.  Este fichero hace explicito lo que se estaba usando, para que
+     la corrida con piramides sea comparable con la lisa termino a termino.
+
+     El ground_plane de Gazebo declara mu 100 / mu2 50.  ODE combina las dos
+     superficies por el minimo, asi que el rozamiento efectivo lo fija la
+     rueda -mu 1.0 / mu2 0.75 de sim_config.yaml-, no el suelo. -->
+<sdf version="1.5">
+  <world name="default">
+    <include>
+      <uri>model://sun</uri>
+    </include>
+    <include>
+      <uri>model://ground_plane</uri>
+    </include>
+  </world>
+</sdf>

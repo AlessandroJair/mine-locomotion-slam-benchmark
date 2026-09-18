@@ -44,15 +44,33 @@ compared with the rocker travel, raise ~stiffness.
 
 TUNING
 ======
-Effective rocker inertia about its pivot is I ~ 0.45 kg*m^2.  The penalty pair
-(k, c) behaves as a second-order system with
+Effective rocker inertia about its pivot is I = 4.046 kg*m^2 after the mass
+matching (8.535 kg*m^2 native), measured from the expanded URDF by the parallel
+axis theorem over the 25 links, 13.48 kg, of the rocker subtree.  The penalty
+pair (k, c) behaves as a second-order system with
 
     omega_n = sqrt(k / I)          zeta = c / (2 * sqrt(k * I))
 
-The defaults k = 2000 N*m/rad and c = 60 N*m*s/rad give omega_n ~ 67 rad/s
-(~10.6 Hz, about 94 physics steps per period at dt = 1 ms, so comfortably
-resolved) and zeta ~ 1.0, i.e. critically damped and non-oscillatory.  Both are
-ROS parameters and both are reported in the paper's model table.
+CORRECTED 2026-08-18.  This docstring used to claim I ~ 0.45 kg*m^2 and, from
+it, that the native k = 2000 / c = 60 pair was critically damped at zeta ~ 1.0.
+The inertia was roughly nineteen times too small, so the real figure was
+
+    zeta = 60 / (2 * sqrt(2000 * 8.535)) = 0.23
+
+i.e. markedly under-damped, and it stayed 0.23 through the mass matching
+because k and c were scaled with I.  The consequence was not cosmetic: at
+zeta = 0.23 a terrain disturbance overshoots by ~48%, the error saturates tau
+at max_torque, and because tau is applied with the SAME SIGN to both rockers
+the chassis takes the whole 2 * max_torque = 379 N*m as a pitching reaction.
+Measured on the run of 2026-08-18: both rocker pivots ended pinned against
+their +-0.6 rad stops with a mean |phi_l + phi_r| of 66.8 deg, and the chassis
+pitch went from level at spawn to a mean of -29 deg and a worst of -53 deg.
+
+The defaults are now k = 2000 N*m/rad and c = 2*sqrt(k*I) = 261.3 N*m*s/rad
+natively, scaled with the mass matching to k = 948.08 and c = 123.87, which is
+zeta = 1.0 at the true inertia.  Both are ROS parameters, both are reported in
+the paper's model table, and ~inertia below is what the startup diagnostic uses
+so it can no longer disagree with them.
 
 ABLATION
 ========
@@ -89,13 +107,24 @@ class RockerDifferential(object):
         self.stiffness = rospy.get_param('~stiffness', 948.08)   # N*m/rad
         self.damping = rospy.get_param('~damping', 28.44)        # N*m*s/rad
         self.max_torque = rospy.get_param('~max_torque', 189.6)  # N*m
+        # Rocker subtree inertia about the pivot, after mass matching.
+        # Only used to report omega_n and zeta at startup - but reporting
+        # them from a wrong constant is what hid the mis-tuning before.
+        self.inertia = rospy.get_param('~inertia', 4.046)  # kg*m^2
         self.rate_hz = rospy.get_param('~rate', 200.0)           # Hz
 
         # Joint states of the passive suspension come from the Gazebo joint
         # state publisher declared in ensamblajeurdf.gazebo, not from
         # ros_control: the bogies deliberately have no transmission.
+        # 'joint_states', no 'suspension_joint_states'.  El plugin que los
+        # publica ignora su <topicName> y usa <robotNamespace>/joint_states
+        # (ver la nota en ensamblajeurdf.gazebo).  Con el nombre viejo este
+        # nodo NUNCA recibio un JointState: phi_l y phi_r se quedaban en None
+        # y el par de acoplamiento no se aplicaba jamas.  No se noto porque
+        # ~enabled esta en false desde que el varillaje geometrico lo
+        # sustituyo, pero re-activarlo habria sido un no-op silencioso.
         joint_states_topic = rospy.get_param(
-            '~joint_states_topic', 'suspension_joint_states')
+            '~joint_states_topic', 'joint_states')
 
         self.phi_l = None
         self.phi_r = None
@@ -119,8 +148,12 @@ class RockerDifferential(object):
         rospy.on_shutdown(self.report)
 
         if self.enabled:
-            omega_n = math.sqrt(self.stiffness / 0.45)
-            zeta = self.damping / (2.0 * math.sqrt(self.stiffness * 0.45))
+            # Was hardcoded to 0.45 kg*m^2 while the model's real rocker
+            # inertia is 4.046: the node printed zeta ~ 0.69 every launch when
+            # the truth was 0.23, which is how the under-damping went unnoticed.
+            # It is a parameter now so it cannot drift from the model again.
+            omega_n = math.sqrt(self.stiffness / self.inertia)
+            zeta = self.damping / (2.0 * math.sqrt(self.stiffness * self.inertia))
             rospy.loginfo('Rocker differential ENABLED')
             rospy.loginfo('  stiffness   = %.1f N*m/rad', self.stiffness)
             rospy.loginfo('  damping     = %.1f N*m*s/rad', self.damping)

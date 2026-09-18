@@ -17,11 +17,52 @@
        do not have them; the contact columns are then simply absent. -->
   <arg name="wheel_links" default=""/>
 
+  <!-- Articulaciones PASIVAS de la suspension, separadas por comas.  Vacio en
+       las plataformas que no tienen: las columnas no salen y ya.  Hoy solo el
+       Rocker-Bogie las publica (el plugin suspension_joint_state_publisher de
+       ensamblajeurdf.gazebo, 200 Hz); una segunda plataforma tiene que pasar
+       TAMBIEN su suspension_topic, que por defecto apunta al del rocker.
+
+       EL TOPIC ES /rocker_bogie/joint_states.  El <topicName> del plugin no se
+       lee (ver la nota en ensamblajeurdf.gazebo), y en ese mismo topic publica
+       tambien el joint_state_controller: se leen por nombre. -->
+  <arg name="suspension_joints" default=""/>
+  <arg name="suspension_topic" default="/rocker_bogie/joint_states"/>
+  <!-- Articulaciones motrices de las que registrar el par, del MISMO
+       topic.  Vacio = la columna no sale. -->
+  <arg name="effort_joints" default=""/>
+  <arg name="velocity_joints" default=""/>
+
+  <!-- SAMPLING RATES.  See the SAMPLING RATES section of metrics_logger.py.
+       rate        drives metrics.csv, which mixes IMU (100 Hz), SLAM (~1 Hz)
+                   and commands (20 Hz); raising it only repeats those.
+       gt_rate_hz  drives gt_highrate.csv, ground-truth pose and twist only.
+                   800 Hz covers the 400 Hz the sliced LiDAR is asked for.  It
+                   is decimated from the physics rate, so what is delivered is
+                   the next exact divisor that is not slower - 1000 Hz at the
+                   defaults.  0 turns the stream off.
+       physics_rate_hz is 1 / physics.max_step_size_s = 2000 Hz.  It is NOT
+                   real_time_update_rate_hz, which dropped to 1000 on
+                   2026-08-28; the two coincided until then, which is why the
+                   note here used to name the wrong one.  ModelStates arrives
+                   once per physics STEP, i.e. every 0.5 ms of simulation time,
+                   whatever the wall clock is doing.  Set it to 1000 and
+                   gt_decim becomes 1 instead of 2: every message is written,
+                   so the file doubles and run_meta.yaml reports half the rate
+                   it actually delivered. -->
+  <arg name="rate"            default="50"/>
+  <arg name="gt_rate_hz"      default="800"/>
+  <arg name="physics_rate_hz" default="2000"/>
+
   <!-- Seconds without an odometry message before tracking is declared lost. -->
   <arg name="tracking_loss_timeout" default="1.0"/>
   <!-- Ground-truth radius within which a reported loop closure counts as a
        true positive. -->
   <arg name="loop_true_radius" default="3.0"/>
+  <!-- Keep equal to RGBD/LocalRadius in rtabmap_3d_slam.launch - see the note
+       in metrics_logger.py.  Proximity links are geometric, not "same place",
+       and judging them at 3 m marks every correct one a false positive. -->
+  <arg name="proximity_true_radius" default="20.0"/>
 
   <!-- Nodo de registro de metricas -->
   <node pkg="robot_metrics" type="metrics_logger.py" name="metrics_logger" output="screen">
@@ -32,8 +73,16 @@
     <param name="odom_topic" value="$(arg odom_topic)"/>
     <param name="run_id" value="$(arg run_id)"/>
     <param name="wheel_links" value="$(arg wheel_links)"/>
+    <param name="suspension_joints" value="$(arg suspension_joints)"/>
+    <param name="suspension_topic" value="$(arg suspension_topic)"/>
+    <param name="effort_joints" value="$(arg effort_joints)"/>
+    <param name="velocity_joints" value="$(arg velocity_joints)"/>
+    <param name="rate" value="$(arg rate)"/>
+    <param name="gt_rate_hz" value="$(arg gt_rate_hz)"/>
+    <param name="physics_rate_hz" value="$(arg physics_rate_hz)"/>
     <param name="tracking_loss_timeout" value="$(arg tracking_loss_timeout)"/>
     <param name="loop_true_radius" value="$(arg loop_true_radius)"/>
+    <param name="proximity_true_radius" value="$(arg proximity_true_radius)"/>
   </node>
 
 </launch>

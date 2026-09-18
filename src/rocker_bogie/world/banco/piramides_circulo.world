@@ -1,0 +1,280 @@
+<?xml version="1.0" ?>
+<!-- GENERADO por genera_piramides.py -- no editar a mano.
+
+     Suelo plano con un anillo de 8 piramides de 0.35 x 0.35 m de
+     base y 0.140 m de alto -79 % del radio de rueda (0.178 m)-, sembradas
+     sobre las huellas de rueda del circulo realmente trazado por el rocker en
+     el banco liso: centro (2.450, 0.942), radio de base_link 0.935 m.
+
+     Alternan entre la huella interior (r=0.660) y la exterior (r=1.442);
+     ver la cabecera del generador para por que no son R +/- media via.
+
+     Ground plane y sol identicos a plano_liso.world, para que la comparacion
+     con/sin obstaculos no cambie nada mas.  Las piramides son estaticas: no
+     ruedan ni se apartan, el robot tiene que pasarlas. -->
+<sdf version="1.5">
+  <world name="default">
+    <include>
+      <uri>model://sun</uri>
+    </include>
+    <include>
+      <uri>model://ground_plane</uri>
+    </include>
+
+    <model name="piramide_00">
+      <static>true</static>
+      <pose>3.1100 0.9419 0 0 0 0.0000</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <mesh>
+              <uri>file:///home/alessandro/journal_comparison/src/rocker_bogie/world/banco/piramide.stl</uri>
+              <scale>0.3500 0.3500 0.1400</scale>
+            </mesh>
+          </geometry>
+          <surface>
+            <friction>
+              <ode><mu>100</mu><mu2>50</mu2></ode>
+            </friction>
+          </surface>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <mesh>
+              <uri>file:///home/alessandro/journal_comparison/src/rocker_bogie/world/banco/piramide.stl</uri>
+              <scale>0.3500 0.3500 0.1400</scale>
+            </mesh>
+          </geometry>
+          <material>
+            <ambient>0.55 0.35 0.15 1</ambient>
+            <diffuse>0.75 0.50 0.22 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="piramide_01">
+      <static>true</static>
+      <pose>3.6988 1.6631 0 0 0 0.4000</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <mesh>
+              <uri>file:///home/alessandro/journal_comparison/src/rocker_bogie/world/banco/piramide.stl</uri>
+              <scale>0.3500 0.3500 0.1400</scale>
+            </mesh>
+          </geometry>
+          <surface>
+            <friction>
+              <ode><mu>100</mu><mu2>50</mu2></ode>
+            </friction>
+          </surface>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <mesh>
+              <uri>file:///home/alessandro/journal_comparison/src/rocker_bogie/world/banco/piramide.stl</uri>
+              <scale>0.3500 0.3500 0.1400</scale>
+            </mesh>
+          </geometry>
+          <material>
+            <ambient>0.55 0.35 0.15 1</ambient>
+            <diffuse>0.75 0.50 0.22 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="piramide_02">
+      <static>true</static>
+      <pose>2.7798 1.5138 0 0 0 0.8000</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <mesh>
+              <uri>file:///home/alessandro/journal_comparison/src/rocker_bogie/world/banco/piramide.stl</uri>
+              <scale>0.3500 0.3500 0.1400</scale>
+            </mesh>
+          </geometry>
+          <surface>
+            <friction>
+              <ode><mu>100</mu><mu2>50</mu2></ode>
+            </friction>
+          </surface>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <mesh>
+              <uri>file:///home/alessandro/journal_comparison/src/rocker_bogie/world/banco/piramide.stl</uri>
+              <scale>0.3500 0.3500 0.1400</scale>
+            </mesh>
+          </geometry>
+          <material>
+            <ambient>0.55 0.35 0.15 1</ambient>
+            <diffuse>0.75 0.50 0.22 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="piramide_03">
+      <static>true</static>
+      <pose>2.4496 2.3843 0 0 0 1.2000</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <mesh>
+              <uri>file:///home/alessandro/journal_comparison/src/rocker_bogie/world/banco/piramide.stl</uri>
+              <scale>0.3500 0.3500 0.1400</scale>
+            </mesh>
+          </geometry>
+          <surface>
+            <friction>
+              <ode><mu>100</mu><mu2>50</mu2></ode>
+            </friction>
+          </surface>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <mesh>
+              <uri>file:///home/alessandro/journal_comparison/src/rocker_bogie/world/banco/piramide.stl</uri>
+              <scale>0.3500 0.3500 0.1400</scale>
+            </mesh>
+          </geometry>
+          <material>
+            <ambient>0.55 0.35 0.15 1</ambient>
+            <diffuse>0.75 0.50 0.22 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="piramide_04">
+      <static>true</static>
+      <pose>2.1194 1.5138 0 0 0 0.0292</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <mesh>
+              <uri>file:///home/alessandro/journal_comparison/src/rocker_bogie/world/banco/piramide.stl</uri>
+              <scale>0.3500 0.3500 0.1400</scale>
+            </mesh>
+          </geometry>
+          <surface>
+            <friction>
+              <ode><mu>100</mu><mu2>50</mu2></ode>
+            </friction>
+          </surface>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <mesh>
+              <uri>file:///home/alessandro/journal_comparison/src/rocker_bogie/world/banco/piramide.stl</uri>
+              <scale>0.3500 0.3500 0.1400</scale>
+            </mesh>
+          </geometry>
+          <material>
+            <ambient>0.55 0.35 0.15 1</ambient>
+            <diffuse>0.75 0.50 0.22 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="piramide_05">
+      <static>true</static>
+      <pose>1.2004 1.6631 0 0 0 0.4292</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <mesh>
+              <uri>file:///home/alessandro/journal_comparison/src/rocker_bogie/world/banco/piramide.stl</uri>
+              <scale>0.3500 0.3500 0.1400</scale>
+            </mesh>
+          </geometry>
+          <surface>
+            <friction>
+              <ode><mu>100</mu><mu2>50</mu2></ode>
+            </friction>
+          </surface>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <mesh>
+              <uri>file:///home/alessandro/journal_comparison/src/rocker_bogie/world/banco/piramide.stl</uri>
+              <scale>0.3500 0.3500 0.1400</scale>
+            </mesh>
+          </geometry>
+          <material>
+            <ambient>0.55 0.35 0.15 1</ambient>
+            <diffuse>0.75 0.50 0.22 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="piramide_06">
+      <static>true</static>
+      <pose>1.7892 0.9419 0 0 0 0.8292</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <mesh>
+              <uri>file:///home/alessandro/journal_comparison/src/rocker_bogie/world/banco/piramide.stl</uri>
+              <scale>0.3500 0.3500 0.1400</scale>
+            </mesh>
+          </geometry>
+          <surface>
+            <friction>
+              <ode><mu>100</mu><mu2>50</mu2></ode>
+            </friction>
+          </surface>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <mesh>
+              <uri>file:///home/alessandro/journal_comparison/src/rocker_bogie/world/banco/piramide.stl</uri>
+              <scale>0.3500 0.3500 0.1400</scale>
+            </mesh>
+          </geometry>
+          <material>
+            <ambient>0.55 0.35 0.15 1</ambient>
+            <diffuse>0.75 0.50 0.22 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="piramide_11">
+      <static>true</static>
+      <pose>3.6988 0.2207 0 0 0 1.2584</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <mesh>
+              <uri>file:///home/alessandro/journal_comparison/src/rocker_bogie/world/banco/piramide.stl</uri>
+              <scale>0.3500 0.3500 0.1400</scale>
+            </mesh>
+          </geometry>
+          <surface>
+            <friction>
+              <ode><mu>100</mu><mu2>50</mu2></ode>
+            </friction>
+          </surface>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <mesh>
+              <uri>file:///home/alessandro/journal_comparison/src/rocker_bogie/world/banco/piramide.stl</uri>
+              <scale>0.3500 0.3500 0.1400</scale>
+            </mesh>
+          </geometry>
+          <material>
+            <ambient>0.55 0.35 0.15 1</ambient>
+            <diffuse>0.75 0.50 0.22 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+  </world>
+</sdf>

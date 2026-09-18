@@ -1,5 +1,31 @@
 <launch>
 
+    <!-- =====================================================================
+         TERRAIN MODEL PATH
+         =====================================================================
+         lcmine.world instantiates the terrain by URI - model://lc_mine,
+         model://grass_plane, model://smaze_wall, model://sun_2 - and those
+         models live in this package's world/mine directory.  package.xml only
+         exports <pkg>/model to GAZEBO_MODEL_PATH, which holds the robot
+         models, not the terrain, so nothing in this repository ever told
+         Gazebo where the terrain was.
+
+         It worked anyway because ~/.bashrc exported the directory by hand.
+         That is a dependency on one developer's interactive shell, and the
+         path it exported pointed at ~/jounal_comparison - a stale duplicate of
+         this workspace, with a typo in its name.  Any run that did not source
+         that .bashrc (a script, a CI job, a background campaign) got
+         "Unable to find uri[model://lc_mine]" and a world with NO GROUND: the
+         robot spawns at z and free-falls forever while x and y never change,
+         which reads exactly like a robot that refuses to move.
+
+         Declaring it here makes the launch self-contained.  optenv keeps
+         whatever the environment already had, so an existing setup is not
+         broken by this.
+         ===================================================================== -->
+    <env name="GAZEBO_MODEL_PATH"
+         value="$(find differential)/world/mine:$(optenv GAZEBO_MODEL_PATH)" />
+
     <!-- these are the arguments you can pass this launch file, for example paused:=true -->
     <arg name="paused" default="true" />
     <arg name="use_sim_time" default="true" />
@@ -51,27 +77,203 @@
     -->
     <arg name="spawn_x" default="33.5" />
     <arg name="spawn_y" default="0.2" />
-    <arg name="spawn_z" default="1.5" />
+    <arg name="spawn_z" default="1.15025" />
+    <!-- BAJADA 2026-09-01, de 1.5 a 1.18.  Medido: esta plataforma
+         reposa en z = 1.1171, asi que 1.5 dejaba 38 cm de caida.  Con
+         el contacto a kp = 1e7 ese impacto hacia GIRAR al Husky
+         16.4 grados sobre +z durante el aterrizaje, y esos grados se
+         quedaban como condicion inicial de la corrida.  Ahora la
+         caida son 6 cm: suficiente para no aparecer dentro del
+         terreno, poco para golpear. -->
     <arg name="spawn_Y" default="0.0" />
 
+    <!-- =====================================================================
+         LIDAR: normal (el de siempre) o troceado
+         =====================================================================
+         normal  el gpu_ray monolitico: 1875x16 rayos disparados TODOS en el
+                 mismo instante, asi que la nube no puede tener distorsion de
+                 movimiento.  Es el sensor con el que se tomo la campaña.
+         sliced  el mismo LiDAR partido en 40 pedazos sobre un rotor que gira a
+                 10 Hz, como un VLP-16 real.  Cada rebanada sale de la pose que
+                 el robot tenia en ese instante, y el ensamblado solo corrige
+                 el rotor - no el movimiento del vehiculo - que es justo lo que
+                 hace un driver sin de-skew.
+
+         El modelo troceado se DERIVA del model.sdf en cada arranque, no hay
+         una segunda copia en el repositorio que pueda quedarse atras.  Las
+         caracteristicas del VLP-16 (resolucion angular, 16 anillos, rango,
+         ruido sembrado) se heredan del sensor original: lo unico que cambia
+         entre los dos modos es la temporizacion.
+         ===================================================================== -->
+    <arg name="lidar" default="normal" />
+
+    <param name="swept_robot_description"
+           if="$(eval arg('lidar') == 'swept')"
+           command="$(find robot_metrics)/scripts/retopic_lidar.py
+                    $(find differential)/model/differential/model.sdf" />
+
     <node name="spawn_husky" pkg="gazebo_ros" type="spawn_model"
+          unless="$(eval arg('lidar') == 'swept')"
           args="-database differential -sdf -model differential
                 -x $(arg spawn_x) -y $(arg spawn_y) -z $(arg spawn_z) -Y $(arg spawn_Y)"
           output="screen" />
+
+    <node name="spawn_husky" pkg="gazebo_ros" type="spawn_model"
+          if="$(eval arg('lidar') == 'swept')"
+          args="-param swept_robot_description -sdf -model differential
+                -x $(arg spawn_x) -y $(arg spawn_y) -z $(arg spawn_z) -Y $(arg spawn_Y)"
+          output="screen" />
+
+    <!-- Arm swept: el LiDAR monolitico con la distorsion de barrido
+         metida por formulas.  Ver sweep_distortion.launch. -->
+    <arg name="cut_angle_deg" default="0.0" />
+    <arg name="rotor_dir"     default="1" />
+    <include file="$(find robot_metrics)/launch/sweep_distortion.launch"
+             if="$(eval arg('lidar') == 'swept')">
+        <arg name="model_name"    value="differential" />
+        <arg name="base_frame"    value="husky/base_link" />
+        <arg name="frame_id"      value="husky/velodyne_base_link" />
+        <arg name="cut_angle_deg" value="$(arg cut_angle_deg)" />
+        <arg name="rotor_dir"     value="$(arg rotor_dir)" />
+    </include>
+
 
     <group ns="husky">
 
         <!-- Load the URDF into the ROS Parameter Server -->
         <param name="robot_description" command="xacro --inorder '$(find differential)/urdf_xacro/husky_gazebo.urdf.xacro'" />
 
-        <!-- joint_state_publisher: publica joint states para las ruedas (el plugin skid_steer no los publica) -->
-        <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" output="screen" />
+        <!--
+          Drive controllers.  The Husky used to be driven by
+          libgazebo_ros_skid_steer_drive.so, which wrote target velocities and
+          an fmax straight onto the ODE joint motors: a RIGID velocity source
+          with zero droop under load, where the other two platforms sag through
+          a PID velocity loop.  Equal torque ceilings do not make platforms
+          comparable when one of them responds to load in a different way, so
+          this one now runs the same gazebo_ros_control loop they do.  The four
+          VelocityJointInterface transmissions were already in husky.urdf.xacro.
+        -->
+        <rosparam>
+            joint_state_controller:
+                type: joint_state_controller/JointStateController
+                publish_rate: 50
 
-        <!-- convert joint states to TF transforms for rviz, etc -->
+            wheel_vel_controller_fl:
+                type: velocity_controllers/JointVelocityController
+                joint: front_left_joint
+            wheel_vel_controller_fr:
+                type: velocity_controllers/JointVelocityController
+                joint: front_right_joint
+            wheel_vel_controller_rl:
+                type: velocity_controllers/JointVelocityController
+                joint: back_left_joint
+            wheel_vel_controller_rr:
+                type: velocity_controllers/JointVelocityController
+                joint: back_right_joint
+
+            gazebo_ros_control:
+                # GAINS DERIVED FROM THE SHARED ACTUATION BUDGET, not tuned
+                # here.  See robot_metrics/config/sim_config.yaml.  What is
+                # matched across platforms is the velocity-loop stiffness
+                # referred to the contact patch,
+                #
+                #     K_F = n_driven * p / r^2   [N per m/s of speed droop]
+                #     K_I = n_driven * i / r^2
+                #
+                # anchored on the Rocker-Bogie, whose gains carry a derivation.
+                # For this platform, n = 4 and r = 0.17775 m:
+                #
+                #     p = 2800.78 * 0.17775^2 / 4 = 22.123   (i = 7.090)
+                #     i =   89.76 * 0.17775^2 / 4 =  0.709
+                #
+                # d STAYS 0.0.  A derivative term on a velocity loop feeds back
+                # acceleration - the very quantity this study reports - and no
+                # platform may filter it differently from the others.  If a loop
+                # rings, move K_F for all three, do not damp one of them.
+                #
+                # i_clamp is load-bearing: control_toolbox defaults
+                # i_clamp_min/max to 0.0, which silently clamps the integral
+                # term to zero and leaves a P-only loop that never nulls the
+                # droop on a sustained grade.  It is set to this joint's torque
+                # ceiling from the budget (29.958 N*m).
+                pid_gains:
+                    front_left_joint:  {p: 15.337, i: 14.746, d: 0.0, i_clamp: 30.000}
+                    front_right_joint: {p: 15.337, i: 14.746, d: 0.0, i_clamp: 30.000}
+                    back_left_joint:   {p: 15.337, i: 14.746, d: 0.0, i_clamp: 30.000}
+                    back_right_joint:  {p: 15.337, i: 14.746, d: 0.0, i_clamp: 30.000}
+        </rosparam>
+
+        <!-- Load and start controllers -->
+        <node name="controller_starter" pkg="controller_manager" type="controller_manager"
+              args="spawn joint_state_controller wheel_vel_controller_fl wheel_vel_controller_fr wheel_vel_controller_rl wheel_vel_controller_rr"
+              output="screen" />
+
+        <!--
+          cmd_vel -> four wheel velocities.  Replaces the command half of the
+          old drive plugin.  Subscribes to cmd_vel in this namespace, i.e.
+          /husky/cmd_vel, which is where move_base.launch remaps it.
+          track_width and wheel_radius are the values the old plugin used
+          (wheelSeparation 0.5709, wheelDiameter 0.3555), so the kinematics are
+          unchanged - only the loop underneath them is.
+        -->
+        <node name="twist_to_wheels" pkg="differential" type="twist_to_wheels.py" output="screen">
+            <param name="track_width"  value="0.5709" />
+            <param name="wheel_radius" value="0.17775" />
+            <!-- 0.0 for all three platforms; see command.min_angular_rad_s in
+                 sim_config.yaml.  The tracked platform used to force 0.25. -->
+            <param name="min_angular"  value="0.0" />
+        </node>
+
+        <!-- convert joint states to TF transforms for rviz, etc.
+             joint_state_controller above publishes the real wheel states; the
+             joint_state_publisher that used to stand in for them (because the
+             skid-steer plugin published none) is gone. -->
         <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" output="screen">
             <param name="tf_prefix" value="husky" />
         </node>
 
     </group>
+
+
+    <!-- ================= COVARIANZAS DEL IMU =============================
+         gazebo_ros_imu_sensor ata el ruido y la covarianza al mismo parametro
+         (<gaussianNoise>): llena las tres diagonales con gaussianNoise^2.
+         Aca el ruido tiene que salir del generador SEMBRADO -los bloques
+         <noise> del <sensor>, que usan ignition::math::Rand y por tanto
+         responden a la opcion seed de gzserver- y no al rand() de C del plugin,
+         que la semilla no alcanza.  Por eso <gaussianNoise> esta en 0.0, y el
+         efecto colateral fue que las covarianzas quedaron en cero, o sea
+         "desconocidas" segun la spec de sensor_msgs/Imu.  RTAB-Map consume
+         este topic.
+
+         Solucion: el plugin publica crudo en /imu/data_raw y este nodo
+         republica /imu/data con las diagonales puestas desde los stddev de
+         sim_config.yaml.  Los consumidores (rtabmap, metrics_logger,
+         rearing_guard, wheel_odom) siguen leyendo /imu/data sin cambios.
+         Medido/aplicado 2026-08-23. -->
+    <!-- AHRS.  Fusiona giroscopo y acelerometro para producir la orientacion que
+         consumen rtabmap, metrics_logger y wheel_odometry.py.  Sustituye a
+         imu_covariance.py el 2026-09-09: aquel solo rellenaba covarianzas y
+         dejaba pasar la orientacion del plugin, que es la pose EXACTA del
+         link.  No era verdad de terreno con ruido: la spec de SDF no tiene
+         elemento de ruido para la orientacion, asi que `gzserver -seed` no
+         tenia ahi nada que sembrar.  Ver la cabecera de imu_ahrs.py. -->
+    <node name="imu_ahrs" pkg="robot_metrics" type="imu_ahrs.py"
+          output="screen">
+        <!-- Sin esto la salida de un nodo Python se queda en el buffer cuando
+             roslaunch va redirigido a un archivo, que es como corre la
+             campana: el nodo funciona pero su log no aparece hasta que sale.
+             Aqui tapaba justo lo que hay que poder auditar, el sesgo del
+             giroscopo que se estimo al arrancar. -->
+        <env name="PYTHONUNBUFFERED" value="1" />
+        <remap from="~input"  to="/imu/data_raw"/>
+        <remap from="~output" to="/imu/data"/>
+        <param name="angular_velocity_stddev"    value="0.009"/>
+        <param name="linear_acceleration_stddev" value="0.021"/>
+        <param name="orientation_stddev"         value="0.02"/>
+        <param name="tau"                        value="1.0"/>
+        <param name="accel_gate"                 value="0.15"/>
+        <param name="bias_samples"               value="200"/>
+    </node>
 
 </launch>

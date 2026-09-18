@@ -43,31 +43,52 @@
     <!-- ================= MAIN BODY (ROOT LINK) ================= -->
 
     <link name="body">
-        <xacro:make_box_inertia mass="${33.855*mass_scale}" size_x="1.0" size_y="0.57" size_z="0.20" />
+        <!-- POSTES DE SENSOR (2026-09-13).  LiDAR y camara son links propios unidos
+         por junta fija y se veian flotando sobre el cuerpo.  Solo DIBUJO: sin masa
+         ni colision, asi que la fisica no cambia.  Mismos postes que el husky.
+         MUST MATCH entre model/two_track_robot/model.sdf y
+         urdf_xacro/two_track_robot.urdf.xacro. -->
+        <visual name="lidar_mast">
+            <origin xyz="0.0000 0 0.26965" rpy="0 0 0" />
+            <geometry><cylinder radius="0.020" length="0.35930" /></geometry>
+            <material name="dark_grey"><color rgba="0.3 0.3 0.3 1" /></material>
+        </visual>
+        <visual name="camera_mast">
+            <origin xyz="0.3543 0 0.22885" rpy="0 0 0" />
+            <geometry><cylinder radius="0.010" length="0.27770" /></geometry>
+            <material name="dark_grey"><color rgba="0.3 0.3 0.3 1" /></material>
+        </visual>
+        <xacro:make_box_inertia mass="${33.116425*mass_scale}" size_x="0.918" size_y="0.270" size_z="0.20" />
 
         <visual>
             <geometry>
-                <box size="1.0 0.57 0.20" />
+                <box size="0.918 0.270 0.20" />
             </geometry>
         </visual>
 
         <collision>
             <geometry>
-                <box size="1.0 0.57 0.20" />
+                <box size="0.918 0.270 0.20" />
             </geometry>
         </collision>
     </link>
+
+    <!-- DIFERENCIA DELIBERADA con model/two_track_robot/model.sdf: alli el
+         VISUAL del cilindro del sprocket mide 0.296 en vez de 0.300, para que
+         la cruz de radios (0.300) no quede coplanar con sus tapas y deje de
+         hacer z-fighting.  Aqui no hace falta: este fichero no se dibuja,
+         Gazebo spawnea el SDF.  La colision mide 0.300 en los dos. -->
 
     <!-- ================= LEFT TRACK ================= -->
 
     <!-- body to be wrapped by the track -->
 
     <link name="left_body">
-        <xacro:make_box_inertia mass="${3.0*mass_scale}" size_x="0.65" size_y="0.31" size_z="0.2" />
+        <xacro:make_box_inertia mass="${3.0*mass_scale}" size_x="0.65" size_y="0.30" size_z="0.2" />
 
         <visual>
             <geometry>
-                <box size="0.65 0.31 0.2" />
+                <box size="0.65 0.30 0.2" />
             </geometry>
         </visual>
 
@@ -87,29 +108,29 @@
     <!-- sprocket driving the track -->
 
     <link name="left_sprocket">
-        <xacro:make_wheel_inertia mass="${1.0*mass_scale}" radius="0.178" length="0.31" />
+        <xacro:make_wheel_inertia mass="${1.0*mass_scale}" radius="0.128" length="0.30" />
 
         <visual>
             <origin xyz="0 0 0" rpy="${pi / 2} 0 0" />
             <geometry>
-                <cylinder radius="0.178" length="0.31" />
+                <cylinder radius="0.128" length="0.30" />
             </geometry>
         </visual>
         <visual>
             <geometry>
-                <box size="0.01 0.31 0.34" />
+                <box size="0.01 0.30 0.256" />
             </geometry>
         </visual>
         <visual>
             <geometry>
-                <box size="0.34 0.31 0.01" />
+                <box size="0.256 0.30 0.01" />
             </geometry>
         </visual>
 
         <collision>
             <origin xyz="0 0 0" rpy="${pi / 2} 0 0" />
             <geometry>
-                <cylinder radius="0.178" length="0.31" />
+                <cylinder radius="0.128" length="0.30" />
             </geometry>
         </collision>
     </link>
@@ -119,6 +140,21 @@
         <parent link="left_body" />
         <child link="left_sprocket" />
         <axis xyz="0 1 0" />
+        <!-- ACTUATION BUDGET.  These two sprockets carry the whole tracked
+             platform's share of the shared tractive-force budget declared in
+             robot_metrics/config/sim_config.yaml:
+                 tau_max = F_budget * r / n_driven = 674.157 * 0.178 / 2
+                         = 60.000 N*m
+             Until this <limit> existed the joint declared no effort limit at
+             all, so joint_limits_interface registered no saturation handle and
+             this platform drove against an UNBOUNDED torque ceiling while the
+             other two were capped - the confound the budget removes.
+             model/two_track_robot/model.sdf repeats this figure as the
+             <effort> of the same joint, and that SDF is what Gazebo
+             spawns, so the two files must be kept in step.
+             velocity 5.0 rad/s = 0.89 m/s matches the Rocker-Bogie's kinematic
+             ceiling and is well above the 0.4 m/s commanded. -->
+        <limit effort="55.946" velocity="5.0" />
     </joint>
 
     <transmission name="left_sprocket_transmission">
@@ -134,19 +170,19 @@
     <!-- idler on the other side of the sprocket -->
 
     <link name="left_idler">
-        <xacro:make_wheel_inertia mass="${1.0*mass_scale}" radius="0.178" length="0.31" />
+        <xacro:make_wheel_inertia mass="${1.0*mass_scale}" radius="0.128" length="0.30" />
 
         <visual>
             <origin xyz="0 0 0" rpy="${pi / 2} 0 0" />
             <geometry>
-                <cylinder radius="0.178" length="0.31" />
+                <cylinder radius="0.128" length="0.30" />
             </geometry>
         </visual>
 
         <collision>
             <origin xyz="0 0 0" rpy="${pi / 2} 0 0" />
             <geometry>
-                <cylinder radius="0.178" length="0.31" />
+                <cylinder radius="0.128" length="0.30" />
             </geometry>
         </collision>
     </link>
@@ -162,11 +198,11 @@
     <!-- body to be wrapped by the track -->
 
     <link name="right_body">
-        <xacro:make_box_inertia mass="${3.0*mass_scale}" size_x="0.65" size_y="0.31" size_z="0.2" />
+        <xacro:make_box_inertia mass="${3.0*mass_scale}" size_x="0.65" size_y="0.30" size_z="0.2" />
 
         <visual>
             <geometry>
-                <box size="0.65 0.31 0.2" />
+                <box size="0.65 0.30 0.2" />
             </geometry>
         </visual>
 
@@ -186,29 +222,29 @@
     <!-- sprocket driving the track -->
 
     <link name="right_sprocket">
-        <xacro:make_wheel_inertia mass="${1.0*mass_scale}" radius="0.178" length="0.31" />
+        <xacro:make_wheel_inertia mass="${1.0*mass_scale}" radius="0.128" length="0.30" />
 
         <visual>
             <origin xyz="0 0 0" rpy="${pi / 2} 0 0" />
             <geometry>
-                <cylinder radius="0.178" length="0.31" />
+                <cylinder radius="0.128" length="0.30" />
             </geometry>
         </visual>
         <visual>
             <geometry>
-                <box size="0.01 0.31 0.34" />
+                <box size="0.01 0.30 0.256" />
             </geometry>
         </visual>
         <visual>
             <geometry>
-                <box size="0.34 0.31 0.01" />
+                <box size="0.256 0.30 0.01" />
             </geometry>
         </visual>
 
         <collision>
             <origin xyz="0 0 0" rpy="${pi / 2} 0 0" />
             <geometry>
-                <cylinder radius="0.178" length="0.31" />
+                <cylinder radius="0.128" length="0.30" />
             </geometry>
         </collision>
     </link>
@@ -218,6 +254,21 @@
         <parent link="right_body" />
         <child link="right_sprocket" />
         <axis xyz="0 1 0" />
+        <!-- ACTUATION BUDGET.  These two sprockets carry the whole tracked
+             platform's share of the shared tractive-force budget declared in
+             robot_metrics/config/sim_config.yaml:
+                 tau_max = F_budget * r / n_driven = 674.157 * 0.178 / 2
+                         = 60.000 N*m
+             Until this <limit> existed the joint declared no effort limit at
+             all, so joint_limits_interface registered no saturation handle and
+             this platform drove against an UNBOUNDED torque ceiling while the
+             other two were capped - the confound the budget removes.
+             model/two_track_robot/model.sdf repeats this figure as the
+             <effort> of the same joint, and that SDF is what Gazebo
+             spawns, so the two files must be kept in step.
+             velocity 5.0 rad/s = 0.89 m/s matches the Rocker-Bogie's kinematic
+             ceiling and is well above the 0.4 m/s commanded. -->
+        <limit effort="55.946" velocity="5.0" />
     </joint>
 
     <transmission name="right_sprocket_transmission">
@@ -233,19 +284,19 @@
     <!-- idler on the other side of the sprocket -->
 
     <link name="right_idler">
-        <xacro:make_wheel_inertia mass="${1.0*mass_scale}" radius="0.178" length="0.31" />
+        <xacro:make_wheel_inertia mass="${1.0*mass_scale}" radius="0.128" length="0.30" />
 
         <visual>
             <origin xyz="0 0 0" rpy="${pi / 2} 0 0" />
             <geometry>
-                <cylinder radius="0.178" length="0.31" />
+                <cylinder radius="0.128" length="0.30" />
             </geometry>
         </visual>
 
         <collision>
             <origin xyz="0 0 0" rpy="${pi / 2} 0 0" />
             <geometry>
-                <cylinder radius="0.178" length="0.31" />
+                <cylinder radius="0.128" length="0.30" />
             </geometry>
         </collision>
     </link>
@@ -259,7 +310,7 @@
     <!-- ================= VELODYNE LIDAR ================= -->
 
     <link name="velodyne_base_link">
-        <xacro:make_box_inertia mass="${0.1*mass_scale}" size_x="0.1" size_y="0.1" size_z="0.07" />
+        <xacro:make_box_inertia mass="${0.824740*mass_scale}" size_x="0.1" size_y="0.1" size_z="0.07" />
         
         <visual>
             <origin xyz="0 0 0" rpy="0 0 0" />
@@ -280,18 +331,28 @@
     </link>
 
     <joint name="velodyne_base_mount_joint" type="fixed">
-        <!-- SENSOR STANDARDIZATION (see robot_metrics/config/sensor_standardization.yaml).
+        <!-- SENSOR STANDARDIZATION (see robot_metrics/README.md section 1.5).
              Native origin was "0 0 0.35", i.e. 0.35 - (-0.178) = 0.528 m above
-             the track contact plane. All three platforms are referred to the
-             Rocker-Bogie LiDAR height of 0.8248 m so that a given chassis tilt
-             displaces every LiDAR by the same amount:
-               z = 0.8248 + (-0.178) - 0.0377 = 0.6091
+             the track contact plane. All three platforms are referred to a
+             COMMON ray-origin height so that a given chassis tilt displaces
+             every LiDAR by the same amount:
+               z = 0.6700 + (-0.210) - 0.0377 = 0.4223
+             donde -0.210 es el plano de contacto MEDIDO, no el radio del
+             sprocket: ver la nota en model/two_track_robot/model.sdf.
              where 0.0377 m is the Velodyne's own <sensor><pose>, i.e. the
              offset from the mount link origin to the ray origin - the ray
              origin is what has to match across platforms, not the mount.
+             0.9000 m replaces 0.8248 m as of 2026-08-26, so the lowest of the
+             16 rings clears the robot's own geometry once the sliced LiDAR's
+             wedge moves onto a link of its own.
              The mast carrying the sensor is treated as massless; the 0.1 kg
-             sensor mass is kept at the new height. -->
-        <origin xyz="0 0 0.6091" rpy="0 0 0" />
+             sensor mass is kept at the new height.
+
+             MUST MATCH the velodyne_base_link <pose> in
+             model/two_track_robot/model.sdf, which is the file Gazebo actually
+             spawns.  This one only feeds robot_state_publisher.  They
+             disagreed by 0.2591 m until 2026-08-26. -->
+        <origin xyz="0 0 0.4843" rpy="0 0 0" />
         <parent link="body" />
         <child link="velodyne_base_link" />
     </joint>
@@ -300,9 +361,13 @@
     
     <link name="imu_link">
         <inertial>
-            <mass value="${0.001*mass_scale}"/>
+            <mass value="${0.0149050*mass_scale}"/>
             <origin xyz="0 0 0" rpy="0 0 0"/>
-            <inertia ixx="${0.0001*mass_scale}" ixy="${0*mass_scale}" ixz="${0*mass_scale}" iyy="${0.0001*mass_scale}" iyz="${0*mass_scale}" izz="${0.0001*mass_scale}"/>
+        <!-- Tensor exacto de su propia colision, como en el husky y el rocker.
+             Antes era el 9.94392e-05 isotropo copiado entre los tres sensores,
+             por encima del maximo fisico de esta pieza (m*r_max^2).  fix_phys.py
+             no toca esta plataforma, asi que iba a mano. -->
+            <inertia ixx="6.049218e-06" ixy="0" ixz="0" iyy="1.491588e-06" iyz="0" izz="6.049218e-06"/>
         </inertial>
         
         <visual>
@@ -324,10 +389,15 @@
     </link>
 
     <joint name="imu_joint" type="fixed">
-        <!-- SENSOR STANDARDIZATION: native "0 0 0.15" = 0.328 m above the
-             contact plane. Referred to the Rocker-Bogie IMU height of 0.6969 m:
-               z = 0.6969 + (-0.178) = 0.5189 -->
-        <origin xyz="0 0 0.5189" rpy="0 0 0"/>
+        <!-- SENSOR STANDARDIZATION: desde 2026-09-04 el IMU va en el
+             CENTRO DE MASAS, no a una altura comun sobre el suelo; el
+             razonamiento esta en model/two_track_robot/model.sdf.
+             El valor es el CM que declara ESE fichero, que es el que Gazebo
+             spawnea y simula, no el que sale de este xacro: los dos difieren
+             15.6 mm en x por como estan lumpeados los idlers alli.  TF tiene
+             que describir el robot simulado, asi que manda el SDF.
+             MUST MATCH the imu_link <pose> there. -->
+        <origin xyz="0.015658 0.000000 0.008978" rpy="0 0 0"/>
         <parent link="body"/>
         <child link="imu_link"/>
     </joint>
@@ -336,9 +406,9 @@
     
     <link name="camera_link">
         <inertial>
-            <mass value="${0.01*mass_scale}"/>
+            <mass value="${0.0099366*mass_scale}"/>
             <origin xyz="0 0 0" rpy="0 0 0"/>
-            <inertia ixx="${0.0001*mass_scale}" ixy="${0*mass_scale}" ixz="${0*mass_scale}" iyy="${0.0001*mass_scale}" iyz="${0*mass_scale}" izz="${0.0001*mass_scale}"/>
+            <inertia ixx="9.94392e-05" ixy="0" ixz="0" iyy="9.94392e-05" iyz="0" izz="9.94392e-05"/>
         </inertial>
         
         <visual>
@@ -361,11 +431,16 @@
 
     <joint name="camera_joint" type="fixed">
         <!-- SENSOR STANDARDIZATION: native "0.52 0 0.25". Referred to the
-             Rocker-Bogie camera pose: 0.3543 m ahead of the contact polygon
-             centre (which is x = 0 here, midway between sprocket and idler)
-             and 0.7607 m above the contact plane:
-               z = 0.7607 + (-0.178) = 0.5827 -->
-        <origin xyz="0.3543 0 0.5827" rpy="0 0 0"/>
+             common camera pose: 0.3543 m ahead of the contact polygon centre
+             (which is x = 0 here, midway between sprocket and idler) and
+             0.7607 m above the contact plane:
+               z = 0.5307 + (-0.180) = 0.3507
+             -0.210 is the MEASURED contact plane (the vehicle rests on the
+             belt, not on the sprocket); see model/two_track_robot/model.sdf.
+             MUST MATCH the camera_link <pose> there, which is the file Gazebo
+             spawns - it still held the native "0.52 0 0.25" until
+             2026-08-26. -->
+        <origin xyz="0.3543 0 0.3827" rpy="0 0 0"/>
         <parent link="body"/>
         <child link="camera_link"/>
     </joint>
@@ -373,9 +448,9 @@
     <!-- Optical frame (importante para ROS - convención de cámaras) -->
     <link name="camera_optical_frame">
         <inertial>
-            <mass value="${0.001*mass_scale}"/>
+            <mass value="${0.0009937*mass_scale}"/>
             <origin xyz="0 0 0" rpy="0 0 0"/>
-            <inertia ixx="${0.00001*mass_scale}" ixy="${0*mass_scale}" ixz="${0*mass_scale}" iyy="${0.00001*mass_scale}" iyz="${0*mass_scale}" izz="${0.00001*mass_scale}"/>
+            <inertia ixx="9.94392e-06" ixy="0" ixz="0" iyy="9.94392e-06" iyz="0" izz="9.94392e-06"/>
         </inertial>
     </link>
     

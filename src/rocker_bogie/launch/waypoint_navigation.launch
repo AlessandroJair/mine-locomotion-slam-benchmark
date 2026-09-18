@@ -22,20 +22,54 @@
   <arg name="run_id" default="1"/>
 
   <!-- Metrics logger -->
+  <!-- Where the logger writes metrics.csv and the trajectories.
+       run_campaign.sh passes its output directory through here.
+       Without it the logger silently kept writing to
+       $HOME/metrics_output while the campaign wrote its logs
+       somewhere else, splitting each run across two directories. -->
+  <arg name="output_dir" default="$(env HOME)/metrics_output"/>
   <include file="$(find robot_metrics)/launch/metrics_logger.launch">
+    <arg name="output_dir" value="$(arg output_dir)"/>
     <arg name="robot_name" value="rocker_bogie"/>
     <arg name="model_name" value="rocker_bogie"/>
-    <arg name="cmd_vel_topic" value="/cmd_vel"/>
+    <!-- El topic REAL, no /cmd_vel: move_base.launch remapea cmd_vel a
+         /rocker_bogie/cmd_vel y twist_to_wheels escucha ahi.  Apuntado a
+         /cmd_vel el logger se suscribia a un topic que nadie publica, asi que
+         la columna cmd_vx[m/s] salia 0.000 en toda la corrida incluso mientras
+         el robot avanzaba a 0.46 m/s.  Cualquier metrica derivada de la
+         velocidad comandada (deslizamiento, error de seguimiento) estaba
+         calculada contra un cero constante. -->
+    <arg name="cmd_vel_topic" value="/rocker_bogie/cmd_vel"/>
     <arg name="run_id" value="$(arg run_id)"/>
     <!-- The six wheels carrying contact sensors, in the order used by the
          contact figure: front, middle, rear for each side. -->
     <arg name="wheel_links"
          value="Rueda_6_1,Rueda_4_1,Rueda_2_1,Rueda_1_1,Rueda_3_1,Rueda_5_1"/>
+    <!-- Los dos rockers y los dos bogies.  Misma lista que el jointName del
+         plugin suspension_joint_state_publisher: si divergen, la columna que
+         falte sale en NaN en vez de mentir. -->
+    <arg name="suspension_joints"
+         value="rocker_pivot_left,rocker_pivot_right,rev_3,rev_4"/>
+    <!-- Las seis ruedas motrices: su par es lo que reacciona sobre el brazo
+         del balancin.  rev_9/rev_10 cuelgan del bogie rev_3 y rev_13/rev_14
+         del bogie rev_4. -->
+    <arg name="effort_joints" value="rev_9,rev_10,rev_11,rev_12,rev_13,rev_14"/>
+    <arg name="velocity_joints" value="rev_9,rev_10,rev_11,rev_12,rev_13,rev_14"/>
   </include>
 
   <!-- RViz para visualizacion (opcional) -->
   <group if="$(arg use_rviz)">
     <node pkg="rviz" type="rviz" name="waypoint_rviz" args="-d $(find rocker_bogie)/config/display.rviz"/>
   </group>
+
+
+  <!-- Rearing guard.  Cancels the goal when a speed is commanded, the vehicle
+       is not making it, and the chassis is pitching up - the exact sequence
+       that put the differential on its back twice on 2026-08-20.  Shared node,
+       identical thresholds on all three; see robot_metrics/launch/
+       rearing_guard.launch. -->
+  <include file="$(find robot_metrics)/launch/rearing_guard.launch">
+    <arg name="cmd_vel_topic" value="/rocker_bogie/cmd_vel"/>
+  </include>
 
 </launch>

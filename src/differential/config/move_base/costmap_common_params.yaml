@@ -1,19 +1,30 @@
 # Parametros comunes para global y local costmap
 # Footprint del Husky (rectangulo 1.1m x 0.66m)
-footprint: [[-0.50,-0.30],[-0.50,0.30],[0.50,0.30],[0.50,-0.30]]
+# 2026-09-14: recalculado con model_parser.collision_bbox con la batalla original
+# 0.512 (el valor anterior, [-0.50,0.50] x [-0.30,0.30], dejaba fuera el lado
+# exterior de las ruedas).
+footprint: [[-0.504,-0.343],[-0.504,0.343],[0.504,0.343],[0.504,-0.343]]
 
 robot_radius: 0.0  # Se usa footprint en lugar de radio
 
-# Fuente de obstaculos: Velodyne LiDAR 3D
-observation_sources: velodyne_cloud
+# Fuente de obstaculos: nube ya segmentada por rtabmap_util/obstacles_detection
+# (ver move_base.launch).  Filtro de altura desactivado a proposito: el suelo,
+# incluido el suelo en pendiente, ya viene quitado.
+#
+# NOTA: este robot usaba min_obstacle_height 0.15 mientras los otros dos usaban
+# 0.20, sin que nada lo justificara y sin que check_sim_parity.py lo detectara
+# (solo revisa mundo, fisica y terreno, no parametros de navegacion).  Con la
+# segmentacion por normales el umbral desaparece de los tres por igual, asi que
+# el confound se cierra solo.
+observation_sources: obstacle_cloud
 
-velodyne_cloud:
+obstacle_cloud:
   sensor_frame: husky/velodyne_base_link
   data_type: PointCloud2
-  topic: /velodyne_points
+  topic: /husky/obstacles_cloud
   marking: true
   clearing: true
-  min_obstacle_height: 0.15
-  max_obstacle_height: 2.0
+  min_obstacle_height: -99999.0
+  max_obstacle_height:  99999.0
   obstacle_range: 5.0
   raytrace_range: 6.0

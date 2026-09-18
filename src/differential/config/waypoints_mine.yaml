@@ -7,8 +7,10 @@
 #
 # Robot          : differential
 # Spawn pose     : x=33.5 y=0.2 yaw=0.0 deg (world frame)
-# Transform      : p_map = R(-yaw_spawn) * (p_world - p_spawn)
-# Route          : mine_loop_2026, 17 waypoints, 137.7 m
+# Map frame yaw  : 0.0 deg = yaw_spawn + base_yaw_offset, porque el
+#                  SLAM se ancla al frame de navegacion, no siempre a base_link
+# Transform      : p_map = R(-yaw_map) * (p_world - p_spawn)
+# Route          : mine_loop_2026, 43 waypoints, 139.5 m
 #
 # To change the route, edit route_mine.yaml and re-run generate_waypoints.py.
 # Editing this file by hand puts this platform on a different route from the
@@ -20,64 +22,168 @@ waypoints:
   x: 0.0
   y: 0.0
   yaw: 0.0
+- name: start_i1
+  x: 3.167
+  y: 0.0
+  yaw: 0.0
+- name: start_i2
+  x: 6.333
+  y: 0.0
+  yaw: 0.0
 - name: north_mid
   x: 9.5
   y: 0.0
   yaw: 0.0
+- name: north_mid_i1
+  x: 12.667
+  y: 0.0
+  yaw: -20.0
+- name: north_mid_i2
+  x: 15.833
+  y: 0.0
+  yaw: -40.0
 - name: ne_corner
   x: 19.0
   y: 0.0
   yaw: -60.0
+- name: ne_corner_i1
+  x: 19.5
+  y: -2.733
+  yaw: -70.0
+- name: ne_corner_i2
+  x: 20.0
+  y: -5.467
+  yaw: -80.0
 - name: east_north
   x: 20.5
   y: -8.2
   yaw: -90.0
+- name: east_north_i1
+  x: 20.5
+  y: -11.2
+  yaw: -90.0
+- name: east_north_i2
+  x: 20.5
+  y: -14.2
+  yaw: -90.0
 - name: east_mid
   x: 20.5
   y: -17.2
+  yaw: -90.0
+- name: east_mid_i1
+  x: 20.5
+  y: -20.2
   yaw: -90.0
 - name: step_run_up
   x: 20.5
   y: -23.2
   yaw: -90.0
 - name: step_exit
-  x: 20.5
+  x: 22.0
   y: -31.2
   yaw: -90.0
+- name: step_descent
+  x: 21.5
+  y: -34.2
+  yaw: -120.0
+- name: step_descent_i1
+  x: 19.75
+  y: -35.7
+  yaw: -135.0
 - name: se_corner
-  x: 17.0
+  x: 18.0
   y: -37.2
   yaw: -150.0
+- name: se_corner_i1
+  x: 14.5
+  y: -38.3
+  yaw: -160.0
+- name: se_gallery_in
+  x: 11.0
+  y: -39.4
+  yaw: -170.0
 - name: south_east
   x: 7.5
   y: -39.0
+  yaw: 180.0
+- name: south_east_i1
+  x: 4.167
+  y: -39.233
+  yaw: 180.0
+- name: south_east_i2
+  x: 0.833
+  y: -39.467
   yaw: 180.0
 - name: south_mid
   x: -2.5
   y: -39.7
   yaw: 180.0
+- name: south_mid_i1
+  x: -5.5
+  y: -39.367
+  yaw: 176.67
+- name: south_mid_i2
+  x: -8.5
+  y: -39.033
+  yaw: 173.33
 - name: south_west
   x: -11.5
   y: -38.7
   yaw: 170.0
+- name: sw_approach
+  x: -12.75
+  y: -36.95
+  yaw: 130.0
 - name: sw_corner
   x: -14.0
-  y: -33.2
+  y: -34.2
+  yaw: 90.0
+- name: sw_corner_i1
+  x: -14.167
+  y: -30.867
+  yaw: 90.0
+- name: sw_corner_i2
+  x: -14.333
+  y: -27.533
   yaw: 90.0
 - name: west_south
   x: -14.5
   y: -24.2
   yaw: 90.0
+- name: west_south_i1
+  x: -14.667
+  y: -20.867
+  yaw: 90.0
+- name: west_south_i2
+  x: -14.833
+  y: -17.533
+  yaw: 90.0
 - name: west_mid
   x: -15.0
   y: -14.2
   yaw: 90.0
+- name: west_mid_i1
+  x: -14.833
+  y: -10.533
+  yaw: 80.0
+- name: west_mid_i2
+  x: -14.667
+  y: -6.867
+  yaw: 70.0
 - name: nw_corner
-  x: -15.5
-  y: -4.2
+  x: -14.5
+  y: -3.2
   yaw: 60.0
+- name: nw_corner_i1
+  x: -11.25
+  y: -1.6
+  yaw: 30.0
 - name: north_west
   x: -8.0
+  y: 0.0
+  yaw: 0.0
+- name: north_west_i1
+  x: -4.0
   y: 0.0
   yaw: 0.0
 - name: loop_close

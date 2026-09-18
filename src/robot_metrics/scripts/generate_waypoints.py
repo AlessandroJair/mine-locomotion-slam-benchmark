@@ -39,6 +39,10 @@ OUTPUTS = {
 }
 
 
+def wrap_rad(a):
+    return math.atan2(math.sin(a), math.cos(a))
+
+
 def wrap_deg(a):
     while a > 180.0:
         a -= 360.0
@@ -47,17 +51,81 @@ def wrap_deg(a):
     return a
 
 
-def to_map_frame(wp, spawn_x, spawn_y, spawn_yaw_rad):
+def to_map_frame(wp, spawn_x, spawn_y, map_yaw_rad):
+    """Mundo -> el frame `map` en el que move_base recibe los goals.
+
+    `map_yaw_rad` es el rumbo del frame al que se ancla el SLAM, que NO es
+    siempre yaw_spawn: el Rocker-Bogie ancla rtabmap y los costmaps a
+    base_link_nav -- base_link girado 180 deg -- asi que su `map` nace en
+    yaw_spawn + base_yaw_offset.  Con yaw_spawn a secas sus waypoints salian
+    espejados (start_i1 en x = -3.167 donde las otras dos lo tienen en +3.167)
+    y move_base lo mandaba a recorrer la ruta al reves.
+    """
     dx = wp['x'] - spawn_x
     dy = wp['y'] - spawn_y
-    c, s = math.cos(-spawn_yaw_rad), math.sin(-spawn_yaw_rad)
+    c, s = math.cos(-map_yaw_rad), math.sin(-map_yaw_rad)
     return {
         'name': wp['name'],
-        'x': round(c * dx - s * dy, 3),
-        'y': round(s * dx + c * dy, 3),
-        'yaw': round(wrap_deg(wp['yaw'] - math.degrees(spawn_yaw_rad)), 2),
+        # Se redondea ANTES de envolver, y se suma 0.0 para no arrastrar
+        # -0.0.  yaw_rad vale 3.14159, no pi, asi que map_yaw_rad se queda a
+        # ~1e-4 deg de cero en el Rocker-Bogie; justo en el borde +-180 ese
+        # pelo decidia el signo y su fichero salia con -180.0/-0.0 donde los
+        # otros dos llevan 180.0/0.0.  Con esto los tres salen IDENTICOS, que
+        # es la propiedad que se comprueba de un vistazo: misma ruta, mismo
+        # spawn, mismo rumbo de `map`, mismo fichero.
+        'x': round(c * dx - s * dy, 3) + 0.0,
+        'y': round(s * dx + c * dy, 3) + 0.0,
+        'yaw': wrap_deg(round(wp['yaw'] - math.degrees(map_yaw_rad), 2)) + 0.0,
     }
 
+
+def in_no_go(x, y, zones):
+    for z in zones:
+        if (z['x_min'] <= x <= z['x_max']) and (z['y_min'] <= y <= z['y_max']):
+            return z.get('name', 'zone')
+    return None
+
+
+def densify(waypoints, max_spacing, zones):
+    """Subdivide the route so no gap exceeds max_spacing, without moving any of
+    the original points.
+
+    Done in WORLD coordinates and before projection, so every platform gets the
+    same points.  Interpolated goals that fall inside a no-waypoint zone are
+    dropped rather than moved: the zones exist because something is there that
+    a goal must not sit on, and nudging a point off a step obstacle would just
+    put it somewhere else nobody chose.
+    """
+    if not max_spacing or max_spacing <= 0:
+        return list(waypoints), 0, 0
+
+    out = []
+    added = skipped = 0
+    for a, b in zip(waypoints, waypoints[1:]):
+        out.append(a)
+        d = math.hypot(b['x'] - a['x'], b['y'] - a['y'])
+        n = int(math.ceil(d / max_spacing)) - 1
+        if n <= 0:
+            continue
+        # shortest angular path for the heading
+        da = wrap_deg(b['yaw'] - a['yaw'])
+        for k in range(1, n + 1):
+            f = float(k) / (n + 1)
+            x = a['x'] + f * (b['x'] - a['x'])
+            y = a['y'] + f * (b['y'] - a['y'])
+            zone = in_no_go(x, y, zones)
+            if zone:
+                skipped += 1
+                continue
+            out.append({
+                'name': '%s_i%d' % (a['name'], k),
+                'x': round(x, 3),
+                'y': round(y, 3),
+                'yaw': round(wrap_deg(a['yaw'] + f * da), 2),
+            })
+            added += 1
+    out.append(waypoints[-1])
+    return out, added, skipped
 
 def route_length(waypoints):
     total = 0.0
@@ -81,7 +149,9 @@ HEADER = """# ==================================================================
 #
 # Robot          : {robot}
 # Spawn pose     : x={sx} y={sy} yaw={syaw_deg:.1f} deg (world frame)
-# Transform      : p_map = R(-yaw_spawn) * (p_world - p_spawn)
+# Map frame yaw  : {myaw_deg:.1f} deg = yaw_spawn + base_yaw_offset, porque el
+#                  SLAM se ancla al frame de navegacion, no siempre a base_link
+# Transform      : p_map = R(-yaw_map) * (p_world - p_spawn)
 # Route          : {route_name}, {n} waypoints, {length:.1f} m
 #
 # To change the route, edit route_mine.yaml and re-run generate_waypoints.py.
@@ -98,8 +168,17 @@ def build(robot, route, cfg):
     sx = common['x']
     sy = common['y']
     syaw = spawn[robot]['yaw_rad']
+    # Donde nace `map`: ver base_yaw_offset_rad en sim_config.yaml.
+    myaw = wrap_rad(syaw + spawn[robot].get('base_yaw_offset_rad', 0.0))
 
-    waypoints = [to_map_frame(w, sx, sy, syaw) for w in route['route']['waypoints']]
+    # Densify in world coordinates first, so the three platforms are given the
+    # same points and not three different interpolations of the same route.
+    dense, _added, _skipped = densify(
+        route['route']['waypoints'],
+        route['route'].get('max_spacing_m'),
+        route['route'].get('no_waypoint_zones') or [])
+
+    waypoints = [to_map_frame(w, sx, sy, myaw) for w in dense]
 
     nav = dict(route['navigation_params'])
     limits = route.get('platform_limits', {}).get(robot, {})
@@ -108,6 +187,7 @@ def build(robot, route, cfg):
     doc = {'waypoints': waypoints, 'navigation_params': nav}
     header = HEADER.format(
         robot=robot, sx=sx, sy=sy, syaw_deg=math.degrees(syaw),
+        myaw_deg=math.degrees(myaw),
         route_name=route['route']['name'], n=len(waypoints),
         length=route_length(waypoints))
     return header + yaml.safe_dump(doc, default_flow_style=False,
@@ -180,19 +260,28 @@ def main():
     with open(args.config) as f:
         cfg = yaml.safe_load(f)
 
-    wps = route['route']['waypoints']
-    print('Route "{}": {} waypoints, {:.1f} m in world coordinates'
-          .format(route['route']['name'], len(wps), route_length(wps)))
+    corners = route['route']['waypoints']
+    wps, added, skipped = densify(
+        corners, route['route'].get('max_spacing_m'),
+        route['route'].get('no_waypoint_zones') or [])
+    print('Route "{}": {} corner points, {:.1f} m in world coordinates'
+          .format(route['route']['name'], len(corners), route_length(corners)))
+    if added or skipped:
+        print('  densified to {} waypoints at max_spacing_m = {}: {} inserted, '
+              '{} dropped inside a no-waypoint zone'
+              .format(len(wps), route['route'].get('max_spacing_m'),
+                      added, skipped))
     print('')
-    print('Segment spacing (target 8-12 m, no waypoint on an obstacle):')
+    # Report the spacing of what is actually WRITTEN, not of the corner points:
+    # printing the corner spacing after densifying describes a route that no
+    # platform drives.
+    print('Segment spacing of the generated route:')
     segs = segment_report(wps)
     for a, b, d in segs:
         flag = ''
-        if d < 4.0:
-            flag = '  <- short, the follower may not settle between them'
-        elif d > 16.0:
-            flag = '  <- long, a curved corridor may not be represented'
-        print('  {:<18s} -> {:<18s} {:6.2f} m{}'.format(a, b, d, flag))
+        if d > 2.0 * (route['route'].get('max_spacing_m') or 1e9):
+            flag = '  <- long: interpolation was blocked by a no-waypoint zone'
+        print('  {:<22s} -> {:<22s} {:6.2f} m{}'.format(a, b, d, flag))
     lengths = [d for _, _, d in segs]
     print('')
     print('  min {:.2f} m   mean {:.2f} m   max {:.2f} m'

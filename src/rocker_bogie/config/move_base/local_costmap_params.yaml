@@ -1,7 +1,7 @@
 # Local costmap - rolling window alrededor del robot
 local_costmap:
   global_frame: odom
-  robot_base_frame: rocker_bogie/base_link_nav
+  robot_base_frame: rocker_bogie/base_link
   update_frequency: 5.0
   publish_frequency: 2.0
   transform_tolerance: 3.0
@@ -10,23 +10,69 @@ local_costmap:
   height: 10.0
   resolution: 0.05
 
+  # ObstacleLayer, not VoxelLayer.  This was an UN-EQUALISED PLATFORM
+  # DIFFERENCE: the differential already used ObstacleLayer while the tracked
+  # and the Rocker-Bogie used VoxelLayer, so one platform cleared its costmap
+  # in 2D and the other two in 3D.  check_sim_parity.py does not look at the
+  # plugin list, so it was never caught.
+  #
+  # A VoxelLayer only earns its cost when it has to tell obstacle height apart.
+  # Here that is already done upstream: obstacles_detection publishes a cloud
+  # that contains obstacles only, which is exactly why costmap_common_params
+  # sets min/max_obstacle_height to -+99999.  So the 3D layer bought nothing
+  # and cost two failure modes:
+  #
+  #   1. It cannot clear the near field.  costmap_2d clears by raytracing from
+  #      the sensor to each endpoint; the VoxelLayer does it in 3D, so a ray
+  #      that lands on the floor 4 m away passes ABOVE the floor voxels at 1-3 m
+  #      and leaves them marked.  The VLP-16 sits 0.824 m up with a +-15 deg
+  #      FOV, so its first ground return is 1.9-3.1 m out and nothing inside
+  #      that annulus is ever re-observed.  Measured 2026-08-20 during a stall:
+  #      of the lethal cells within 1.5 m of the robot, 100% (99 of 99) had no
+  #      supporting point in 4.3 s of accumulated cloud.  They were marked while
+  #      distant and can never be cleared.  48.9% stale at 3 m, 32.7% at 5 m -
+  #      the closer to the robot, the staler, exactly as the blind annulus
+  #      predicts.  Those cells are what the footprint sits on when DWA starts
+  #      rejecting every trajectory including "stop".
+  #
+  #   2. Its voxel column is anchored in ODOM.  origin_z 0.0 with
+  #      z_voxels 10 x z_resolution 0.2 covers z 0.0-2.0 m above wherever the
+  #      robot started, and this platform climbs ~0.9 m over a run (gt_z 1.06 ->
+  #      1.96).  That is the same absolute-height-in-odom error that
+  #      move_base.launch already documents twice for the height FILTER; it
+  #      survived here in the layer's own geometry.
+  #
+  # ObstacleLayer raytraces in 2D - a ray to a 4 m endpoint clears every cell it
+  # crosses, near field included - and has no z window at all.
+  # Keep this EQUAL ON ALL THREE PLATFORMS.
   plugins:
-    - {name: obstacle_layer, type: "costmap_2d::VoxelLayer"}
+    - {name: obstacle_layer, type: "costmap_2d::ObstacleLayer"}
     - {name: inflation_layer, type: "costmap_2d::InflationLayer"}
 
+  # Misma fuente segmentada que en costmap_common_params.yaml. El filtro de
+  # altura va desactivado a proposito: obstacles_detection ya quito el suelo.
   obstacle_layer:
-    observation_sources: velodyne_cloud
-    velodyne_cloud:
+    observation_sources: obstacle_cloud
+    obstacle_cloud:
       sensor_frame: rocker_bogie/velodyne_base_link
       data_type: PointCloud2
-      topic: /velodyne_points
+      topic: /rocker_bogie/obstacles_cloud
       marking: true
       clearing: true
-      min_obstacle_height: 0.2
-      max_obstacle_height: 2.0
+      min_obstacle_height: -99999.0
+      max_obstacle_height:  99999.0
       obstacle_range: 5.0
       raytrace_range: 6.0
 
   inflation_layer:
-    inflation_radius: 0.25
+    # EQUAL ACROSS THE THREE ROBOTS, from planner.inflation_radius in
+    # robot_metrics/config/sim_config.yaml.  This was 0.25 on the Rocker-Bogie
+    # and 0.40 on the other two - never equalised, never checked.  It is a
+    # direct multiplier on how wide each platform believes it is, so an
+    # unequal value hands one platform more clearance than another in exactly
+    # the confined drift the study is about.
+    # 0.10 m: the widest platform (Rocker-Bogie, 0.96 m footprint) then needs
+    # 0.96 + 0.20 = 1.16 m, against the 1.35 m corridor measured at the point
+    # where it used to stall.
+    inflation_radius: 0.10
     cost_scaling_factor: 10.0

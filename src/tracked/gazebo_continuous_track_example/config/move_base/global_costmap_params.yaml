@@ -16,5 +16,14 @@ global_costmap:
     subscribe_to_updates: true
 
   inflation_layer:
-    inflation_radius: 0.40
+    # EQUAL ACROSS THE THREE ROBOTS, from planner.inflation_radius in
+    # robot_metrics/config/sim_config.yaml.  This was 0.25 on the Rocker-Bogie
+    # and 0.40 on the other two - never equalised, never checked.  It is a
+    # direct multiplier on how wide each platform believes it is, so an
+    # unequal value hands one platform more clearance than another in exactly
+    # the confined drift the study is about.
+    # 0.10 m: the widest platform (Rocker-Bogie, 0.96 m footprint) then needs
+    # 0.96 + 0.20 = 1.16 m, against the 1.35 m corridor measured at the point
+    # where it used to stall.
+    inflation_radius: 0.10
     cost_scaling_factor: 10.0

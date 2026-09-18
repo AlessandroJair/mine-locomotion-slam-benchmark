@@ -10,8 +10,16 @@ class TwistToTracks:
         rospy.init_node('twist_to_tracks', anonymous=False)
 
         self.track_separation = rospy.get_param('~track_separation', 0.5709)
-        self.sprocket_radius = rospy.get_param('~sprocket_radius', 0.178)
-        self.min_angular = rospy.get_param('~min_angular', 0.25)
+        self.sprocket_radius = rospy.get_param('~sprocket_radius', 0.148)
+        # 0.0 for all three platforms; see command.min_angular_rad_s in
+        # robot_metrics/config/sim_config.yaml.  This used to default to
+        # 0.25 rad/s to overcome track friction, which meant this platform
+        # turned harder than it was asked to whenever a small yaw rate was
+        # commanded - a per-platform advantage on exactly the turn-in-place
+        # behaviour the RPE metric is sensitive to, and one the Husky and
+        # the Rocker-Bogie never had.  The joint drag it was compensating
+        # for is now zero and integral action covers the rest.
+        self.min_angular = rospy.get_param('~min_angular', 0.0)
 
         self.pub_left = rospy.Publisher(
             'sprocket_velocity_controller_left/command', Float64, queue_size=10)
@@ -23,13 +31,18 @@ class TwistToTracks:
         rospy.loginfo("twist_to_tracks iniciado")
         rospy.loginfo(f"  track_separation: {self.track_separation}m")
         rospy.loginfo(f"  sprocket_radius: {self.sprocket_radius}m")
+        if self.min_angular > 0.0:
+            rospy.logwarn("  min_angular = %.2f rad/s is ACTIVE: this "
+                          "platform will turn harder than commanded, "
+                          "which breaks the command-path parity declared "
+                          "in sim_config.yaml", self.min_angular)
 
     def cmd_vel_callback(self, msg):
         linear_x = msg.linear.x
         angular_z = msg.angular.z
 
-        # Reforzar velocidad angular minima para vencer friccion de orugas
-        if abs(angular_z) > 0.01 and abs(angular_z) < self.min_angular:
+        # Off by default - see min_angular above.
+        if self.min_angular > 0.0 and 0.01 < abs(angular_z) < self.min_angular:
             angular_z = self.min_angular if angular_z > 0 else -self.min_angular
 
         v_left = (linear_x - angular_z * self.track_separation / 2.0) / self.sprocket_radius

@@ -55,4 +55,14 @@ CATKIN_IGNORE
 
 # URDF & Gazebo models auto-generated from .xacro files
 urdf/
-model/
+model/*
+
+# ...con UNA excepcion.  model/two_track_robot/ no se genera: es el modelo que
+# el launch spawnea (-database two_track_robot -sdf) y el que lleva el mass
+# matching a 45.0000 kg, los idlers y la friccion de oruga.  Si queda ignorado,
+# el archivo que Gazebo carga no existe en un clon limpio y la plataforma
+# tracked no arranca.  El differential versiona el suyo por la misma razon.
+!model/two_track_robot/
+model/two_track_robot/*
+!model/two_track_robot/model.sdf
+!model/two_track_robot/model.config

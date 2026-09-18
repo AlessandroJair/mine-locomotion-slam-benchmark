@@ -1,0 +1,1614 @@
+<?xml version="1.0"?>
+<sdf version='1.7'>
+  <model name='two_track_robot'>
+  <!-- ==================== MASS MATCHING ====================
+       Cada masa y cada componente de inercia esta multiplicada por mass_scale
+       para que las tres plataformas comparadas pesen lo mismo (45.0 kg).
+       Este modelo pesaba 44.9670 kg, de ahi
+           mass_scale = 45.0 / 44.9670 = 1.000734
+       El escalado uniforme deja el centro de gravedad y toda propiedad
+       geometrica intactos; solo cambian las inerciales.  Es el mismo metodo
+       que scale_masses.py aplica a las otras dos plataformas.
+
+       ESTE es el archivo que Gazebo carga: el launch spawnea
+       -database two_track_robot -sdf.  robot_description sigue cargando el
+       xacro porque gazebo_ros_control lee de ahi los limites de esfuerzo, y
+       los dos tienen que mantenerse en sincronia.  OJO: scale_masses.py edita
+       el xacro, NO este archivo, asi que un re-escalado futuro hay que
+       aplicarlo a mano aca tambien.
+
+       DIFERENCIA CONOCIDA con el xacro: aca los idlers estan lumpeados dentro
+       de left_body / right_body (su collision y visual, ver
+       'left_body_fixed_joint_lump__idler_collision_1' y los <frame
+       name='left_idler'>), y su masa no esta contada por separado - por eso
+       este modelo pesa 44.9670 kg de fabrica contra los 46.967 kg del xacro.
+       Tras el escalado los dos totales son 45.0000 kg, que es lo que la
+       paridad exige; lo que difiere es el reparto interno de masa.  NO agregar
+       links de idler propios: duplica la geometria y choca con esos frames.
+       ============================================================ -->
+    <self_collide>false</self_collide>
+
+    <!-- EL CHASIS VA ENTRE LAS ORUGAS (2026-09-17).  Medía 0.5709 de ancho,
+         o sea que atravesaba las dos bandas: la cara interna de la banda está
+         en y = 0.28545 - 0.150 = 0.13545 y el chasis llegaba a 0.28545, 150 mm
+         dentro de cada oruga.  Ahora 0.270, con 0.45 mm de holgura por lado.
+         En LARGO pasaba lo mismo: la punta de la oruga es un circulo de 0.148
+         centrado en x = +-0.35, asi que a la altura de las esquinas del chasis
+         (z = +-0.100, la caja va centrada en el eje) el perfil esta en 0.4591 y
+         el chasis llegaba a 0.500: asomaba 40.9 mm por esquina.  0.918211 es el
+         largo con el que las cuatro esquinas caen justo sobre ese circulo.
+         La inercia SIGUE a la caja desde el 2026-09-17: es la de un solido
+         homogeneo de 0.918 x 0.270 x 0.200 y 33.140728 kg, o sea
+         ixx 0.311799, iyy 2.437843, izz 2.528704.  Antes eran los de la caja
+         de 1.011 x 0.577 x 0.202 (y ni siquiera la de 1.0 x 0.5709 x 0.20 que
+         declaraba la colision: iba 2.3% alta).  OJO: esto le quita el 70% de
+         la inercia de balanceo al chasis, asi que el tracked se inclina y se
+         vuelca mas facil que en cualquier corrida anterior.  Si se quiere
+         volver a tratar los 33 kg como masa repartida y no como un bloque,
+         los valores viejos eran 1.033758 / 2.936153 / 3.743745. -->
+    <!-- ================= BODY ================= -->
+    <link name='body'>
+      <!-- POSTES DE SENSOR (2026-09-13).  LiDAR y camara son links propios unidos
+         por junta fija y se veian flotando sobre el cuerpo.  Solo DIBUJO: sin masa
+         ni colision, asi que la fisica no cambia.  Mismos postes que el husky.
+         MUST MATCH entre model/two_track_robot/model.sdf y
+         urdf_xacro/two_track_robot.urdf.xacro. -->
+      <visual name='lidar_mast'>
+        <pose>0.0000 0 0.26965 0 0 0</pose>
+        <geometry><cylinder><radius>0.020</radius><length>0.35930</length></cylinder></geometry>
+        <material><ambient>0.3 0.3 0.3 1</ambient><diffuse>0.3 0.3 0.3 1</diffuse></material>
+      </visual>
+      <visual name='camera_mast'>
+        <pose>0.3543 0 0.22885 0 0 0</pose>
+        <geometry><cylinder><radius>0.010</radius><length>0.27770</length></cylinder></geometry>
+        <material><ambient>0.3 0.3 0.3 1</ambient><diffuse>0.3 0.3 0.3 1</diffuse></material>
+      </visual>
+      <pose>0 0 0.35 0 0 0</pose>
+      <!-- CAMARA FUSIONADA (2026-09-17).  camera_link y camera_optical_frame
+           eran links propios colgados de este por junta FIJA, y la junta
+           cedia: medido con ~/sonda_camara.py, camera_link se fue 45.9 mm en
+           y RESPECTO A ESTE LINK entre dos corridas.  El motivo es la razon
+           de inercia, 2.437843 / 1.491588e-06 = 1.6e6: ODE resuelve las
+           juntas con quickstep, que es iterativo, y con ese acondicionamiento
+           no converge - el eslabon ligero vibra y el error que el ERP no
+           corrige se acumula.  La camara va atornillada al chasis, o sea que
+           como solido aparte no aportaba fisica ninguna, solo la ligadura mal
+           condicionada.  Esto es ademas lo que la conversion URDF ya le hace
+           al rocker sola (fusiona los links de sensor en el padre), asi que
+           acerca las plataformas en vez de separarlas.
+           Masa, centro de masas e inercia del MODELO no cambian: los
+           0.010938312 kg de los dos links entran aqui por Steiner, de ahi el
+           <pose> del CM y el ixz que antes era 0. -->
+      <inertial>
+        <mass>33.151666</mass>
+        <pose>0.0001169004 0 0.0001262709 0 0 0</pose>
+        <inertia>
+          <ixx>0.313416482</ixx>
+          <ixy>0.000000</ixy>
+          <ixz>-0.00148264304</ixz>
+          <iyy>2.44082854</iyy>
+          <iyz>0.000000</iyz>
+          <izz>2.53009261</izz>
+        </inertia>
+      </inertial>
+
+      <collision name='body_collision'>
+        <geometry>
+          <box>
+            <size>0.918 0.270 0.20</size>
+          </box>
+        </geometry>
+      </collision>
+
+      <visual name='body_visual'>
+        <geometry>
+          <box>
+            <size>0.918 0.270 0.20</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0.5 0.5 0.5 1</ambient>
+          <diffuse>0.5 0.5 0.5 1</diffuse>
+        </material>
+      </visual>
+
+      <!-- ================= CAMARA ================= -->
+      <!-- Pose heredada del antiguo camera_link: mismo origen optico y mismo
+           eje (+x del cuerpo), asi que lo que ve la camara no cambia.
+           MUST MATCH el camera_joint de urdf_xacro/two_track_robot.urdf.xacro,
+           que es de donde sale el TF.
+             x = 0.3543 por delante del centro del poligono de contacto
+             z = 0.3827, o sea 0.5307 sobre el plano de contacto (z = 0.202)
+           Sin <collision>: la caja de la camara nunca fue geometria de apoyo
+           y nadie la lee (ningun script del repo nombra camera_collision).
+           Fusionada al chasis si que seria geometria del chasis, que es
+           justo lo que no queremos. -->
+      <visual name='camera_visual'>
+        <pose>0.3543 0 0.3827 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.03 0.08 0.03</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0.1 0.1 0.1 1</ambient>
+          <diffuse>0.1 0.1 0.1 1</diffuse>
+        </material>
+      </visual>
+
+      <sensor name='camera_sensor' type='camera'>
+        <pose>0.3543 0 0.3827 0 0 0</pose>
+        <update_rate>10</update_rate>
+        <camera name='head'>
+          <horizontal_fov>1.3962634</horizontal_fov>
+          <image>
+            <width>640</width>
+            <height>480</height>
+            <format>R8G8B8</format>
+          </image>
+          <clip>
+            <near>0.02</near>
+            <far>300</far>
+          </clip>
+          <noise>
+            <type>gaussian</type>
+            <mean>0.0</mean>
+            <stddev>0.007</stddev>
+          </noise>
+        </camera>
+        <plugin name='camera_controller' filename='libgazebo_ros_camera.so'>
+          <alwaysOn>true</alwaysOn>
+          <updateRate>0.0</updateRate>
+          <cameraName>camera</cameraName>
+          <imageTopicName>/camera/image_raw</imageTopicName>
+          <cameraInfoTopicName>/camera/camera_info</cameraInfoTopicName>
+          <frameName>example_two_track/camera_optical_frame</frameName>
+          <hackBaseline>0.07</hackBaseline>
+          <distortionK1>0.0</distortionK1>
+          <distortionK2>0.0</distortionK2>
+          <distortionK3>0.0</distortionK3>
+          <distortionT1>0.0</distortionT1>
+          <distortionT2>0.0</distortionT2>
+        </plugin>
+      </sensor>
+    </link>
+
+    <joint name='left_body_joint' type='fixed'>
+      <parent>body</parent>
+      <child>left_body</child>
+    </joint>
+    <!-- ================================================= -->
+    <!-- =============== LEFT TRACK ====================== -->
+    <!-- ================================================= -->
+
+    <link name='left_body'>
+    <pose relative_to="body">0 0.28545 0 0 -0 0</pose>
+      <inertial>
+        <mass>3.002202</mass>
+        <inertia>
+          <ixx>0.032524</ixx>
+          <ixy>0.000000</ixy>
+          <ixz>0.000000</ixz>
+          <iyy>0.115710</iyy>
+          <iyz>0.000000</iyz>
+          <izz>0.128219</izz>
+        </inertia>
+      </inertial>
+      <collision name='left_body_collision'>
+        <pose>0 0 0 0 -0 0</pose>
+        <geometry>
+          <box>
+            <size>0.65 0.30 0.2</size>
+          </box>
+        </geometry>
+      </collision>
+      <collision name='left_body_fixed_joint_lump__idler_collision_1'>
+        <pose>-0.35 0 0 1.5708 -0 0</pose>
+        <geometry>
+          <cylinder>
+            <length>0.30</length>
+            <radius>0.128</radius>
+          </cylinder>
+        </geometry>
+      </collision>
+      <visual name='left_body_visual'>
+        <pose>0 0 0 0 -0 0</pose>
+        <geometry>
+          <box>
+            <size>0.65 0.296 0.2</size>
+          </box>
+        </geometry>
+      </visual>
+      <visual name='left_body_fixed_joint_lump__idler_visual_1'>
+        <pose>-0.35 0 0 1.5708 -0 0</pose>
+        <geometry>
+          <cylinder>
+            <length>0.30</length>
+            <radius>0.128</radius>
+          </cylinder>
+        </geometry>
+      </visual>
+    </link>
+
+    <joint name='left_sprocket_axle' type='revolute'>
+      <pose relative_to='left_body'>0.35 0 0 0 -0 0</pose>
+      <parent>left_body</parent>
+      <child>left_sprocket</child>
+      <axis>
+        <xyz>0 1 0</xyz>
+        <limit>
+          <lower>-1e+16</lower>
+          <upper>1e+16</upper>
+                  <effort>55.946</effort>
+        </limit>
+        <dynamics>
+          <spring_reference>0</spring_reference>
+          <spring_stiffness>0</spring_stiffness>
+        </dynamics>
+      </axis>
+    </joint>
+
+    <link name='left_sprocket'>
+      <pose relative_to='left_sprocket_axle'>0 0 0 0 -0 0</pose>
+      <inertial>
+        <pose>0 0 0 0 -0 0</pose>
+        <mass>1.000734</mass>
+        <!-- Cilindro r=0.128 L=0.31, que es SU colision.  Hasta 2026-09-17
+             estos numeros eran los de r=0.178, el radio de paso viejo: la
+             inercia de giro salia 1.93x la del solido que se simula. -->
+        <inertia>
+          <ixx>0.011605</ixx>
+          <ixy>0.000000</ixy>
+          <ixz>0.000000</ixz>
+          <iyy>0.008198</iyy>
+          <iyz>0.000000</iyz>
+          <izz>0.011605</izz>
+        </inertia>
+      </inertial>
+      <collision name='sprocket_collision'>
+        <pose>0 0 0 1.5708 -0 0</pose>
+        <geometry>
+          <cylinder>
+            <length>0.30</length>
+            <radius>0.128</radius>
+          </cylinder>
+        </geometry>
+      </collision>
+      <!-- ESCALERA DE PROFUNDIDAD EN EL LADO DE LA ORUGA (2026-09-17).
+           Todo lo de este lado media 0.300 de ancho, asi que varias caras
+           caian en el mismo plano solapandose y el render parpadeaba entre
+           ellas, quieto y girando.  Los VISUALES se escalonan; las COLISIONES
+           se quedan TODAS en 0.300, al ras de la banda:
+
+               0.300  ruedas: sprocket e idler          <- delante
+               0.296  pod: caja de left/right_body
+               0.292  guia de la banda: arcos y rectos  <- detras
+
+           Los elementos que fabrica el plugin siguen en 0.300: son la banda de
+           verdad y solo rozan el borde de la rueda de forma tangente.
+           Aqui habia ademas una cruz de radios de 0.300 que peleaba con la
+           tapa del tambor; se quito, y encima no se podia ver porque el tambor
+           (r=0.138) tapa al sprocket (r=0.128) en todo el arco.  Si hace falta
+           un testigo de giro, tendria que ir a 0.302.
+           REGLA: nada en este lado comparte plano con otra pieza que se le
+           solape; si se anade geometria, va en uno de esos tres niveles. -->
+      <visual name='sprocket_visual'>
+        <pose>0 0 0 1.5708 -0 0</pose>
+        <geometry>
+          <cylinder>
+            <length>0.30</length>
+            <radius>0.128</radius>
+          </cylinder>
+        </geometry>
+      </visual>
+    </link>
+
+    <link name='left_track_straight_segment_link0'>
+      <pose relative_to="left_body">-0.35 0 0.138 0 -0 0</pose>
+      <inertial>
+        <pose>0.35 0 -0.02 0 -0 0</pose>
+        <mass>0.375275</mass>
+        <inertia>
+          <ixx>0.003002</ixx>
+          <ixy>0.000000</ixy>
+          <ixz>0.000000</ixz>
+          <iyy>0.023017</iyy>
+          <iyz>0.000000</iyz>
+          <izz>0.026019</izz>
+        </inertia>
+      </inertial>
+      <collision name='collision'>
+        <pose>0.35 0 -0.02 0 -0 0</pose>
+        <geometry>
+          <box>
+            <size>0.70 0.3 0.04</size>
+          </box>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>1.0</mu>
+              <mu2>0.75</mu2>
+              <fdir1>1 0 0</fdir1>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000.0</kp>
+              <kd>1.0</kd>
+              <min_depth>0.003</min_depth>
+              <max_vel>1.0</max_vel>
+            </ode>
+          </contact>
+        </surface>
+      </collision>
+      <visual name='visual'>
+        <pose>0.35 0 -0.02 0 -0 0</pose>
+        <geometry>
+          <box>
+            <size>0.70 0.292 0.04</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0.1 0.1 0.3 1</ambient>
+          <diffuse>0.2 0.2 0.2 1</diffuse>
+          <specular>0 0 0 1</specular>
+          <emissive>0 0 0 1</emissive>
+        </material>
+      </visual>
+    </link>
+
+    <link name='left_track_straight_segment_link1'>
+      <pose relative_to="left_body">0.35 0 -0.138 3.14159 0 3.14159</pose>
+      <inertial>
+        <pose>0.35 0 -0.02 0 -0 0</pose>
+        <mass>0.375275</mass>
+        <inertia>
+          <ixx>0.003002</ixx>
+          <ixy>0.000000</ixy>
+          <ixz>0.000000</ixz>
+          <iyy>0.023017</iyy>
+          <iyz>0.000000</iyz>
+          <izz>0.026019</izz>
+        </inertia>
+      </inertial>
+      <collision name='collision'>
+        <pose>0.35 0 -0.02 0 -0 0</pose>
+        <geometry>
+          <box>
+            <size>0.70 0.3 0.04</size>
+          </box>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>1.0</mu>
+              <mu2>0.75</mu2>
+              <fdir1>1 0 0</fdir1>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000.0</kp>
+              <kd>1.0</kd>
+              <min_depth>0.003</min_depth>
+              <max_vel>1.0</max_vel>
+            </ode>
+          </contact>
+        </surface>
+      </collision>
+      <visual name='visual'>
+        <pose>0.35 0 -0.02 0 -0 0</pose>
+        <geometry>
+          <box>
+            <size>0.70 0.292 0.04</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0.1 0.1 0.3 1</ambient>
+          <diffuse>0.2 0.2 0.2 1</diffuse>
+          <specular>0 0 0 1</specular>
+          <emissive>0 0 0 1</emissive>
+        </material>
+      </visual>
+    </link>
+
+    <joint name='left_track_straight_segment_joint0' type='prismatic'>
+      <child>left_track_straight_segment_link0</child>
+      <parent>left_body</parent>
+      <axis>
+        <xyz>1 0 0</xyz>
+        <use_parent_model_frame>0</use_parent_model_frame>
+        <limit>
+          <lower>-1e+16</lower>
+          <upper>1e+16</upper>
+        </limit>
+      </axis>
+      <physics>
+        <ode>
+          <implicit_spring_damper>1</implicit_spring_damper>
+        </ode>
+      </physics>
+    </joint>
+
+    <joint name='left_track_straight_segment_joint1' type='prismatic'>
+      <child>left_track_straight_segment_link1</child>
+      <parent>left_body</parent>
+      <axis>
+        <xyz>1 0 0</xyz>
+        <use_parent_model_frame>0</use_parent_model_frame>
+        <limit>
+          <lower>-1e+16</lower>
+          <upper>1e+16</upper>
+        </limit>
+      </axis>
+      <physics>
+        <ode>
+          <implicit_spring_damper>1</implicit_spring_damper>
+        </ode>
+      </physics>
+    </joint>
+
+    <!-- BANDA A 0.148 DE LA CARA EXTERIOR (2026-09-17).
+         make_arc_segment_link_template impone que el cilindro del arco tenga
+         el MISMO radio que la distancia del origen del link al eje: pose
+         '0 0 -radius' y cilindro de ese radius, tangente a los tramos rectos.
+         El fichero tenia la trayectoria en 0.170 y el cilindro en 0.2, asi que
+         el tambor sobresalia 20 mm POR DEBAJO de la banda y era lo unico que
+         tocaba el suelo: el vehiculo se apoyaba en cuatro cilindros convexos
+         en x=+-0.35 y los elementos motrices flotaban.  De ahi los 5 intentos
+         'wedged' de metrics_VF (-0.59 rad/s mandados, 0.019 rad girados en
+         25 s).  El plugin no lo salvaba: PopulateBaseSegmentLinkSDFs clona el
+         link CON su colision y solo anade los elementos encima.
+
+         Cadena de radios, desde el eje del sprocket:
+             sprocket / idler (colision)   0.128   = cara INTERNA de la banda
+             trayectoria = radio del arco  0.138   = linea media de la banda
+             cara exterior de la banda     0.148   = plano de contacto
+         pitch_diameter = 2 * 0.138 = 0.276, para que una vuelta de sprocket
+         avance justo el perimetro de la linea media.
+
+         El plano de contacto bajo de 0.180 a 0.148, asi que LiDAR, camara y
+         sus postes subieron 32 mm para conservar 0.670 / 0.531 sobre el suelo.
+         MANTENER EN SINCRONIA con urdf_xacro/two_track_robot*.urdf.xacro. -->
+    <link name='left_track_arc_segment_link0'>
+      <pose relative_to="left_body">0.35 0 0.138 0 -0 0</pose>
+      <inertial>
+        <pose>0 0 -0.138 1.5708 -0 0</pose>
+        <mass>0.375275</mass>
+        <inertia>
+          <ixx>0.005004</ixx>
+          <ixy>0.000000</ixy>
+          <ixz>0.000000</ixz>
+          <iyy>0.005004</iyy>
+          <iyz>0.000000</iyz>
+          <izz>0.001501</izz>
+        </inertia>
+      </inertial>
+      <collision name='collision'>
+        <pose>0 0 -0.138 1.5708 -0 0</pose>
+        <geometry>
+          <cylinder>
+            <length>0.3</length>
+            <radius>0.138</radius>
+          </cylinder>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>1.0</mu>
+              <mu2>0.75</mu2>
+              <fdir1>1 0 0</fdir1>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000.0</kp>
+              <kd>1.0</kd>
+              <min_depth>0.003</min_depth>
+              <max_vel>1.0</max_vel>
+            </ode>
+          </contact>
+        </surface>
+      </collision>
+      <visual name='visual'>
+        <pose>0 0 -0.138 1.5708 -0 0</pose>
+        <geometry>
+          <cylinder>
+            <length>0.292</length>
+            <radius>0.138</radius>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>0.1 0.1 0.3 1</ambient>
+          <diffuse>0.2 0.2 0.2 1</diffuse>
+          <specular>0 0 0 1</specular>
+          <emissive>0 0 0 1</emissive>
+        </material>
+      </visual>
+    </link>
+
+    <link name='left_track_arc_segment_link1'>
+      <pose relative_to="left_body">-0.35 0 -0.138 3.14159 0 3.14159</pose>
+      <inertial>
+        <pose>0 0 -0.138 1.5708 -0 0</pose>
+        <mass>0.375275</mass>
+        <inertia>
+          <ixx>0.005004</ixx>
+          <ixy>0.000000</ixy>
+          <ixz>0.000000</ixz>
+          <iyy>0.005004</iyy>
+          <iyz>0.000000</iyz>
+          <izz>0.001501</izz>
+        </inertia>
+      </inertial>
+      <collision name='collision'>
+        <pose>0 0 -0.138 1.5708 -0 0</pose>
+        <geometry>
+          <cylinder>
+            <length>0.3</length>
+            <radius>0.138</radius>
+          </cylinder>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>1.0</mu>
+              <mu2>0.75</mu2>
+              <fdir1>1 0 0</fdir1>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000.0</kp>
+              <kd>1.0</kd>
+              <min_depth>0.003</min_depth>
+              <max_vel>1.0</max_vel>
+            </ode>
+          </contact>
+        </surface>
+      </collision>
+      <visual name='visual'>
+        <pose>0 0 -0.138 1.5708 -0 0</pose>
+        <geometry>
+          <cylinder>
+            <length>0.292</length>
+            <radius>0.138</radius>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>0.1 0.1 0.3 1</ambient>
+          <diffuse>0.2 0.2 0.2 1</diffuse>
+          <specular>0 0 0 1</specular>
+          <emissive>0 0 0 1</emissive>
+        </material>
+      </visual>
+    </link>
+
+    <joint name='left_track_arc_segment_joint0' type='revolute'>
+      <child>left_track_arc_segment_link0</child>
+      <parent>left_body</parent>
+      <pose>0 0 -0.138 0 -0 0</pose>
+      <axis>
+        <xyz>0 1 0</xyz>
+        <use_parent_model_frame>0</use_parent_model_frame>
+        <limit>
+          <lower>-1e+16</lower>
+          <upper>1e+16</upper>
+        </limit>
+      </axis>
+      <physics>
+        <ode>
+          <implicit_spring_damper>1</implicit_spring_damper>
+        </ode>
+      </physics>
+    </joint>
+
+    <joint name='left_track_arc_segment_joint1' type='revolute'>
+      <child>left_track_arc_segment_link1</child>
+      <parent>left_body</parent>
+      <pose>0 0 -0.138 0 -0 0</pose>
+      <axis>
+        <xyz>0 1 0</xyz>
+        <use_parent_model_frame>0</use_parent_model_frame>
+        <limit>
+          <lower>-1e+16</lower>
+          <upper>1e+16</upper>
+        </limit>
+      </axis>
+      <physics>
+        <ode>
+          <implicit_spring_damper>1</implicit_spring_damper>
+        </ode>
+      </physics>
+    </joint>
+
+    <plugin name='left_track' filename='libContinuousTrack.so'>
+      <sprocket>
+        <joint>left_sprocket_axle</joint>
+        <pitch_diameter>0.276</pitch_diameter>
+      </sprocket>
+      <trajectory>
+        <segment>
+          <joint>left_track_straight_segment_joint0</joint>
+          <end_position>0.70</end_position>
+        </segment>
+        <segment>
+          <joint>left_track_arc_segment_joint0</joint>
+          <end_position>3.141592653589793</end_position>
+        </segment>
+        <segment>
+          <joint>left_track_straight_segment_joint1</joint>
+          <end_position>0.70</end_position>
+        </segment>
+        <segment>
+          <joint>left_track_arc_segment_joint1</joint>
+          <end_position>3.141592653589793</end_position>
+        </segment>
+      </trajectory>
+      <pattern>
+        <elements_per_round>40</elements_per_round>
+        <element>
+          <collision name='collision'>
+            <pose>0 0 0 0 0 0</pose>
+            <geometry>
+              <box>
+                <size>0.02 0.3 0.02</size>
+              </box>
+            </geometry>
+            <surface>
+              <friction>
+                <ode>
+                  <mu>1.0</mu>
+                  <mu2>0.75</mu2>
+                  <fdir1>1 0 0</fdir1>
+                </ode>
+              </friction>
+              <contact>
+                <ode>
+                  <kp>1000000.0</kp>
+                  <kd>1.0</kd>
+                  <min_depth>0.003</min_depth>
+                  <max_vel>1.0</max_vel>
+                </ode>
+              </contact>
+            </surface>
+          </collision>
+          <visual name='visual'>
+            <pose>0 0 0 0 0 0</pose>
+            <geometry>
+              <box>
+                <size>0.02 0.3 0.02</size>
+              </box>
+            </geometry>
+            <material>
+              <ambient>0.1 0.1 0.3 1</ambient>
+              <diffuse>0.2 0.2 0.2 1</diffuse>
+              <specular>0 0 0 1</specular>
+              <emissive>0 0 0 1</emissive>
+            </material>
+          </visual>
+        </element>
+        <element>
+          <collision name='collision'>
+            <pose>0 0.15 0 1.5707963267948966 0 0</pose>
+            <geometry>
+              <polyline>
+                <point>-0.02 -0.01</point>
+                <point>-0.01 0.01</point>
+                <point>0.01 0.01</point>
+                <point>0.02 -0.01</point>
+                <height>0.3</height>
+              </polyline>
+            </geometry>
+            <surface>
+              <friction>
+                <ode>
+                  <mu>1.0</mu>
+                  <mu2>0.75</mu2>
+                  <fdir1>1 0 0</fdir1>
+                </ode>
+              </friction>
+              <contact>
+                <ode>
+                  <kp>1000000.0</kp>
+                  <kd>1.0</kd>
+                  <min_depth>0.003</min_depth>
+                  <max_vel>1.0</max_vel>
+                </ode>
+              </contact>
+            </surface>
+          </collision>
+          <visual name='visual'>
+            <pose>0 0.15 0 1.5707963267948966 0 0</pose>
+            <geometry>
+              <polyline>
+                <point>-0.02 -0.01</point>
+                <point>-0.01 0.01</point>
+                <point>0.01 0.01</point>
+                <point>0.02 -0.01</point>
+                <height>0.3</height>
+              </polyline>
+            </geometry>
+            <material>
+              <ambient>0.1 0.1 0.3 1</ambient>
+              <diffuse>0.2 0.2 0.2 1</diffuse>
+              <specular>0 0 0 1</specular>
+              <emissive>0 0 0 1</emissive>
+            </material>
+          </visual>
+        </element>
+      </pattern>
+    </plugin>
+
+    <frame name='left_idler_axle' attached_to='left_body'>
+      <pose relative_to="left_body">-0.35 0 0 0 -0 0</pose>
+    </frame>
+    <frame name='left_idler' attached_to='left_idler_axle'/>
+
+    <!-- ================================================= -->
+    <!-- =============== RIGHT TRACK ===================== -->
+    <!-- ================================================= -->
+
+    <joint name='right_body_joint' type='fixed'>
+      <parent>body</parent>
+      <child>right_body</child>
+    </joint>
+
+    <link name='right_body'>
+    <pose relative_to="body">0 -0.28545 0 0 -0 0</pose>
+      <inertial>
+        <mass>3.002202</mass>
+        <inertia>
+          <ixx>0.032524</ixx>
+          <ixy>0.000000</ixy>
+          <ixz>0.000000</ixz>
+          <iyy>0.115710</iyy>
+          <iyz>0.000000</iyz>
+          <izz>0.128219</izz>
+        </inertia>
+      </inertial>
+      <collision name='right_body_collision'>
+        <pose>0 0 0 0 -0 0</pose>
+        <geometry>
+          <box>
+            <size>0.65 0.30 0.2</size>
+          </box>
+        </geometry>
+      </collision>
+      <collision name='right_body_fixed_joint_lump__idler_collision_1'>
+        <pose>-0.35 0 0 1.5708 -0 0</pose>
+        <geometry>
+          <cylinder>
+            <length>0.30</length>
+            <radius>0.128</radius>
+          </cylinder>
+        </geometry>
+      </collision>
+      <visual name='right_body_visual'>
+        <pose>0 0 0 0 -0 0</pose>
+        <geometry>
+          <box>
+            <size>0.65 0.296 0.2</size>
+          </box>
+        </geometry>
+      </visual>
+      <visual name='right_body_fixed_joint_lump__idler_visual_1'>
+        <pose>-0.35 0 0 1.5708 -0 0</pose>
+        <geometry>
+          <cylinder>
+            <length>0.30</length>
+            <radius>0.128</radius>
+          </cylinder>
+        </geometry>
+      </visual>
+    </link>
+
+    <joint name='right_sprocket_axle' type='revolute'>
+      <pose relative_to='right_body'>0.35 0 0 0 -0 0</pose>
+      <parent>right_body</parent>
+      <child>right_sprocket</child>
+      <axis>
+        <xyz>0 1 0</xyz>
+        <limit>
+          <lower>-1e+16</lower>
+          <upper>1e+16</upper>
+                  <effort>55.946</effort>
+        </limit>
+        <dynamics>
+          <spring_reference>0</spring_reference>
+          <spring_stiffness>0</spring_stiffness>
+        </dynamics>
+      </axis>
+    </joint>
+
+    <link name='right_sprocket'>
+      <pose relative_to='right_sprocket_axle'>0 0 0 0 -0 0</pose>
+      <inertial>
+        <pose>0 0 0 0 -0 0</pose>
+        <mass>1.000734</mass>
+        <!-- Cilindro r=0.128 L=0.31, que es SU colision.  Hasta 2026-09-17
+             estos numeros eran los de r=0.178, el radio de paso viejo: la
+             inercia de giro salia 1.93x la del solido que se simula. -->
+        <inertia>
+          <ixx>0.011605</ixx>
+          <ixy>0.000000</ixy>
+          <ixz>0.000000</ixz>
+          <iyy>0.008198</iyy>
+          <iyz>0.000000</iyz>
+          <izz>0.011605</izz>
+        </inertia>
+      </inertial>
+      <collision name='sprocket_collision'>
+        <pose>0 0 0 1.5708 -0 0</pose>
+        <geometry>
+          <cylinder>
+            <length>0.30</length>
+            <radius>0.128</radius>
+          </cylinder>
+        </geometry>
+      </collision>
+      <!-- ESCALERA DE PROFUNDIDAD EN EL LADO DE LA ORUGA (2026-09-17).
+           Todo lo de este lado media 0.300 de ancho, asi que varias caras
+           caian en el mismo plano solapandose y el render parpadeaba entre
+           ellas, quieto y girando.  Los VISUALES se escalonan; las COLISIONES
+           se quedan TODAS en 0.300, al ras de la banda:
+
+               0.300  ruedas: sprocket e idler          <- delante
+               0.296  pod: caja de left/right_body
+               0.292  guia de la banda: arcos y rectos  <- detras
+
+           Los elementos que fabrica el plugin siguen en 0.300: son la banda de
+           verdad y solo rozan el borde de la rueda de forma tangente.
+           Aqui habia ademas una cruz de radios de 0.300 que peleaba con la
+           tapa del tambor; se quito, y encima no se podia ver porque el tambor
+           (r=0.138) tapa al sprocket (r=0.128) en todo el arco.  Si hace falta
+           un testigo de giro, tendria que ir a 0.302.
+           REGLA: nada en este lado comparte plano con otra pieza que se le
+           solape; si se anade geometria, va en uno de esos tres niveles. -->
+      <visual name='sprocket_visual'>
+        <pose>0 0 0 1.5708 -0 0</pose>
+        <geometry>
+          <cylinder>
+            <length>0.30</length>
+            <radius>0.128</radius>
+          </cylinder>
+        </geometry>
+      </visual>
+    </link>
+    
+    <link name='right_track_straight_segment_link0'>
+      <pose relative_to="right_body">-0.35 0 0.138 0 -0 0</pose>
+      <inertial>
+        <pose>0.35 0 -0.02 0 -0 0</pose>
+        <mass>0.375275</mass>
+        <inertia>
+          <ixx>0.003002</ixx>
+          <ixy>0.000000</ixy>
+          <ixz>0.000000</ixz>
+          <iyy>0.023017</iyy>
+          <iyz>0.000000</iyz>
+          <izz>0.026019</izz>
+        </inertia>
+      </inertial>
+      <collision name='collision'>
+        <pose>0.35 0 -0.02 0 -0 0</pose>
+        <geometry>
+          <box>
+            <size>0.70 0.3 0.04</size>
+          </box>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>1.0</mu>
+              <mu2>0.75</mu2>
+              <fdir1>1 0 0</fdir1>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000.0</kp>
+              <kd>1.0</kd>
+              <min_depth>0.003</min_depth>
+              <max_vel>1.0</max_vel>
+            </ode>
+          </contact>
+        </surface>
+      </collision>
+      <visual name='visual'>
+        <pose>0.35 0 -0.02 0 -0 0</pose>
+        <geometry>
+          <box>
+            <size>0.70 0.292 0.04</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0.1 0.1 0.3 1</ambient>
+          <diffuse>0.2 0.2 0.2 1</diffuse>
+          <specular>0 0 0 1</specular>
+          <emissive>0 0 0 1</emissive>
+        </material>
+      </visual>
+    </link>
+
+    <link name='right_track_straight_segment_link1'>
+      <pose relative_to="right_body">0.35 0 -0.138 3.14159 0 3.14159</pose>
+      <inertial>
+        <pose>0.35 0 -0.02 0 -0 0</pose>
+        <mass>0.375275</mass>
+        <inertia>
+          <ixx>0.003002</ixx>
+          <ixy>0.000000</ixy>
+          <ixz>0.000000</ixz>
+          <iyy>0.023017</iyy>
+          <iyz>0.000000</iyz>
+          <izz>0.026019</izz>
+        </inertia>
+      </inertial>
+      <collision name='collision'>
+        <pose>0.35 0 -0.02 0 -0 0</pose>
+        <geometry>
+          <box>
+            <size>0.70 0.3 0.04</size>
+          </box>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>1.0</mu>
+              <mu2>0.75</mu2>
+              <fdir1>1 0 0</fdir1>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000.0</kp>
+              <kd>1.0</kd>
+              <min_depth>0.003</min_depth>
+              <max_vel>1.0</max_vel>
+            </ode>
+          </contact>
+        </surface>
+      </collision>
+      <visual name='visual'>
+        <pose>0.35 0 -0.02 0 -0 0</pose>
+        <geometry>
+          <box>
+            <size>0.70 0.292 0.04</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0.1 0.1 0.3 1</ambient>
+          <diffuse>0.2 0.2 0.2 1</diffuse>
+          <specular>0 0 0 1</specular>
+          <emissive>0 0 0 1</emissive>
+        </material>
+      </visual>
+    </link>
+
+    <joint name='right_track_straight_segment_joint0' type='prismatic'>
+      <child>right_track_straight_segment_link0</child>
+      <parent>right_body</parent>
+      <axis>
+        <xyz>1 0 0</xyz>
+        <use_parent_model_frame>0</use_parent_model_frame>
+        <limit>
+          <lower>-1e+16</lower>
+          <upper>1e+16</upper>
+        </limit>
+      </axis>
+      <physics>
+        <ode>
+          <implicit_spring_damper>1</implicit_spring_damper>
+        </ode>
+      </physics>
+    </joint>
+
+    <joint name='right_track_straight_segment_joint1' type='prismatic'>
+      <child>right_track_straight_segment_link1</child>
+      <parent>right_body</parent>
+      <axis>
+        <xyz>1 0 0</xyz>
+        <use_parent_model_frame>0</use_parent_model_frame>
+        <limit>
+          <lower>-1e+16</lower>
+          <upper>1e+16</upper>
+        </limit>
+      </axis>
+      <physics>
+        <ode>
+          <implicit_spring_damper>1</implicit_spring_damper>
+        </ode>
+      </physics>
+    </joint>
+
+    <link name='right_track_arc_segment_link0'>
+      <pose relative_to="right_body">0.35 0 0.138 0 -0 0</pose>
+      <inertial>
+        <pose>0 0 -0.138 1.5708 -0 0</pose>
+        <mass>0.375275</mass>
+        <inertia>
+          <ixx>0.005004</ixx>
+          <ixy>0.000000</ixy>
+          <ixz>0.000000</ixz>
+          <iyy>0.005004</iyy>
+          <iyz>0.000000</iyz>
+          <izz>0.001501</izz>
+        </inertia>
+      </inertial>
+      <collision name='collision'>
+        <pose>0 0 -0.138 1.5708 -0 0</pose>
+        <geometry>
+          <cylinder>
+            <length>0.3</length>
+            <radius>0.138</radius>
+          </cylinder>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>1.0</mu>
+              <mu2>0.75</mu2>
+              <fdir1>1 0 0</fdir1>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000.0</kp>
+              <kd>1.0</kd>
+              <min_depth>0.003</min_depth>
+              <max_vel>1.0</max_vel>
+            </ode>
+          </contact>
+        </surface>
+      </collision>
+      <visual name='visual'>
+        <pose>0 0 -0.138 1.5708 -0 0</pose>
+        <geometry>
+          <cylinder>
+            <length>0.292</length>
+            <radius>0.138</radius>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>0.1 0.1 0.3 1</ambient>
+          <diffuse>0.2 0.2 0.2 1</diffuse>
+          <specular>0 0 0 1</specular>
+          <emissive>0 0 0 1</emissive>
+        </material>
+      </visual>
+    </link>
+
+    <link name='right_track_arc_segment_link1'>
+      <pose relative_to="right_body">-0.35 0 -0.138 3.14159 0 3.14159</pose>
+      <inertial>
+        <pose>0 0 -0.138 1.5708 -0 0</pose>
+        <mass>0.375275</mass>
+        <inertia>
+          <ixx>0.005004</ixx>
+          <ixy>0.000000</ixy>
+          <ixz>0.000000</ixz>
+          <iyy>0.005004</iyy>
+          <iyz>0.000000</iyz>
+          <izz>0.001501</izz>
+        </inertia>
+      </inertial>
+      <collision name='collision'>
+        <pose>0 0 -0.138 1.5708 -0 0</pose>
+        <geometry>
+          <cylinder>
+            <length>0.3</length>
+            <radius>0.138</radius>
+          </cylinder>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>1.0</mu>
+              <mu2>0.75</mu2>
+              <fdir1>1 0 0</fdir1>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000.0</kp>
+              <kd>1.0</kd>
+              <min_depth>0.003</min_depth>
+              <max_vel>1.0</max_vel>
+            </ode>
+          </contact>
+        </surface>
+      </collision>
+      <visual name='visual'>
+        <pose>0 0 -0.138 1.5708 -0 0</pose>
+        <geometry>
+          <cylinder>
+            <length>0.292</length>
+            <radius>0.138</radius>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>0.1 0.1 0.3 1</ambient>
+          <diffuse>0.2 0.2 0.2 1</diffuse>
+          <specular>0 0 0 1</specular>
+          <emissive>0 0 0 1</emissive>
+        </material>
+      </visual>
+    </link>
+
+    <joint name='right_track_arc_segment_joint0' type='revolute'>
+      <child>right_track_arc_segment_link0</child>
+      <parent>right_body</parent>
+      <pose>0 0 -0.138 0 -0 0</pose>
+      <axis>
+        <xyz>0 1 0</xyz>
+        <use_parent_model_frame>0</use_parent_model_frame>
+        <limit>
+          <lower>-1e+16</lower>
+          <upper>1e+16</upper>
+        </limit>
+      </axis>
+      <physics>
+        <ode>
+          <implicit_spring_damper>1</implicit_spring_damper>
+        </ode>
+      </physics>
+    </joint>
+
+    <joint name='right_track_arc_segment_joint1' type='revolute'>
+      <child>right_track_arc_segment_link1</child>
+      <parent>right_body</parent>
+      <pose>0 0 -0.138 0 -0 0</pose>
+      <axis>
+        <xyz>0 1 0</xyz>
+        <use_parent_model_frame>0</use_parent_model_frame>
+        <limit>
+          <lower>-1e+16</lower>
+          <upper>1e+16</upper>
+        </limit>
+      </axis>
+      <physics>
+        <ode>
+          <implicit_spring_damper>1</implicit_spring_damper>
+        </ode>
+      </physics>
+    </joint>
+
+    <plugin name='right_track' filename='libContinuousTrack.so'>
+      <sprocket>
+        <joint>right_sprocket_axle</joint>
+        <pitch_diameter>0.276</pitch_diameter>
+      </sprocket>
+      <trajectory>
+        <segment>
+          <joint>right_track_straight_segment_joint0</joint>
+          <end_position>0.70</end_position>
+        </segment>
+        <segment>
+          <joint>right_track_arc_segment_joint0</joint>
+          <end_position>3.141592653589793</end_position>
+        </segment>
+        <segment>
+          <joint>right_track_straight_segment_joint1</joint>
+          <end_position>0.70</end_position>
+        </segment>
+        <segment>
+          <joint>right_track_arc_segment_joint1</joint>
+          <end_position>3.141592653589793</end_position>
+        </segment>
+      </trajectory>
+      <pattern>
+        <elements_per_round>40</elements_per_round>
+        <element>
+          <collision name='collision'>
+            <pose>0 0 0 0 0 0</pose>
+            <geometry>
+              <box>
+                <size>0.02 0.3 0.02</size>
+              </box>
+            </geometry>
+            <surface>
+              <friction>
+                <ode>
+                  <mu>1.0</mu>
+                  <mu2>0.75</mu2>
+                  <fdir1>1 0 0</fdir1>
+                </ode>
+              </friction>
+              <contact>
+                <ode>
+                  <kp>1000000.0</kp>
+                  <kd>1.0</kd>
+                  <min_depth>0.003</min_depth>
+                  <max_vel>1.0</max_vel>
+                </ode>
+              </contact>
+            </surface>
+          </collision>
+          <visual name='visual'>
+            <pose>0 0 0 0 0 0</pose>
+            <geometry>
+              <box>
+                <size>0.02 0.3 0.02</size>
+              </box>
+            </geometry>
+            <material>
+              <ambient>0.1 0.1 0.3 1</ambient>
+              <diffuse>0.2 0.2 0.2 1</diffuse>
+              <specular>0 0 0 1</specular>
+              <emissive>0 0 0 1</emissive>
+            </material>
+          </visual>
+        </element>
+        <element>
+          <collision name='collision'>
+            <pose>0 0.15 0 1.5707963267948966 0 0</pose>
+            <geometry>
+              <polyline>
+                <point>-0.02 -0.01</point>
+                <point>-0.01 0.01</point>
+                <point>0.01 0.01</point>
+                <point>0.02 -0.01</point>
+                <height>0.3</height>
+              </polyline>
+            </geometry>
+            <surface>
+              <friction>
+                <ode>
+                  <mu>1.0</mu>
+                  <mu2>0.75</mu2>
+                  <fdir1>1 0 0</fdir1>
+                </ode>
+              </friction>
+              <contact>
+                <ode>
+                  <kp>1000000.0</kp>
+                  <kd>1.0</kd>
+                  <min_depth>0.003</min_depth>
+                  <max_vel>1.0</max_vel>
+                </ode>
+              </contact>
+            </surface>
+          </collision>
+          <visual name='visual'>
+            <pose>0 0.15 0 1.5707963267948966 0 0</pose>
+            <geometry>
+              <polyline>
+                <point>-0.02 -0.01</point>
+                <point>-0.01 0.01</point>
+                <point>0.01 0.01</point>
+                <point>0.02 -0.01</point>
+                <height>0.3</height>
+              </polyline>
+            </geometry>
+            <material>
+              <ambient>0.1 0.1 0.3 1</ambient>
+              <diffuse>0.2 0.2 0.2 1</diffuse>
+              <specular>0 0 0 1</specular>
+              <emissive>0 0 0 1</emissive>
+            </material>
+          </visual>
+        </element>
+      </pattern>
+    </plugin>
+
+    <frame name='right_idler_axle' attached_to='right_body'>
+      <pose relative_to="right_body">-0.35 0 0 0 -0 0</pose>
+    </frame>
+    <frame name='right_idler' attached_to='right_idler_axle'/>
+
+    <!-- Gazebo ROS Control Plugin -->
+    <plugin name='gazebo_ros_control' filename='libgazebo_ros_control.so'>
+      <robotNamespace>/example_two_track</robotNamespace>
+      <robotSimType>gazebo_ros_control/DefaultRobotHWSim</robotSimType>
+      <legacyModeNS>false</legacyModeNS>
+    </plugin>
+
+    <!-- ================= VELODYNE LIDAR ================= -->
+    
+    <joint name='velodyne_base_mount_joint' type='fixed'>
+      <parent>body</parent>
+      <child>velodyne_base_link</child>
+    </joint>
+
+    <link name='velodyne_base_link'>
+      <!-- SENSOR STANDARDIZATION.  MUST MATCH the
+           velodyne_base_mount_joint origin in
+           urdf_xacro/two_track_robot.urdf.xacro.  THIS file is what Gazebo
+           spawns (see the note above the spawner in
+           launch/lcmine_two_track_world.launch); the xacro is only what
+           robot_state_publisher turns into TF.
+
+           Until 2026-08-26 this pose still held the NATIVE 0.35 while the
+           xacro had been standardized to 0.6091, so this platform's rays
+           actually left 0.5657 m above the track contact plane - 0.26 m lower
+           than the other two, exactly the difference the standardization
+           exists to remove - and the cloud was then transformed as if they had
+           left 0.8248 m up.  The standardization pass edited the xacro because
+           that is the file the other two platforms are described in; on this
+           platform it is not the one that reaches Gazebo.
+
+             z = 0.6700 + (-0.210) - 0.0377 = 0.4223
+
+           MEASURED, not derived.  Standing this robot on a flat floor at z = 0 and
+           letting it settle, `body` and the sprocket axles come to rest at
+           z = 0.2100 - so the vehicle rides 0.210 m above the ground, not the
+           0.178 m of the sprocket radius that the first standardization pass
+           used.  It rests on the BELT: the track trajectory runs at 0.2 m from
+           the axle and gazebo_continuous_track hangs its 0.02 m elements on
+           that line, so the contact surface is 0.2 + 0.01 = 0.210 m down.  The
+           sprocket never touches anything.  None of that can be read off this
+           file - the elements only exist once the plugin has run - which is
+           why it is measured and then declared in sim_config.yaml
+           (contact_plane.tracked).
+
+           0.9000 m is the ray-origin height above the contact plane shared by
+           the three platforms, raised from 0.8248 m so the lowest of the 16
+           rings clears the robot's own geometry once the sliced LiDAR's wedge
+           moves onto a link of its own (see README section 1.5); 0.0377 m is
+           the Velodyne's own <sensor><pose>.  The 0.1 kg sensor mass is kept
+           at the new height and the mast is treated as massless. -->
+      <pose relative_to="body">0 0 0.4843 0 0 0</pose>
+      <inertial>
+        <mass>0.825345</mass>
+        <inertia>
+          <ixx>0.000853</ixx>
+          <ixy>0.000000</ixy>
+          <ixz>0.000000</ixz>
+          <iyy>0.000853</iyy>
+          <iyz>0.000000</iyz>
+          <izz>0.001032</izz>
+        </inertia>
+      </inertial>
+      
+      <collision name='velodyne_base_collision'>
+        <geometry>
+          <cylinder>
+            <radius>0.05</radius>
+            <length>0.07</length>
+          </cylinder>
+        </geometry>
+      </collision>
+      
+      <visual name='velodyne_base_visual'>
+        <geometry>
+          <cylinder>
+            <radius>0.05</radius>
+            <length>0.07</length>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>0.8 0.1 0.1 1</ambient>
+          <diffuse>0.8 0.1 0.1 1</diffuse>
+        </material>
+      </visual>
+      
+      <!-- Sensor LiDAR -->
+      <sensor name='velodyne-VLP16' type='gpu_ray'>
+        <pose>0 0 0.0377 0 0 0</pose>
+        <visualize>false</visualize>
+        <update_rate>10</update_rate>
+        <ray>
+          <scan>
+            <horizontal>
+              <samples>1875</samples>
+              <resolution>1</resolution>
+              <min_angle>-3.14159</min_angle>
+              <max_angle>3.14159</max_angle>
+            </horizontal>
+            <vertical>
+              <samples>16</samples>
+              <resolution>1</resolution>
+              <min_angle>-0.261799</min_angle>
+              <max_angle>0.261799</max_angle>
+            </vertical>
+          </scan>
+          <range>
+            <min>0.3</min>
+            <max>101.0</max>
+            <resolution>0.001</resolution>
+          </range>
+          <noise>
+            <type>gaussian</type>
+            <mean>0.0</mean>
+            <stddev>0.011314</stddev>
+          </noise>
+        </ray>
+        
+        <plugin name='gazebo_ros_laser_controller' filename='libgazebo_ros_velodyne_gpu_laser.so'>
+          <topicName>/velodyne_points</topicName>
+          <frameName>example_two_track/velodyne_base_link</frameName>
+          <min_range>0.9</min_range>
+          <max_range>100.0</max_range>
+          <gaussianNoise>0.0</gaussianNoise>
+        </plugin>
+      </sensor>
+    </link>
+
+    <!-- ================= IMU ================= -->
+    
+    <link name='imu_link'>
+      <!-- SENSOR STANDARDIZATION: EL IMU VA EN EL CENTRO DE MASAS.
+           Cambiado 2026-09-04.  Antes las tres plataformas llevaban el IMU a
+           la misma altura sobre el suelo (0.6969 m), que es la regla correcta
+           para el LiDAR y la camara -lo que ven depende de su altura- y la
+           equivocada para un inercial: un acelerometro mide
+
+               a_sensor = a_cm + alpha x r + omega x (omega x r)
+
+           con r desde el CENTRO DE MASAS.  Igualando la altura sobre el suelo
+           los brazos quedaban en 0.360 / 0.485 / 0.238 m (husky / tracked /
+           rocker): un factor 2.04, porque los tres tienen el CM a alturas muy
+           distintas (0.343 / 0.212 / 0.459 m).  Con el mismo balanceo de
+           chasis el IMU del tracked leia el doble de termino de brazo que el
+           del rocker, y eso no es una propiedad de la locomocion.
+
+           r = 0 y no un |r| comun: alpha x r depende del VECTOR r, no de su
+           modulo, asi que dos brazos iguales en modulo y distintos en
+           direccion siguen midiendo cosas distintas.  El unico r comun a las
+           tres que ademas es canonico es el cero.
+
+           El punto es el CM del robot SIN el IMU (solucion exacta de
+           p = c(p); el IMU pesa 0.0010 kg de 45).  Recalcular con
+           ~/imu_target.py si cambia cualquier masa. -->
+
+           OJO CON ESTE MODELO EN CONCRETO: su CM declarado no coincide con el
+           del xacro (15.6 mm en x).  Aqui los idlers estan lumpeados dentro de
+           left_body/right_body PERO SIN desplazar el origen inercial, asi que
+           su masa cuenta en x = 0 en vez de en x = -0.35, mientras el sprocket
+           sigue siendo un link propio en x = +0.35.  Los 2.00 kg de sprocket
+           sin compensar dan 2.00*0.35/45 = 15.6 mm.  El numero de abajo es el
+           CM que Gazebo SIMULA, que es el que ve el acelerometro.  Y los
+           elementos de oruga que gazebo_continuous_track crea al cargar no
+           estan en ningun fichero: si llevan masa, el CM real se mueve un
+           poco mas y esto habria que medirlo en el banco.
+
+           MUST MATCH the imu_joint origin in
+           urdf_xacro/two_track_robot.urdf.xacro. -->
+      <pose relative_to="body">0.015658 0.000000 0.008978 0 0 0</pose>
+      <inertial>
+        <mass>0.0149159</mass>
+        <inertia>
+          <ixx>3.60467583e-06</ixx>
+          <ixy>0.000000</ixy>
+          <ixz>0.000000</ixz>
+          <iyy>3.60467583e-06</iyy>
+          <iyz>0.000000</iyz>
+          <izz>6.21495833e-06</izz>
+        </inertia>
+      </inertial>
+      
+      <collision name='imu_collision'>
+        <geometry>
+          <box>
+            <size>0.05 0.05 0.02</size>
+          </box>
+        </geometry>
+      </collision>
+      
+      <visual name='imu_visual'>
+        <geometry>
+          <box>
+            <size>0.05 0.05 0.02</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0.3 0.3 0.3 1</ambient>
+          <diffuse>0.3 0.3 0.3 1</diffuse>
+        </material>
+      </visual>
+      
+      <!-- Sensor IMU -->
+      <sensor name='imu_sensor' type='imu'>
+        <always_on>1</always_on>
+        <!-- 200 -> 100 Hz el 2026-08-24.  Esta era la UNICA tasa de sensor
+             que no coincidia entre plataformas: el differential
+             (model/differential/model.sdf) y el rocker_bogie
+             (urdf/ensamblajeurdf.gazebo) declaran 100, y el propio xacro de
+             esta plataforma (two_track_robot_gazebo.urdf.xacro) tambien - pero
+             lo que se spawnea es ESTE SDF, asi que el tracked le estaba dando
+             a rtabmap el doble de muestras de IMU que las otras dos.  Con
+             Imu/Enable y wait_imu_to_init activos eso no es neutro para la
+             comparacion.  sim_config.yaml declara el RUIDO del IMU pero no su
+             tasa, y check_sim_parity.py no revisa tasas de sensor: por eso
+             paso desapercibido. -->
+        <update_rate>100</update_rate>
+        <visualize>true</visualize>
+        <topic>__default_topic__</topic>
+        <imu>
+          <angular_velocity>
+            <x>
+              <noise type='gaussian'>
+                <mean>0</mean>
+                <stddev>0.009</stddev>
+                <bias_mean>0.00075</bias_mean>
+                <bias_stddev>0.005</bias_stddev>
+                <dynamic_bias_stddev>0.00002</dynamic_bias_stddev>
+                <dynamic_bias_correlation_time>400.0</dynamic_bias_correlation_time>
+                <precision>0.00025</precision>
+              </noise>
+            </x>
+            <y>
+              <noise type='gaussian'>
+                <mean>0</mean>
+                <stddev>0.009</stddev>
+                <bias_mean>0.00075</bias_mean>
+                <bias_stddev>0.005</bias_stddev>
+                <dynamic_bias_stddev>0.00002</dynamic_bias_stddev>
+                <dynamic_bias_correlation_time>400.0</dynamic_bias_correlation_time>
+                <precision>0.00025</precision>
+              </noise>
+            </y>
+            <z>
+              <noise type='gaussian'>
+                <mean>0</mean>
+                <stddev>0.009</stddev>
+                <bias_mean>0.00075</bias_mean>
+                <bias_stddev>0.005</bias_stddev>
+                <dynamic_bias_stddev>0.00002</dynamic_bias_stddev>
+                <dynamic_bias_correlation_time>400.0</dynamic_bias_correlation_time>
+                <precision>0.00025</precision>
+              </noise>
+            </z>
+          </angular_velocity>
+          <linear_acceleration>
+            <x>
+              <noise type='gaussian'>
+                <mean>0</mean>
+                <stddev>0.021</stddev>
+                <bias_mean>0.05</bias_mean>
+                <bias_stddev>0.0075</bias_stddev>
+                <dynamic_bias_stddev>0.000375</dynamic_bias_stddev>
+                <dynamic_bias_correlation_time>175.0</dynamic_bias_correlation_time>
+                <precision>0.005</precision>
+              </noise>
+            </x>
+            <y>
+              <noise type='gaussian'>
+                <mean>0</mean>
+                <stddev>0.021</stddev>
+                <bias_mean>0.05</bias_mean>
+                <bias_stddev>0.0075</bias_stddev>
+                <dynamic_bias_stddev>0.000375</dynamic_bias_stddev>
+                <dynamic_bias_correlation_time>175.0</dynamic_bias_correlation_time>
+                <precision>0.005</precision>
+              </noise>
+            </y>
+            <z>
+              <noise type='gaussian'>
+                <mean>0</mean>
+                <stddev>0.021</stddev>
+                <bias_mean>0.05</bias_mean>
+                <bias_stddev>0.0075</bias_stddev>
+                <dynamic_bias_stddev>0.000375</dynamic_bias_stddev>
+                <dynamic_bias_correlation_time>175.0</dynamic_bias_correlation_time>
+                <precision>0.005</precision>
+              </noise>
+            </z>
+          </linear_acceleration>
+        </imu>
+        <plugin name='imu_plugin' filename='libgazebo_ros_imu_sensor.so'>
+          <topicName>/imu/data_raw</topicName>
+          <bodyName>imu_link</bodyName>
+          <updateRateHZ>100.0</updateRateHZ>
+          <gaussianNoise>0.0</gaussianNoise>
+          <xyzOffset>0 0 0</xyzOffset>
+          <rpyOffset>0 0 0</rpyOffset>
+          <frameName>example_two_track/imu_link</frameName>
+          <initialOrientationAsReference>false</initialOrientationAsReference>
+        </plugin>
+      </sensor>
+    </link>
+
+    <joint name='imu_joint' type='fixed'>
+      <parent>body</parent>
+      <child>imu_link</child>
+    </joint>
+
+    <!-- La camara ya no es un link: vive dentro de <link name='body'>,
+         arriba del todo.  Ver la nota de CAMARA FUSIONADA alli. -->
+
+  </model>
+  
+</sdf>

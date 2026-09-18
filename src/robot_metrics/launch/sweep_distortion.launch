@@ -1,0 +1,70 @@
+<launch>
+    <!-- =====================================================================
+         DISTORSION DE BARRIDO, METIDA POR FORMULAS
+         =====================================================================
+         Un solo nodo, frente a los dos del generador anterior (rotor_spinner y
+         rotor_sweep_assembler), y ninguna pieza dentro del modelo: el VLP-16 sigue
+         siendo el monolitico, bit a bit el mismo que en el arm normal.  Lo
+         unico que retopic_lidar.py le hace al modelo es
+         apartarle el topic:
+
+             gazebo  ->  /velodyne_points_raw  ->  warp  ->  /velodyne_points
+
+         Aguas abajo NO cambia nada: rtabmap y move_base siguen leyendo
+         /velodyne_points, mismo frame, misma tasa, misma densidad.
+
+         POR QUE SUSTITUYE AL ROTOR
+         ==========================
+         La cuña dependia de que Gazebo cumpliera el update_rate del gpu_ray, y
+         no lo cumple: cobertura real 350 a 356 deg en vez de 360, y peor
+         cuanto mas cargada la simulacion.  Aqui la cobertura es 360.000
+         exactos siempre, y la distorsion es un parametro en vez de un
+         accidente del planificador.
+         ===================================================================== -->
+
+    <!-- El nombre del modelo EN GAZEBO, no el del robot: differential,
+         two_track_robot, rocker_bogie.  Es el que se busca en
+         /gazebo/model_states, igual que hace metrics_logger.py. -->
+    <arg name="model_name" />
+
+    <!-- El link raiz del modelo TAL Y COMO LO CONOCE TF.  Tiene que ser el
+         mismo al que se refiere la pose de /gazebo/model_states (el canonical
+         link), o el montaje sale girado.  OJO con el rocker_bogie: su
+         base_link_nav es base_link girado 180 deg. -->
+    <arg name="base_frame" default="$(arg model_name)/base_link" />
+
+    <!-- Vacio = se conserva el frame_id que traiga la nube de entrada. -->
+    <arg name="frame_id" default="" />
+
+    <arg name="rotor_hz" default="10.0" />
+
+    <!-- Azimut de la costura, fijo y absoluto, como el cut_angle del driver de
+         Velodyne, que corta por cruce de azimut y no por tiempo. -->
+    <arg name="cut_angle_deg" default="0.0" />
+
+    <!-- +1 o -1: el SENTIDO de giro del barrido.  Invertirlo con la ruta igual
+         es el experimento de quiralidad: si el sesgo de rumbo no cambia de
+         signo, el acoplamiento rotor/avance queda descartado como mecanismo. -->
+    <arg name="rotor_dir" default="1" />
+
+    <!-- Paquetes de azimut.  360 (1 deg) deja 0.5 mm de error de cuantizacion,
+         veinte veces por debajo del ruido propio del VLP-16 (11.3 mm). -->
+    <arg name="sectors" default="360" />
+
+    <node name="sweep_distortion" pkg="robot_metrics"
+          type="sweep_distortion.py" output="screen">
+        <!-- Sin esto la salida de un nodo Python se queda en el buffer cuando
+             roslaunch va redirigido a un archivo, que es como corre la
+             campana: el nodo funciona pero su log no aparece nunca. -->
+        <env name="PYTHONUNBUFFERED" value="1" />
+        <param name="input"         value="/velodyne_points_raw" />
+        <param name="output"        value="/velodyne_points" />
+        <param name="model_name"    value="$(arg model_name)" />
+        <param name="base_frame"    value="$(arg base_frame)" />
+        <param name="frame_id"      value="$(arg frame_id)" />
+        <param name="rotor_hz"      value="$(arg rotor_hz)" />
+        <param name="cut_angle_deg" value="$(arg cut_angle_deg)" />
+        <param name="rotor_dir"     value="$(arg rotor_dir)" />
+        <param name="sectors"       value="$(arg sectors)" />
+    </node>
+</launch>

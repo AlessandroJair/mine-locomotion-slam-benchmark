@@ -2,18 +2,50 @@
 DWAPlannerROS:
   # Velocidades - igualadas entre los 3 robots
   max_vel_x: 0.5
-  min_vel_x: 0.1
+  # 0.0, the same as the other two.  This was 0.1 and documented as an
+  # unavoidable Ackermann constraint - "at v = 0 it cannot change heading at
+  # all" - which was true only because the steering lock was 0.5 rad.  With the
+  # lock at 1.1 the corner wheels reach the tangent angles a point turn needs,
+  # the platform changes heading at v = 0 like the other two, and the floor
+  # that existed to stop DWA proposing such commands is no longer wanted.
+  # One fewer declared platform difference.
+  min_vel_x: 0.0
   max_vel_y: 0.0
   min_vel_y: 0.0
   max_vel_trans: 0.5
-  min_vel_trans: 0.1
+  min_vel_trans: -0.15
   max_vel_theta: 1.0
   min_vel_theta: 0.1
 
-  # Aceleraciones (tzacked necesita mas torque angular que diferencial)
-  acc_lim_x: 12.0
+  # Accelerations - EQUAL ACROSS THE THREE ROBOTS, from planner.acc_lim_* in
+  # robot_metrics/config/sim_config.yaml.  They were 1.0 / 1.2 / 12.0 (x) and
+  # 1.5 / 10.0 / 35.0 (theta) for Husky / Tracked / Rocker-Bogie.
+  #
+  # acc_lim is not only a statement about the plant.  In dwa_local_planner the
+  # velocity window sampled each cycle is acc_lim * sim_period, with
+  # sim_period = 1 / controller_frequency = 1/10 = 0.1 s here, so a value set
+  # purely from the plant's honest acceleration (1.0 m/s^2) would give DWA only
+  # 0.1 m/s of speed range to sample per cycle.  On the Rocker-Bogie, whose
+  # min_vel_trans is 0.1, that leaves a single admissible forward sample.  The
+  # shared value is therefore sized to span the commanded range in one control
+  # period, then checked against the plant:
+  #     acc_lim_x     >= max_vel_trans / sim_period = 0.5 / 0.1 =  5.0 m/s^2
+  #     acc_lim_theta >= max_vel_theta / sim_period = 1.0 / 0.1 = 10.0 rad/s^2
+  #     45 kg * 5.0 = 225 N, against a 1575 N budget and a 441 N friction
+  #     ceiling on the mu = 1.0 gallery floor - comfortably inside both.
+  #
+  # NOT a fix for the Rocker-Bogie stalling.  That was measured separately and
+  # has a different cause: at a stall the robot's own footprint sits on lethal
+  # costmap cells and the free lateral corridor is 0.70 m against the 1.46 m
+  # the footprint plus inflation needs, so DWA rejects every trajectory before
+  # the velocity window matters at all.  Raising acc_lim from 1.0/1.5 to
+  # 5.0/10.0 did not change that behaviour.
+  #
+  # If a platform cannot take a curve, change these for ALL THREE, never for
+  # the one that is struggling.
+  acc_lim_x: 5.0
   acc_lim_y: 0.0
-  acc_lim_theta: 35.0
+  acc_lim_theta: 10.0
 
   # Simulacion
   sim_time: 3.0
@@ -28,8 +60,14 @@ DWAPlannerROS:
   latch_xy_goal_tolerance: true
 
   # Pesos de la funcion de costo
-  path_distance_bias: 24.0
-  goal_distance_bias: 32.0
+  # 32.0 / 24.0, which is dwa_local_planner's own default ordering.  This
+  # file had them inverted (24.0 path / 32.0 goal), weighting the goal above
+  # the global plan.  That is what lets DWA leave the planned line: measured
+  # 2026-08-20, the differential drifted ~1 m off the path the rocker_bogie
+  # took through the south-west corner, onto ground 0.3 m higher, wedged and
+  # rolled over there.  EQUAL ON ALL THREE PLATFORMS.
+  path_distance_bias: 32.0
+  goal_distance_bias: 24.0
   occdist_scale: 0.1
 
   # Comportamiento de parada

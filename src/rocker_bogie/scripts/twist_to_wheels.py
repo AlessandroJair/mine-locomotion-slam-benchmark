@@ -38,10 +38,18 @@ extract_robot_specs.py.  Recall FRONT = smaller x, LEFT = smaller y:
     middle-left Rueda_4_1 (+0.283, -0.275)   middle-right Rueda_3_1 (+0.283, +0.507)
     rear-left   Rueda_2_1 (+0.710, -0.275)   rear-right  Rueda_5_1 (+0.710, +0.507)
 
-    wheelbase   = 0.8532 m   front axle to rear axle
-    front_track = 0.5959 m   the steered front pair is inset
-    rear_track  = 0.7821 m   middle and rear pairs share this track
-    wheel_radius= 0.178  m
+    HUELLA REESCALADA x0.862 (area 0.4000 m2, la del tracked):
+    wheelbase   = 0.7355 m   front axle to rear axle
+    front_track = 0.4462 m   the steered front pair is inset
+    rear_track  = 0.5757 m   middle and rear pairs share this track
+    wheel_radius= 0.148  m
+
+    ABIERTO, HEREDADO, NO TOCADO.  Las dos vias son ~una anchura de llanta
+    (0.1143 m) mayores que la separacion entre CENTROS que da la FK (0.4912 y
+    0.6775).  La nota del launch dice que en 2026-07 se subio rear_track de
+    0.6775 a 0.7821 por "13 % corto", y 0.6775 era justo la separacion entre
+    centros.  ackermann() los usa como distancia entre centros, asi que si la
+    medida es de cara exterior el angulo de direccion sale sesgado.
 
 The front and rear axles are symmetric about x = +0.2835, which is exactly the
 middle axle.  Counter-steering the two steered axles by equal and opposite
@@ -99,10 +107,10 @@ class TwistToWheels(object):
         rospy.init_node('twist_to_wheels', anonymous=False)
 
         # --- geometry (metres) ---
-        self.wheelbase = rospy.get_param('~wheelbase', 0.8532)
-        self.front_track = rospy.get_param('~front_track', 0.5961)
-        self.rear_track = rospy.get_param('~rear_track', 0.7821)
-        self.wheel_radius = rospy.get_param('~wheel_radius', 0.178)
+        self.wheelbase = rospy.get_param('~wheelbase', 0.7355)
+        self.front_track = rospy.get_param('~front_track', 0.4462)
+        self.rear_track = rospy.get_param('~rear_track', 0.5757)
+        self.wheel_radius = rospy.get_param('~wheel_radius', 0.148)
 
         # --- limits ---
         self.max_steer_angle = rospy.get_param('~max_steer_angle', 0.5)  # rad
@@ -165,8 +173,79 @@ class TwistToWheels(object):
                           self.min_angular)
 
     # ------------------------------------------------------------------
+    def steer_angle(self, dx, dy):
+        """Angulo de direccion de una rueda cuya velocidad de contacto es
+        (dx, dy), plegado al rango que una rueda puede representar.
+
+        POR QUE EL PLIEGUE.  Una rueda rueda hacia delante o hacia atras, asi
+        que su angulo de direccion esta definido MODULO 180 deg: (-90, 90] y
+        (90, 270] describen la misma recta de rodadura, y se distinguen solo
+        por el signo de la velocidad de giro.  atan2 devuelve la direccion de
+        AVANCE, que en las ruedas cuya velocidad tangencial apunta hacia atras
+        cae en la rama de fuera.
+
+        Sin plegar, clamp_steer() recortaba ese valor contra el tope y dejaba
+        la rueda apuntando ~118 deg fuera de sitio.  Medido sobre la geometria
+        de esta plataforma, en un giro sobre el sitio con w > 0:
+
+            rueda   tangente correcta   atan2 sin plegar   lo que se mandaba
+            fl           -55.1               +124.9              +63.0
+            fr           +55.1                +55.1              +55.1
+            rl           +47.5               -132.5              -63.0
+            rr           -47.5                -47.5              -47.5
+
+        Las dos ruedas del lado interior salian con el signo cambiado, y la
+        proyeccion de velocidad sobre esa direccion equivocada las hacia rodar
+        empujando contra las otras cuatro en vez de girar.
+
+        El signo de la velocidad NO hace falta corregirlo aparte: quien llama
+        proyecta la velocidad sobre el angulo devuelto, y esa proyeccion sale
+        negativa justo cuando el pliegue ha ocurrido.
+        """
+        a = math.atan2(dy, dx)
+        if a > math.pi / 2.0:
+            a -= math.pi
+        elif a <= -math.pi / 2.0:
+            a += math.pi
+        return a
+
     def clamp_steer(self, angle):
         return max(-self.max_steer_angle, min(self.max_steer_angle, angle))
+
+    def radio_minimo(self):
+        """El |R| mas cerrado que la direccion puede trazar de verdad.
+
+        La rueda que ata es la INTERIOR del eje de via mas ancha: su angulo
+        es atan(half_wb / (R - y)), asi que el caso peor lleva y = half_rt.
+        Exigir |atan(half_wb/(|R| - half_rt))| <= max_steer_angle da
+
+            |R| >= half_rt + half_wb / tan(max_steer_angle)
+
+        Con la geometria de esta plataforma son 1.172 m, no los 0.781 que
+        sale de olvidar la via.
+        """
+        return self.half_rt + self.half_wb / math.tan(self.max_steer_angle)
+
+    def radio_factible(self, R):
+        """R recortado a lo que la direccion alcanza, con el signo intacto.
+
+        POR QUE EXISTE.  ackermann() calculaba las velocidades de rueda con
+        el radio PEDIDO y recortaba solo el angulo de direccion, asi que
+        cuando el giro no cabia las dos mitades del mando dejaban de estar de
+        acuerdo: las ruedas empujaban para un radio y la direccion apuntaba a
+        otro.  Medido el 2026-09-01 en el banco de guiñada: en los puntos
+        infactibles el rocker giraba hasta un 25 % MAS de lo que se le pedia
+        (alfa 1.25), y 10 de los 36 puntos de la rejilla caian ahi.
+
+        Recortando el radio ANTES de repartir, velocidades y direccion salen
+        del mismo numero.  La plataforma gira entonces lo mas cerrado que
+        puede, que es menos de lo pedido - y eso es lo honesto: el mando no
+        era ejecutable.
+        """
+        r_min = self.radio_minimo()
+        if abs(R) < r_min:
+            return math.copysign(r_min, R)
+        return R
 
     def publish(self, vel, steer):
         for k, v in vel.items():
@@ -217,7 +296,15 @@ class TwistToWheels(object):
             self.go_straight(v)
             return
 
-        self.ackermann(v, radius)
+        # Recortar el RADIO, no solo el angulo: ver radio_factible().
+        radius_ok = self.radio_factible(radius)
+        if radius_ok != radius:
+            rospy.logwarn_throttle(
+                5.0, 'twist_to_wheels: v=%.2f w=%.2f pide R=%.2f m y la '
+                'direccion solo alcanza %.2f m; giro al maximo posible '
+                '(w efectiva %.2f rad/s)',
+                v, w, radius, radius_ok, v / radius_ok)
+        self.ackermann(v, radius_ok)
 
     # ------------------------------------------------------------------
     def ackermann(self, v_nav, radius):
@@ -243,10 +330,12 @@ class TwistToWheels(object):
             vel[key] = self.to_joint_velocity(ground_speed)
 
             if key in self.steered:
-                # delta = atan(x / d): the sign is carried by both x (front
-                # positive, rear negative, giving the counter-steer for free)
-                # and d (turn direction).
-                steer[key] = self.clamp_steer(math.atan(x / d))
+                # delta = atan2(x, d) plegado: el signo lo llevan x (delantera
+                # positiva, trasera negativa, o sea el contragiro gratis) y d
+                # (sentido del giro).  radio_factible() garantiza d > 0 aqui,
+                # asi que el pliegue no llega a actuar; se usa igualmente para
+                # que la correccion sea valida por construccion.
+                steer[key] = self.clamp_steer(self.steer_angle(d, x))
 
         self.publish(vel, steer)
 
@@ -273,7 +362,8 @@ class TwistToWheels(object):
 
             # Tangent direction, clamped to the steering lock.  Middle wheels
             # cannot steer, so they stay at zero.
-            delta = self.clamp_steer(math.atan2(vy, vx)) if key in self.steered else 0.0
+            delta = (self.clamp_steer(self.steer_angle(vx, vy))
+                     if key in self.steered else 0.0)
             if key in self.steered:
                 steer[key] = delta
 

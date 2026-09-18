@@ -27,10 +27,20 @@
   <arg name="run_id" default="1"/>
 
   <!-- Metrics logger -->
+  <!-- Where the logger writes metrics.csv and the trajectories.
+       run_campaign.sh passes its output directory through here.
+       Without it the logger silently kept writing to
+       $HOME/metrics_output while the campaign wrote its logs
+       somewhere else, splitting each run across two directories. -->
+  <arg name="output_dir" default="$(env HOME)/metrics_output"/>
   <include file="$(find robot_metrics)/launch/metrics_logger.launch">
+    <arg name="output_dir" value="$(arg output_dir)"/>
     <arg name="robot_name" value="tracked"/>
     <arg name="model_name" value="two_track_robot"/>
-    <arg name="cmd_vel_topic" value="/cmd_vel"/>
+    <!-- El topic REAL, no /cmd_vel: move_base.launch remapea cmd_vel a
+         /example_two_track/cmd_vel.  Ver la nota en rocker_bogie: con /cmd_vel
+         la columna cmd_vx[m/s] quedaba en cero durante toda la corrida. -->
+    <arg name="cmd_vel_topic" value="/example_two_track/cmd_vel"/>
     <arg name="run_id" value="$(arg run_id)"/>
     <!-- No wheel_links: this platform carries no Gazebo contact sensors, so
          the contact columns are simply absent from its CSV. -->
@@ -40,5 +50,15 @@
   <group if="$(arg use_rviz)">
     <node pkg="rviz" type="rviz" name="waypoint_rviz" args="-d $(find gazebo_continuous_track_example)/rviz/waypoint_navigation.rviz"/>
   </group>
+
+
+  <!-- Rearing guard.  Cancels the goal when a speed is commanded, the vehicle
+       is not making it, and the chassis is pitching up - the exact sequence
+       that put the differential on its back twice on 2026-08-20.  Shared node,
+       identical thresholds on all three; see robot_metrics/launch/
+       rearing_guard.launch. -->
+  <include file="$(find robot_metrics)/launch/rearing_guard.launch">
+    <arg name="cmd_vel_topic" value="/example_two_track/cmd_vel"/>
+  </include>
 
 </launch>

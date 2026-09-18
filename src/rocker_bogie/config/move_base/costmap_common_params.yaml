@@ -1,20 +1,52 @@
 # Parametros comunes para global y local costmap
-# Footprint del rocker-bogie basado en model.sdf (~1.21m x 0.96m)
-# X: de -0.71 a +0.32, Y: de -0.48 a +0.48
-footprint: [[-0.71,-0.48],[-0.71,0.48],[0.32,0.48],[0.32,-0.48]]
+#
+# Footprint measured from the model Gazebo actually spawns.  The previous value
+# was taken from model/rocker_bogie/model.sdf, but lcmine_rocker_bogie_world.launch
+# spawns urdf/ensamblajeurdf.xacro - check_sim_parity.py section 9 says so - and
+# the two do not agree.  It was also expressed as if base_link were centred on
+# the chassis.  It is not: the wheel centres run x -0.143..+0.710 and
+# y -0.222..+0.455 in base_link, so the body sits 0.283 m ahead of base_link and
+# 0.116 m to one side of it.
+#
+# The costmap's robot_base_frame is base_link_nav, which is base_link yawed
+# 180 deg (see lcmine_rocker_bogie_world.launch), so x and y are both negated.
+# Union of every collision primitive in the spawned URDF, in base_link_nav:
+#     x -0.888 .. +0.321   (length 1.209 m)
+#     y -0.565 .. +0.332   (width  0.896 m)
+# 0.896 m is the width sim_config.yaml already quotes for this platform; the old
+# footprint claimed 0.960 m.
+#
+# What the old value got wrong, per side:
+#     rear  (-x)  stopped 0.178 m short of the real body   (uncovered)
+#     right (-y)  stopped 0.085 m short of the real body   (uncovered)
+#     left  (+y)  claimed 0.148 m of body that is not there (phantom)
+#     front (+x)  correct to 1 mm
+# i.e. it was 0.064 m too wide overall AND displaced 0.116 m to the left, which
+# is why the left edge kept finding obstacles the vehicle would have cleared
+# while the real rear and right side were never checked at all.
+#
+# Regenerate with scripts/extract_robot_specs.py if the model changes.
+# 2026-09-13: base_link volteado y centrado (base_link_nav ya no existe);
+# recalculado con model_parser.collision_bbox en el marco nuevo.  Lo de arriba
+# es historia.
+footprint: [[-0.546,-0.345],[-0.546,0.345],[0.546,0.345],[0.546,-0.345]]
 
 robot_radius: 0.0  # Se usa footprint en lugar de radio
 
-# Fuente de obstaculos: Velodyne LiDAR 3D
-observation_sources: velodyne_cloud
+# Fuente de obstaculos: nube ya segmentada por rtabmap_util/obstacles_detection
+# (ver move_base.launch).  El suelo ya viene quitado, incluido el suelo en
+# pendiente, asi que el filtro de altura del costmap se desactiva: dejarlo
+# activo volveria a marcar como obstaculo el terreno que sube, que es el bug
+# que este cambio arregla.  Los limites quedan abiertos a proposito.
+observation_sources: obstacle_cloud
 
-velodyne_cloud:
+obstacle_cloud:
   sensor_frame: rocker_bogie/velodyne_base_link
   data_type: PointCloud2
-  topic: /velodyne_points
+  topic: /rocker_bogie/obstacles_cloud
   marking: true
   clearing: true
-  min_obstacle_height: 0.2
-  max_obstacle_height: 2.0
+  min_obstacle_height: -99999.0
+  max_obstacle_height:  99999.0
   obstacle_range: 5.0
   raytrace_range: 6.0

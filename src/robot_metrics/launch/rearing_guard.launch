@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<launch>
+
+  <!-- Shared safety guard, one node, identical thresholds on all three
+       platforms.  See scripts/rearing_guard.py for why it exists: both
+       differential rollovers of 2026-08-20 were a stall that the controller
+       kept pushing until the chassis reared past its tip-over angle, and
+       move_base's oscillation_timeout is far too slow to catch it. -->
+
+  <arg name="cmd_vel_topic" default="/cmd_vel"/>
+  <arg name="odom_topic"    default="/rtabmap/odom"/>
+  <arg name="imu_topic"     default="/imu/data"/>
+
+  <!-- Thresholds are shared test conditions.  Change them for ALL THREE or
+       not at all: a guard that trips at different points per platform would
+       measure the guard, not the locomotion. -->
+  <arg name="commanded_min" default="0.15"/>
+  <arg name="speed_max"     default="0.05"/>
+  <arg name="stall_time"    default="1.0"/>
+  <arg name="pitch_warn"    default="15.0"/>
+  <arg name="pitch_abort"   default="30.0"/>
+  <arg name="cooldown"      default="5.0"/>
+  <!-- Cancelling the goal stops the pushing but leaves the vehicle where it
+       reared.  Measured 2026-08-21: the differential sat on the 0.10 m step at
+       48.1 deg nose-up and moved 9 mm in 25 s with the guard firing throughout.
+       So it also reverses briefly to put the wheels back down. -->
+  <arg name="backoff_speed" default="-0.25"/>
+  <arg name="backoff_time"  default="2.0"/>
+
+  <node pkg="robot_metrics" type="rearing_guard.py" name="rearing_guard"
+        output="screen">
+    <param name="cmd_vel_topic" value="$(arg cmd_vel_topic)"/>
+    <param name="odom_topic"    value="$(arg odom_topic)"/>
+    <param name="imu_topic"     value="$(arg imu_topic)"/>
+    <param name="commanded_min" value="$(arg commanded_min)"/>
+    <param name="speed_max"     value="$(arg speed_max)"/>
+    <param name="stall_time"    value="$(arg stall_time)"/>
+    <param name="pitch_warn"    value="$(arg pitch_warn)"/>
+    <param name="pitch_abort"   value="$(arg pitch_abort)"/>
+    <param name="cooldown"      value="$(arg cooldown)"/>
+    <param name="backoff_speed" value="$(arg backoff_speed)"/>
+    <param name="backoff_time"  value="$(arg backoff_time)"/>
+  </node>
+
+</launch>

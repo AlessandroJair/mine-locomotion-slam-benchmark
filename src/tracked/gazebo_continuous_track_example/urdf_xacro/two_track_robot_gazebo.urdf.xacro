@@ -13,17 +13,32 @@
         </material>
     </xacro:property>
 
-    <xacro:make_track name="left_track" mass="${1.5*mass_scale}" length="0.85" radius="0.2" width="0.15" parent="left_body" sprocket_joint="left_sprocket_axle" pitch_diameter="0.35">
+    <!-- mu and min_depth equalised with the Rocker-Bogie 2026-08-20.
+         Neither was passed before, so make_track applied its own
+         defaults of mu=0.5 and min_depth=0.01 - half the grip of the
+         other two platforms, and never checked.  The macro exposes a
+         single friction coefficient, so the track gets 0.75 in both
+         directions where the wheeled platforms get 100 longitudinal
+         (terrain-capped to 1.0) and 0.75 lateral.  That residual
+         difference cannot be removed without extending the macro.
+         min_depth stays at the macro default 0.01 here.  0.003, copied
+         from the Rocker-Bogie when the contact models were equalised,
+         stalled this platform completely: real-time factor 5.6e-06 and
+         a silent /gazebo/model_states.  It is a solver tolerance, not a
+         material property, and this model carries hundreds of track
+         contacts against the Rocker-Bogie's six.  mu is still 0.75 on
+         all three, which is the part that has to match. -->
+    <xacro:make_track name="left_track" mass="${1.5*mass_scale}" length="0.85" radius="0.138" width="0.15" parent="left_body" sprocket_joint="left_sprocket_axle" pitch_diameter="0.276" mu="0.75" min_depth="0.01">
         <xacro:insert_block name="track_material" />
         <pattern>
             <elements_per_round>40</elements_per_round>
             <element>
-                <xacro:make_box_element pose="0 0 0 0 0 0" size="0.02 0.5 0.02">
+                <xacro:make_box_element pose="0 0 0 0 0 0" size="0.02 0.5 0.02" mu="0.75" min_depth="0.01">
                     <xacro:insert_block name="track_material" />
                 </xacro:make_box_element>
             </element>
             <element>
-                <xacro:make_polyline_element pose="0 0.25 0 ${pi / 2} 0 0">
+                <xacro:make_polyline_element pose="0 0.25 0 ${pi / 2} 0 0" mu="0.75" min_depth="0.01">
                     <polyline>
                         <point>-0.02 -0.01</point>
                         <point>-0.01 0.01</point>
@@ -37,17 +52,17 @@
         </pattern>
     </xacro:make_track>
 
-    <xacro:make_track name="right_track" mass="${1.5*mass_scale}" length="0.85" radius="0.2" width="0.15" parent="right_body" sprocket_joint="right_sprocket_axle" pitch_diameter="0.35">
+    <xacro:make_track name="right_track" mass="${1.5*mass_scale}" length="0.85" radius="0.138" width="0.15" parent="right_body" sprocket_joint="right_sprocket_axle" pitch_diameter="0.276" mu="0.75" min_depth="0.01">
         <xacro:insert_block name="track_material" />
         <pattern>
             <elements_per_round>40</elements_per_round>
             <element>
-                <xacro:make_box_element pose="0 0 0 0 0 0" size="0.02 0.5 0.02">
+                <xacro:make_box_element pose="0 0 0 0 0 0" size="0.02 0.5 0.02" mu="0.75" min_depth="0.01">
                     <xacro:insert_block name="track_material" />
                 </xacro:make_box_element>
             </element>
             <element>
-                <xacro:make_polyline_element pose="0 0.25 0 ${pi / 2} 0 0">
+                <xacro:make_polyline_element pose="0 0.25 0 ${pi / 2} 0 0" mu="0.75" min_depth="0.01">
                     <polyline>
                         <point>-0.02 -0.01</point>
                         <point>-0.01 0.01</point>
@@ -60,6 +75,7 @@
             </element>
         </pattern>
     </xacro:make_track>
+
 
     <!-- ros_control for gazebo -->
     <gazebo>
@@ -92,7 +108,7 @@
                 </scan>
                 <range>
                     <min>0.3</min>
-                    <max>130.0</max>
+                    <max>101.0</max>
                     <resolution>0.001</resolution>
                 </range>
                 <!-- ==================== LIDAR NOISE ====================
@@ -122,7 +138,7 @@
                 <topicName>/velodyne_points</topicName>
                 <frameName>example_two_track/velodyne_base_link</frameName>
                 <min_range>0.9</min_range>
-                <max_range>130.0</max_range>
+                <max_range>100.0</max_range>
                 <!-- Zero: all LiDAR noise now comes from the seeded <noise>
                      block. -->
                 <gaussianNoise>0.0</gaussianNoise>
@@ -143,7 +159,7 @@
             <visualize>true</visualize>
             <topic>__default_topic__</topic>
             <plugin filename="libgazebo_ros_imu_sensor.so" name="imu_plugin">
-                <topicName>/imu/data</topicName>
+                <topicName>/imu/data_raw</topicName>
                 <bodyName>imu_link</bodyName>
                 <updateRateHZ>100.0</updateRateHZ>
                 <gaussianNoise>0.0</gaussianNoise>
@@ -201,7 +217,7 @@
     <!-- ================= CAMERA PLUGIN ================= -->
     <gazebo reference="camera_link">
         <sensor type="camera" name="camera_sensor">
-            <update_rate>30.0</update_rate>
+            <update_rate>10</update_rate>
             <camera name="head">
                 <horizontal_fov>1.3962634</horizontal_fov>
                 <image>

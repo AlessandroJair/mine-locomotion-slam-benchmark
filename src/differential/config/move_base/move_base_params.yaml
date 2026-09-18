@@ -15,14 +15,29 @@ planner_patience: 15.0
 controller_patience: 15.0
 
 # Permitir rotacion in-situ para recuperarse en giros cerrados
-clearing_rotation_allowed: true
+clearing_rotation_allowed: false
 
-# Recovery behaviors: solo rotacion, sin borrar el costmap SLAM
-# ConservativeResetRecovery destruiria el static layer del mapa RTAB-Map
-recovery_behavior_enabled: true
-recovery_behaviors:
-  - {name: rotate_recovery, type: rotate_recovery/RotateRecovery}
+# Recovery behaviors: NINGUNO.
+# =============================================================================
+# Este chasis SI puede rotar sobre su eje; se quita igual, por paridad.  El
+# Rocker-Bogie es un chasis direccionado y vuelca al intentarlo (la explicacion
+# completa esta en rocker_bogie/config/move_base/move_base_params.yaml), y
+# dejarle a este robot una maniobra de recuperacion que aquel no puede ejecutar
+# haria que el paper midiera que recuperaciones tenia disponible cada plataforma
+# en lugar de su locomocion.
+#
+# ConservativeResetRecovery sigue descartado aparte: destruiria el static layer
+# del mapa de RTAB-Map.
+# Lista vacia obligatoria: sin ella move_base carga las recuperaciones por
+# defecto.  Ver la nota en rocker_bogie/config/move_base/move_base_params.yaml.
+recovery_behavior_enabled: false
+recovery_behaviors: []
 
 # Oscilacion: valores altos para no dispararse en pasillos estrechos
-oscillation_timeout: 60.0
+# 15.0, was 60.0.  move_base only intervenes once the robot has failed to
+# cover oscillation_distance (0.5 m) for this long.  At 60 s the differential
+# accumulated 44 s of commanded-but-immobile driving against a face it could
+# not climb, and the traction torque reared the chassis past its tip-over
+# angle before anything stopped it.  EQUAL ON ALL THREE PLATFORMS.
+oscillation_timeout: 15.0
 oscillation_distance: 0.5

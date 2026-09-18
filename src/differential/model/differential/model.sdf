@@ -1,10 +1,41 @@
 <?xml version="1.0" ?>
 <sdf version="1.5">
   <model name="husky">
-    <pose>0 0 .5 0 0 0</pose>
+  <!-- ==================== MASS MATCHING ====================
+       Every <mass> and every inertia component in this file has been
+       multiplied by 0.994392 = 45.0 / 45.2538 so that the three compared
+       platforms have the same total mass (45.0 kg); this model natively
+       weighed 45.2538 kg.  Uniform scaling leaves the centre of gravity and
+       all geometry untouched.  SDF has no expression support, so the
+       literals are pre-multiplied - divide by 0.994392 to recover the native
+       model.
+       ============================================================ -->
+    <!-- QUITADA 2026-09-01 la pose de modelo <pose>0 0 .5 0 0 0</pose>.
+         Hacia que los dos modos de LiDAR cayesen desde alturas
+         distintas: spawn_model la IGNORA con -database (el camino del
+         LiDAR normal, que aparecia en z = 1.5000, lo declarado) y la
+         SUMA con -param (el del troceado, que aparecia en z = 2.0000).
+         Medio metro mas de caida en sliced que en normal, sin que nada
+         lo declarase ni lo comprobase.  La altura de spawn la fija
+         spawn_z en el launch, que es donde esta declarada. -->
     
     <!-- Main Chassis -->
     <link name="base_link">
+      <!-- POSTES DE SENSOR (2026-09-13).  LiDAR y camara son links propios unidos
+         por junta fija y se veian flotando.  Solo DIBUJO: sin masa ni colision,
+         asi que la fisica no cambia.  El del LiDAR va justo debajo del sensor
+         y no le tapa el anillo de -15 grados (lidar_occlusion.py).  MUST MATCH
+         entre model/differential/model.sdf y urdf_xacro/husky.urdf.xacro. -->
+      <visual name='lidar_mast'>
+        <pose>0.0000 0 0.351695 0 0 0</pose>
+        <geometry><cylinder><radius>0.020</radius><length>0.26340</length></cylinder></geometry>
+        <material><ambient>0.3 0.3 0.3 1</ambient><diffuse>0.3 0.3 0.3 1</diffuse></material>
+      </visual>
+      <visual name='camera_mast'>
+        <pose>0.3543 0 0.311325 0 0 0</pose>
+        <geometry><cylinder><radius>0.010</radius><length>0.18265</length></cylinder></geometry>
+        <material><ambient>0.3 0.3 0.3 1</ambient><diffuse>0.3 0.3 0.3 1</diffuse></material>
+      </visual>
       <!-- Physics -->
       <collision name="collision">
         <pose>0 0 0.1 0 0 0</pose>
@@ -14,16 +45,29 @@
           </box>
         </geometry>
       </collision>
+      <!-- CAMARA FUSIONADA (2026-09-17).  camera_link y camera_optical_frame
+           eran links propios colgados de este por junta FIJA, y esa junta
+           cede: medido en el tracked con ~/sonda_camara.py, camera_link se
+           fue 45.9 mm en y RESPECTO A SU PADRE.  Aca la razon de inercia es
+           3.40597 / 1.491588e-06 = 2.3e6, o sea peor todavia.  ODE resuelve
+           las juntas con quickstep, que es iterativo: con ese
+           acondicionamiento no converge, el eslabon ligero vibra y el error
+           que el ERP no corrige se acumula.  La camara va atornillada al
+           chasis, asi que como solido aparte no aportaba fisica, solo la
+           ligadura mal condicionada; es ademas lo que la conversion URDF ya
+           le hace al rocker sola.
+           Masa, centro de masas e inercia del MODELO no cambian: los
+           0.010938312 kg de los dos links entran aqui por Steiner. -->
       <inertial>
-        <mass>33.855</mass>
-        <pose>-0.0856132 -0.000839955 0.238145 0 0 0</pose>
+        <mass>33.676038</mass>
+        <pose>-0.08547031 -0.0008396822 0.2382033 0 0 0</pose>
         <inertia>
-          <ixx>2.2343</ixx>
-          <ixy>-0.023642</ixy>
-          <ixz>0.275174</ixz>
-          <iyy>3.42518</iyy>
-          <iyz>0.00239624</iyz>
-          <izz>2.1241</izz>
+          <ixx>2.22213834</ixx>
+          <ixy>-0.0235134405</ixy>
+          <ixz>0.272767519</ixz>
+          <iyy>3.40844991</iyy>
+          <iyz>0.0023811513</iyz>
+          <izz>2.11432214</izz>
         </inertia>
       </inertial>
       
@@ -33,7 +77,7 @@
         <pose>0 0 0 0 0 0</pose>
         <geometry>
           <mesh>
-            <uri>model://differential/meshes/base_link.stl</uri>
+            <uri>model://husky/meshes/base_link.stl</uri>
           </mesh>
         </geometry>
         <material>
@@ -48,7 +92,7 @@
         <pose>0 0 0 0 0 0</pose>
         <geometry>
           <mesh>
-            <uri>model://differential/meshes/top_plate.stl</uri>
+            <uri>model://husky/meshes/top_plate.stl</uri>
           </mesh>
         </geometry>
         <material>
@@ -63,7 +107,7 @@
         <pose>0.47 0 0.091 0 0 0</pose>
         <geometry>
           <mesh>
-            <uri>model://differential/meshes/bumper.stl</uri>
+            <uri>model://husky/meshes/bumper.stl</uri>
           </mesh>
         </geometry>
         <material>
@@ -78,7 +122,7 @@
         <pose>-0.47 0 0.091 0 0 3.141</pose>
         <geometry>
           <mesh>
-            <uri>model://differential/meshes/bumper.stl</uri>
+            <uri>model://husky/meshes/bumper.stl</uri>
           </mesh>
         </geometry>
         <material>
@@ -93,7 +137,7 @@
         <pose>0.272 0 0.245 0 0 0</pose>
         <geometry>
           <mesh>
-            <uri>model://differential/meshes/user_rail.stl</uri>
+            <uri>model://husky/meshes/user_rail.stl</uri>
           </mesh>
         </geometry>
         <material>
@@ -102,21 +146,110 @@
           </script>
         </material>
       </visual>
+
+      <!-- ================= CAMARA ================= -->
+      <!-- Pose heredada del antiguo camera_link: mismo origen optico y mismo
+           eje (+x del cuerpo), asi que lo que ve la camara no cambia.
+           MUST MATCH el camera_joint de urdf_xacro/husky.urdf.xacro, que es
+           de donde sale el TF.
+             x = 0.3543 por delante del centro del poligono de contacto
+             z = 0.41765, o sea 0.5307 sobre el plano de contacto (-0.113)
+           Sin <collision>: la caja de la camara nunca fue geometria de apoyo
+           y nadie la lee.  Fusionada al chasis si que seria geometria del
+           chasis, que es justo lo que no queremos. -->
+      <visual name='camera_visual'>
+        <pose>0.3543 0 0.41765 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.03 0.08 0.03</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0.1 0.1 0.1 1</ambient>
+          <diffuse>0.1 0.1 0.1 1</diffuse>
+        </material>
+      </visual>
+
+      <sensor name='camera_sensor' type='camera'>
+        <pose>0.3543 0 0.41765 0 0 0</pose>
+        <update_rate>10</update_rate>
+        <camera name='head'>
+          <horizontal_fov>1.3962634</horizontal_fov>
+          <image>
+            <width>640</width>
+            <height>480</height>
+            <format>R8G8B8</format>
+          </image>
+          <clip>
+            <near>0.02</near>
+            <far>300</far>
+          </clip>
+          <noise>
+            <type>gaussian</type>
+            <mean>0.0</mean>
+            <stddev>0.007</stddev>
+          </noise>
+        </camera>
+        <plugin name='camera_controller' filename='libgazebo_ros_camera.so'>
+          <alwaysOn>true</alwaysOn>
+          <updateRate>0.0</updateRate>
+          <cameraName>camera</cameraName>
+          <imageTopicName>/camera/image_raw</imageTopicName>
+          <cameraInfoTopicName>/camera/camera_info</cameraInfoTopicName>
+          <frameName>husky/camera_optical_frame</frameName>
+          <hackBaseline>0.07</hackBaseline>
+          <distortionK1>0.0</distortionK1>
+          <distortionK2>0.0</distortionK2>
+          <distortionK3>0.0</distortionK3>
+          <distortionT1>0.0</distortionT1>
+          <distortionT2>0.0</distortionT2>
+        </plugin>
+      </sensor>
     </link>
 
     <!-- ================= VELODYNE VLP-16 LIDAR ================= -->
     <link name="velodyne_base_link">
-      <pose>0 0 0.4 0 0 0</pose>  <!-- Montado encima del Husky -->
+      <!-- SENSOR STANDARDIZATION (see robot_metrics/README.md section 1.5).
+           Native pose was "0 0 0.4", i.e. 0.4 + 0.0377 (internal sensor pose)
+           - (-0.1428) (contact plane) = 0.5805 m above the wheel contact plane.
+           All three platforms are referred to a COMMON ray-origin height so
+           that a given chassis tilt displaces every LiDAR by the same amount:
+
+             z_link = 0.6700 + (-0.1428) - 0.0377 = 0.4895
+
+           RAISED FROM 0.8248 m TO 0.9000 m on 2026-08-26.  0.8248 m was the
+           Rocker-Bogie's native height and it sits so close to the chassis
+           tops that the LOWEST of the 16 rings clips the robot's own geometry:
+           swept over the visuals of every link, the -15 deg ring was blocked
+           by 7.5 deg here (by camera_link, at r = 0.371 m), and 0.87% of the
+           sphere came back empty.  The monolithic gpu_ray never showed it -
+           Gazebo does not let a ray sensor see the visual of its own link, and
+           the Velodyne hangs off exactly that link - but the sliced LiDAR's
+           wedge rides on a link of its own (velodyne_rotor_link), so the whole
+           robot turns opaque to it and those rings simply vanish.  At 0.9000 m
+           every ring clears every part of all three chassis: margin 3.5 deg
+           here, 5.3 deg on the tracked, 4.2 deg on the Rocker-Bogie.
+
+           The 0.83 kg sensor mass is retained at the new height; the mast that
+           carries it is treated as massless (see README section 1.5).
+
+           KEEP IN SYNC with differential/urdf_xacro/husky.urdf.xacro.  This
+           SDF is what Gazebo spawns; the xacro is what robot_state_publisher
+           turns into TF.  They disagreed by 0.2443 m until 2026-08-26 - the
+           xacro still carried the native 0.4 - so every cloud was transformed
+           as if its rays had left a quarter of a metre below where they
+           actually did. -->
+      <pose>0 0 0.51925 0 0 0</pose>
       <inertial>
-        <mass>0.83</mass>
+        <mass>0.825345</mass>
         <pose>0 0 0 0 0 0</pose>
         <inertia>
-          <ixx>0.001</ixx>
+          <ixx>0.000902966634</ixx>
           <ixy>0</ixy>
           <ixz>0</ixz>
-          <iyy>0.001</iyy>
+          <iyy>0.000902966634</iyy>
           <iyz>0</iyz>
-          <izz>0.001</izz>
+          <izz>0.00109876529</izz>
         </inertia>
       </inertial>
       
@@ -166,22 +299,38 @@
           </scan>
           <range>
             <min>0.3</min>
-            <max>130.0</max>
+            <max>101.0</max>
             <resolution>0.001</resolution>
           </range>
+          <!-- ==================== LIDAR NOISE ====================
+               Single seeded source.  This model used to declare 0.008 here AND
+               0.008 in the plugin's <gaussianNoise> below: two independent
+               Gaussians that add in quadrature, so the LiDAR actually saw
+               0.008*sqrt(2) = 0.011314 m, not the 0.008 the paper would state.
+               Worse, the plugin's half was outside any seed - symbol inspection
+               shows libgazebo_ros_velodyne_gpu_laser.so imports the C library's
+               rand(), while this <noise> block goes through Gazebo's
+               ignition::math::Rand, which the gzserver seed option does
+               control.
+
+               The effective noise level is deliberately UNCHANGED at 0.011314 m
+               so this does not alter the experiment; it is simply moved
+               entirely into the seeded generator and stated correctly.
+               ==================================================== -->
           <noise>
             <type>gaussian</type>
             <mean>0.0</mean>
-            <stddev>0.008</stddev>
+            <stddev>0.011314</stddev>
           </noise>
         </ray>
-        
+
         <plugin name='gazebo_ros_laser_controller' filename='libgazebo_ros_velodyne_gpu_laser.so'>
           <topicName>/velodyne_points</topicName>
           <frameName>husky/velodyne_base_link</frameName>
           <min_range>0.9</min_range>
-          <max_range>130.0</max_range>
-          <gaussianNoise>0.008</gaussianNoise>
+          <max_range>100.0</max_range>
+          <!-- Zero: all LiDAR noise now comes from the seeded <noise> block. -->
+          <gaussianNoise>0.0</gaussianNoise>
         </plugin>
       </sensor>
     </link>
@@ -194,16 +343,41 @@
 
     <!-- ================= IMU SENSOR ================= -->
     <link name='imu_link'>
-      <pose>0 0 0.2 0 0 0</pose>  <!-- Dentro del chasis -->
+      <!-- SENSOR STANDARDIZATION: EL IMU VA EN EL CENTRO DE MASAS.
+           Cambiado 2026-09-04.  Antes las tres plataformas llevaban el IMU a
+           la misma altura sobre el suelo (0.6969 m), que es la regla correcta
+           para el LiDAR y la camara -lo que ven depende de su altura- y la
+           equivocada para un inercial: un acelerometro mide
+
+               a_sensor = a_cm + alpha x r + omega x (omega x r)
+
+           con r desde el CENTRO DE MASAS.  Igualando la altura sobre el suelo
+           los brazos quedaban en 0.360 / 0.485 / 0.238 m (husky / tracked /
+           rocker): un factor 2.04, porque los tres tienen el CM a alturas muy
+           distintas (0.343 / 0.212 / 0.459 m).  Con el mismo balanceo de
+           chasis el IMU del tracked leia el doble de termino de brazo que el
+           del rocker, y eso no es una propiedad de la locomocion.
+
+           r = 0 y no un |r| comun: alpha x r depende del VECTOR r, no de su
+           modulo, asi que dos brazos iguales en modulo y distintos en
+           direccion siguen midiendo cosas distintas.  El unico r comun a las
+           tres que ademas es canonico es el cero.
+
+           El punto es el CM del robot SIN el IMU (solucion exacta de
+           p = c(p); el IMU pesa 0.0149 kg de 45).  Recalcular con
+           ~/imu_target.py si cambia cualquier masa. -->
+      <!-- MUST MATCH el imu_joint de urdf_xacro/husky.urdf.xacro y la copia
+           de model/model.sdf.  CM del husky sin el IMU, en base_link. -->
+      <pose>-0.063983 -0.000629 0.196003 0 0 0</pose>
       <inertial>
-        <mass>0.015</mass>
+        <mass>0.0149159</mass>
         <inertia>
-          <ixx>0.0001</ixx>
+          <ixx>3.60467583e-06</ixx>
           <ixy>0</ixy>
           <ixz>0</ixz>
-          <iyy>0.0001</iyy>
+          <iyy>3.60467583e-06</iyy>
           <iyz>0</iyz>
-          <izz>0.0001</izz>
+          <izz>6.21495833e-06</izz>
         </inertia>
       </inertial>
       
@@ -306,7 +480,7 @@
         </imu>
         
         <plugin name='imu_plugin' filename='libgazebo_ros_imu_sensor.so'>
-          <topicName>/imu/data</topicName>
+          <topicName>/imu/data_raw</topicName>
           <bodyName>imu_link</bodyName>
           <updateRateHZ>100.0</updateRateHZ>
           <gaussianNoise>0.0</gaussianNoise>
@@ -329,41 +503,85 @@
     <link name="back_left_wheel">
       <pose>-0.256 0.285475 0.035 0 0 0</pose>
       <inertial>
-        <mass>2.6357</mass>
+        <mass>2.62092</mass>
         <pose>0 0 0 0 0 0</pose>
         <inertia>
-          <ixx>0.0246688</ixx>
+          <ixx>0.0245304</ixx>
           <ixy>0</ixy>
           <ixz>0</ixz>
-          <iyy>0.0246688</iyy>
+          <iyy>0.0245304</iyy>
           <iyz>0</iyz>
-          <izz>0.0441058</izz>
+          <izz>0.0438584</izz>
         </inertia>
       </inertial>
       <collision name="back_left_wheel_collision">
         <pose>0 0 0 -1.5707 0 0</pose>
         <geometry>
           <cylinder>
-            <radius>0.17775</radius>
+            <radius>0.148</radius>
             <length>0.1143</length>
           </cylinder>
         </geometry>
+        <!-- Contact model equalised with the Rocker-Bogie 2026-08-20.  Was
+             mu 100000 / mu2 100000 / slip2 0.1 with no <contact> block, i.e.
+             unlimited grip in both directions on ODE's default 1e12 contact.
+             This is the file Gazebo actually spawns; husky_gazebo.urdf.xacro
+             declares its own, different values that never take effect.
+
+             mu EQUALISED WITH THE TRACKED PLATFORM 2026-08-28: 100.0 ->
+             0.75.  mu is the coefficient along fdir1 - +x of the collision
+             frame, i.e. the rolling direction - and mu2 the one across it,
+             so 100.0 / 0.75 declared an ANISOTROPIC tyre: ODE takes the
+             minimum against the surface it touches, giving 1.0 longitudinal
+             on the mu 1.0 gallery floor against 0.75 lateral.  The tracks
+             declare 0.75 / 0.75 and the Rocker-Bogie declared the same
+             100.0 / 0.75 as this file, so the three platforms were driving
+             on two different contact models and nothing checked it.  With
+             mu == mu2 the friction is isotropic and fdir1 no longer selects
+             anything; it is kept only so the frame the coefficients refer
+             to stays on the record.
+
+             REVERTIDO A 1.0 / 0.75 EL 2026-09-01, CON MEDIDA.  La isotropia
+             le quito al Husky la capacidad de girar: un skid-steer rota
+             porque agarra mas rodando que de lado, y con mu == mu2 el
+             arrastre lateral resiste tanto como el motriz empuja.  Con esta
+             batalla (0.512 m) y esta via (0.5709 m) el margen de giro cae de
+             1.49 a 1.12.  En el banco de guiñada el techo era 0.141 rad/s de
+             1.0 pedido y no rotaba parado; con mu 1.0 sube a 0.265.  fdir1
+             vuelve a seleccionar la direccion de rodadura.
+             No rompe la paridad que importa: mu2 -el arrastre- sigue en 0.75
+             en las tres, y el encabezado del mundo dice que la friccion del
+             lado de la RUEDA es propiedad de la plataforma, no sesgo de
+             ensayo.  Declarado en sim_config.yaml under
+             robot_contact and checked by check_sim_parity.py. -->
         <surface>
           <friction>
             <ode>
-              <mu>100000.0</mu>
-              <mu2>100000.0</mu2>
+              <mu>1.0</mu>
+              <mu2>0.75</mu2>
+              <fdir1>1 0 0</fdir1>
               <slip1>0.0</slip1>
               <slip2>0.0</slip2>
             </ode>
           </friction>
+          <contact>
+            <ode>
+              <kp>1000000.0</kp>
+              <kd>1.0</kd>
+              <min_depth>0.003</min_depth>
+              <max_vel>1.0</max_vel>
+            </ode>
+          </contact>
         </surface>
       </collision>
       <visual name="back_left_wheel">
         <pose>0 0 0 -3.14159 0 0</pose>
         <geometry>
           <mesh>
-            <uri>model://differential/meshes/wheel.stl</uri>
+            <uri>model://husky/meshes/wheel.stl</uri>
+            <!-- ESCALA ANISOTROPA: encoge el radio a 0.148 y deja
+                 la anchura de llanta en 0.1143, que es comun a las tres -->
+            <scale>0.832396 1.0 0.832396</scale>
           </mesh>
         </geometry>
         <material>
@@ -395,41 +613,85 @@
     <link name="back_right_wheel">
       <pose>-0.256 -0.285475 0.035 0 0 0</pose>
       <inertial>
-        <mass>2.6357</mass>
+        <mass>2.62092</mass>
         <pose>0 0 0 0 0 0</pose>
         <inertia>
-          <ixx>0.0246688</ixx>
+          <ixx>0.0245304</ixx>
           <ixy>0</ixy>
           <ixz>0</ixz>
-          <iyy>0.0246688</iyy>
+          <iyy>0.0245304</iyy>
           <iyz>0</iyz>
-          <izz>0.0441058</izz>
+          <izz>0.0438584</izz>
         </inertia>
       </inertial>
       <collision name="back_right_wheel_collision">
         <pose>0 0 0 -1.5707 0 0</pose>
         <geometry>
           <cylinder>
-            <radius>0.17775</radius>
+            <radius>0.148</radius>
             <length>0.1143</length>
           </cylinder>
         </geometry>
+        <!-- Contact model equalised with the Rocker-Bogie 2026-08-20.  Was
+             mu 100000 / mu2 100000 / slip2 0.1 with no <contact> block, i.e.
+             unlimited grip in both directions on ODE's default 1e12 contact.
+             This is the file Gazebo actually spawns; husky_gazebo.urdf.xacro
+             declares its own, different values that never take effect.
+
+             mu EQUALISED WITH THE TRACKED PLATFORM 2026-08-28: 100.0 ->
+             0.75.  mu is the coefficient along fdir1 - +x of the collision
+             frame, i.e. the rolling direction - and mu2 the one across it,
+             so 100.0 / 0.75 declared an ANISOTROPIC tyre: ODE takes the
+             minimum against the surface it touches, giving 1.0 longitudinal
+             on the mu 1.0 gallery floor against 0.75 lateral.  The tracks
+             declare 0.75 / 0.75 and the Rocker-Bogie declared the same
+             100.0 / 0.75 as this file, so the three platforms were driving
+             on two different contact models and nothing checked it.  With
+             mu == mu2 the friction is isotropic and fdir1 no longer selects
+             anything; it is kept only so the frame the coefficients refer
+             to stays on the record.
+
+             REVERTIDO A 1.0 / 0.75 EL 2026-09-01, CON MEDIDA.  La isotropia
+             le quito al Husky la capacidad de girar: un skid-steer rota
+             porque agarra mas rodando que de lado, y con mu == mu2 el
+             arrastre lateral resiste tanto como el motriz empuja.  Con esta
+             batalla (0.512 m) y esta via (0.5709 m) el margen de giro cae de
+             1.49 a 1.12.  En el banco de guiñada el techo era 0.141 rad/s de
+             1.0 pedido y no rotaba parado; con mu 1.0 sube a 0.265.  fdir1
+             vuelve a seleccionar la direccion de rodadura.
+             No rompe la paridad que importa: mu2 -el arrastre- sigue en 0.75
+             en las tres, y el encabezado del mundo dice que la friccion del
+             lado de la RUEDA es propiedad de la plataforma, no sesgo de
+             ensayo.  Declarado en sim_config.yaml under
+             robot_contact and checked by check_sim_parity.py. -->
         <surface>
           <friction>
             <ode>
-              <mu>100000.0</mu>
-              <mu2>100000.0</mu2>
+              <mu>1.0</mu>
+              <mu2>0.75</mu2>
+              <fdir1>1 0 0</fdir1>
               <slip1>0.0</slip1>
               <slip2>0.0</slip2>
             </ode>
           </friction>
+          <contact>
+            <ode>
+              <kp>1000000.0</kp>
+              <kd>1.0</kd>
+              <min_depth>0.003</min_depth>
+              <max_vel>1.0</max_vel>
+            </ode>
+          </contact>
         </surface>
       </collision>
       <visual name="back_right_wheel">
         <pose>0 0 0 -3.14159 0 0</pose>
         <geometry>
           <mesh>
-            <uri>model://differential/meshes/wheel.stl</uri>
+            <uri>model://husky/meshes/wheel.stl</uri>
+            <!-- ESCALA ANISOTROPA: encoge el radio a 0.148 y deja
+                 la anchura de llanta en 0.1143, que es comun a las tres -->
+            <scale>0.832396 1.0 0.832396</scale>
           </mesh>
         </geometry>
         <material>
@@ -461,41 +723,85 @@
     <link name="front_left_wheel">
       <pose>0.256 0.285475 0.035 0 0 0</pose>
       <inertial>
-        <mass>2.6357</mass>
+        <mass>2.62092</mass>
         <pose>0 0 0 0 0 0</pose>
         <inertia>
-          <ixx>0.0246688</ixx>
+          <ixx>0.0245304</ixx>
           <ixy>0</ixy>
           <ixz>0</ixz>
-          <iyy>0.0246688</iyy>
+          <iyy>0.0245304</iyy>
           <iyz>0</iyz>
-          <izz>0.0441058</izz>
+          <izz>0.0438584</izz>
         </inertia>
       </inertial>
       <collision name="front_left_wheel_collision">
         <pose>0 0 0 -1.5707 0 0</pose>
         <geometry>
           <cylinder>
-            <radius>0.17775</radius>
+            <radius>0.148</radius>
             <length>0.1143</length>
           </cylinder>
         </geometry>
+        <!-- Contact model equalised with the Rocker-Bogie 2026-08-20.  Was
+             mu 100000 / mu2 100000 / slip2 0.1 with no <contact> block, i.e.
+             unlimited grip in both directions on ODE's default 1e12 contact.
+             This is the file Gazebo actually spawns; husky_gazebo.urdf.xacro
+             declares its own, different values that never take effect.
+
+             mu EQUALISED WITH THE TRACKED PLATFORM 2026-08-28: 100.0 ->
+             0.75.  mu is the coefficient along fdir1 - +x of the collision
+             frame, i.e. the rolling direction - and mu2 the one across it,
+             so 100.0 / 0.75 declared an ANISOTROPIC tyre: ODE takes the
+             minimum against the surface it touches, giving 1.0 longitudinal
+             on the mu 1.0 gallery floor against 0.75 lateral.  The tracks
+             declare 0.75 / 0.75 and the Rocker-Bogie declared the same
+             100.0 / 0.75 as this file, so the three platforms were driving
+             on two different contact models and nothing checked it.  With
+             mu == mu2 the friction is isotropic and fdir1 no longer selects
+             anything; it is kept only so the frame the coefficients refer
+             to stays on the record.
+
+             REVERTIDO A 1.0 / 0.75 EL 2026-09-01, CON MEDIDA.  La isotropia
+             le quito al Husky la capacidad de girar: un skid-steer rota
+             porque agarra mas rodando que de lado, y con mu == mu2 el
+             arrastre lateral resiste tanto como el motriz empuja.  Con esta
+             batalla (0.512 m) y esta via (0.5709 m) el margen de giro cae de
+             1.49 a 1.12.  En el banco de guiñada el techo era 0.141 rad/s de
+             1.0 pedido y no rotaba parado; con mu 1.0 sube a 0.265.  fdir1
+             vuelve a seleccionar la direccion de rodadura.
+             No rompe la paridad que importa: mu2 -el arrastre- sigue en 0.75
+             en las tres, y el encabezado del mundo dice que la friccion del
+             lado de la RUEDA es propiedad de la plataforma, no sesgo de
+             ensayo.  Declarado en sim_config.yaml under
+             robot_contact and checked by check_sim_parity.py. -->
         <surface>
           <friction>
             <ode>
-              <mu>100000.0</mu>
-              <mu2>100000.0</mu2>
+              <mu>1.0</mu>
+              <mu2>0.75</mu2>
+              <fdir1>1 0 0</fdir1>
               <slip1>0.0</slip1>
               <slip2>0.0</slip2>
             </ode>
           </friction>
+          <contact>
+            <ode>
+              <kp>1000000.0</kp>
+              <kd>1.0</kd>
+              <min_depth>0.003</min_depth>
+              <max_vel>1.0</max_vel>
+            </ode>
+          </contact>
         </surface>
       </collision>
       <visual name="front_left_wheel">
         <pose>0 0 0 -3.14159 0 0</pose>
         <geometry>
           <mesh>
-            <uri>model://differential/meshes/wheel.stl</uri>
+            <uri>model://husky/meshes/wheel.stl</uri>
+            <!-- ESCALA ANISOTROPA: encoge el radio a 0.148 y deja
+                 la anchura de llanta en 0.1143, que es comun a las tres -->
+            <scale>0.832396 1.0 0.832396</scale>
           </mesh>
         </geometry>
         <material>
@@ -527,41 +833,85 @@
     <link name="front_right_wheel">
       <pose>0.256 -0.285475 0.035 0 0 0</pose>
       <inertial>
-        <mass>2.6357</mass>
+        <mass>2.62092</mass>
         <pose>0 0 0 0 0 0</pose>
         <inertia>
-          <ixx>0.0246688</ixx>
+          <ixx>0.0245304</ixx>
           <ixy>0</ixy>
           <ixz>0</ixz>
-          <iyy>0.0246688</iyy>
+          <iyy>0.0245304</iyy>
           <iyz>0</iyz>
-          <izz>0.0441058</izz>
+          <izz>0.0438584</izz>
         </inertia>
       </inertial>
       <collision name="front_right_wheel_collision">
         <pose>0 0 0 -1.5707 0 0</pose>
         <geometry>
           <cylinder>
-            <radius>0.17775</radius>
+            <radius>0.148</radius>
             <length>0.1143</length>
           </cylinder>
         </geometry>
+        <!-- Contact model equalised with the Rocker-Bogie 2026-08-20.  Was
+             mu 100000 / mu2 100000 / slip2 0.1 with no <contact> block, i.e.
+             unlimited grip in both directions on ODE's default 1e12 contact.
+             This is the file Gazebo actually spawns; husky_gazebo.urdf.xacro
+             declares its own, different values that never take effect.
+
+             mu EQUALISED WITH THE TRACKED PLATFORM 2026-08-28: 100.0 ->
+             0.75.  mu is the coefficient along fdir1 - +x of the collision
+             frame, i.e. the rolling direction - and mu2 the one across it,
+             so 100.0 / 0.75 declared an ANISOTROPIC tyre: ODE takes the
+             minimum against the surface it touches, giving 1.0 longitudinal
+             on the mu 1.0 gallery floor against 0.75 lateral.  The tracks
+             declare 0.75 / 0.75 and the Rocker-Bogie declared the same
+             100.0 / 0.75 as this file, so the three platforms were driving
+             on two different contact models and nothing checked it.  With
+             mu == mu2 the friction is isotropic and fdir1 no longer selects
+             anything; it is kept only so the frame the coefficients refer
+             to stays on the record.
+
+             REVERTIDO A 1.0 / 0.75 EL 2026-09-01, CON MEDIDA.  La isotropia
+             le quito al Husky la capacidad de girar: un skid-steer rota
+             porque agarra mas rodando que de lado, y con mu == mu2 el
+             arrastre lateral resiste tanto como el motriz empuja.  Con esta
+             batalla (0.512 m) y esta via (0.5709 m) el margen de giro cae de
+             1.49 a 1.12.  En el banco de guiñada el techo era 0.141 rad/s de
+             1.0 pedido y no rotaba parado; con mu 1.0 sube a 0.265.  fdir1
+             vuelve a seleccionar la direccion de rodadura.
+             No rompe la paridad que importa: mu2 -el arrastre- sigue en 0.75
+             en las tres, y el encabezado del mundo dice que la friccion del
+             lado de la RUEDA es propiedad de la plataforma, no sesgo de
+             ensayo.  Declarado en sim_config.yaml under
+             robot_contact and checked by check_sim_parity.py. -->
         <surface>
           <friction>
             <ode>
-              <mu>100000.0</mu>
-              <mu2>100000.0</mu2>
+              <mu>1.0</mu>
+              <mu2>0.75</mu2>
+              <fdir1>1 0 0</fdir1>
               <slip1>0.0</slip1>
               <slip2>0.0</slip2>
             </ode>
           </friction>
+          <contact>
+            <ode>
+              <kp>1000000.0</kp>
+              <kd>1.0</kd>
+              <min_depth>0.003</min_depth>
+              <max_vel>1.0</max_vel>
+            </ode>
+          </contact>
         </surface>
       </collision>
       <visual name="front_right_wheel">
         <pose>0 0 0 -3.14159 0 0</pose>
         <geometry>
           <mesh>
-            <uri>model://differential/meshes/wheel.stl</uri>
+            <uri>model://husky/meshes/wheel.stl</uri>
+            <!-- ESCALA ANISOTROPA: encoge el radio a 0.148 y deja
+                 la anchura de llanta en 0.1143, que es comun a las tres -->
+            <scale>0.832396 1.0 0.832396</scale>
           </mesh>
         </geometry>
         <material>
@@ -589,125 +939,37 @@
       </physics>
     </joint>
     
-    <!-- ================= CAMERA ================= -->
-
-    <link name='camera_link'>
-      <pose>0.52 0 0.35 0 0 0</pose>
-      <inertial>
-        <mass>0.01</mass>
-        <inertia>
-          <ixx>0.0001</ixx>
-          <ixy>0</ixy>
-          <ixz>0</ixz>
-          <iyy>0.0001</iyy>
-          <iyz>0</iyz>
-          <izz>0.0001</izz>
-        </inertia>
-      </inertial>
-
-      <collision name='camera_collision'>
-        <geometry>
-          <box>
-            <size>0.03 0.08 0.03</size>
-          </box>
-        </geometry>
-      </collision>
-
-      <visual name='camera_visual'>
-        <geometry>
-          <box>
-            <size>0.03 0.08 0.03</size>
-          </box>
-        </geometry>
-        <material>
-          <ambient>0.1 0.1 0.1 1</ambient>
-          <diffuse>0.1 0.1 0.1 1</diffuse>
-        </material>
-      </visual>
-
-      <!-- Sensor de Camara -->
-      <sensor name='camera_sensor' type='camera'>
-        <update_rate>30</update_rate>
-        <camera name='head'>
-          <horizontal_fov>1.3962634</horizontal_fov>
-          <image>
-            <width>640</width>
-            <height>480</height>
-            <format>R8G8B8</format>
-          </image>
-          <clip>
-            <near>0.02</near>
-            <far>300</far>
-          </clip>
-          <noise>
-            <type>gaussian</type>
-            <mean>0.0</mean>
-            <stddev>0.007</stddev>
-          </noise>
-        </camera>
-        <plugin name='camera_controller' filename='libgazebo_ros_camera.so'>
-          <alwaysOn>true</alwaysOn>
-          <updateRate>0.0</updateRate>
-          <cameraName>camera</cameraName>
-          <imageTopicName>/camera/image_raw</imageTopicName>
-          <cameraInfoTopicName>/camera/camera_info</cameraInfoTopicName>
-          <frameName>husky/camera_optical_frame</frameName>
-          <hackBaseline>0.07</hackBaseline>
-          <distortionK1>0.0</distortionK1>
-          <distortionK2>0.0</distortionK2>
-          <distortionK3>0.0</distortionK3>
-          <distortionT1>0.0</distortionT1>
-          <distortionT2>0.0</distortionT2>
-        </plugin>
-      </sensor>
-    </link>
-
-    <joint name='camera_joint' type='fixed'>
-      <parent>base_link</parent>
-      <child>camera_link</child>
-    </joint>
-
-    <!-- Optical frame -->
-    <link name='camera_optical_frame'>
-      <pose relative_to="camera_link">0 0 0 -1.5707963267948966 0 -1.5707963267948966</pose>
-      <inertial>
-        <mass>0.001</mass>
-        <inertia>
-          <ixx>0.00001</ixx>
-          <ixy>0</ixy>
-          <ixz>0</ixz>
-          <iyy>0.00001</iyy>
-          <iyz>0</iyz>
-          <izz>0.00001</izz>
-        </inertia>
-      </inertial>
-    </link>
-
-    <joint name='camera_optical_joint' type='fixed'>
-      <parent>camera_link</parent>
-      <child>camera_optical_frame</child>
-    </joint>
+    <!-- La camara ya no es un link: vive dentro de <link name="base_link">,
+         arriba del todo.  Ver la nota de CAMARA FUSIONADA alli. -->
 
     <!-- ================= CONTROLLER PLUGIN ================= -->
-    <!-- Skid-steer drive: controla las 4 ruedas correctamente -->
-    <plugin name='skid_steer_drive' filename='libgazebo_ros_skid_steer_drive.so'>
+    <!--
+      gazebo_ros_control, the SAME loop the Rocker-Bogie and the Tracked
+      platform run.  This replaced libgazebo_ros_skid_steer_drive.so.
+
+      Why the plugin had to go: it does not run a controller at all.  It writes
+      a target velocity and an fmax straight onto the ODE joint motor, which is
+      a RIGID velocity source - it tracks the command with ZERO droop until it
+      saturates at fmax.  The other two platforms reach their torque ceiling
+      through a soft PID velocity loop that sags under load.  Equalising the
+      torque ceilings did not make the three comparable while one of them had a
+      fundamentally different response to load; K_F was infinite here and
+      2333.98 N/(m/s) on the other two.  See the velocity_loop section of
+      sim_config.yaml for the gains, which are derived from that same K_F.
+
+      Two per-platform command-path fudges went with the plugin:
+        - a 2.0 m/s^2 command slew rate the other two never had;
+        - the plugin's own odometry, already disabled because the study takes
+          odometry from RTAB-Map.
+      cmd_vel is now converted to wheel velocities by differential/scripts/
+      twist_to_wheels.py, mirroring twist_to_tracks.py on the tracked platform,
+      and joint states come from joint_state_controller instead of the fake
+      joint_state_publisher that used to stand in for them.
+    -->
+    <plugin name='gazebo_ros_control' filename='libgazebo_ros_control.so'>
       <robotNamespace>/husky</robotNamespace>
-      <leftFrontJoint>front_left_joint</leftFrontJoint>
-      <rightFrontJoint>front_right_joint</rightFrontJoint>
-      <leftRearJoint>back_left_joint</leftRearJoint>
-      <rightRearJoint>back_right_joint</rightRearJoint>
-      <wheelSeparation>0.5709</wheelSeparation>
-      <wheelDiameter>0.3555</wheelDiameter>
-      <torque>70</torque>
-      <odometryFrame>odom</odometryFrame>
-      <robotBaseFrame>husky/base_link</robotBaseFrame>
-      <publishOdom>false</publishOdom>
-      <publishOdomTF>false</publishOdomTF>
-      <publishWheelTF>false</publishWheelTF>
-      <publishWheelJointState>true</publishWheelJointState>
-      <commandTopic>cmd_vel</commandTopic>
-      <odometryTopic>odom</odometryTopic>
-      <updateRate>100</updateRate>
+      <robotSimType>gazebo_ros_control/DefaultRobotHWSim</robotSimType>
+      <legacyModeNS>false</legacyModeNS>
     </plugin>
 
   </model>

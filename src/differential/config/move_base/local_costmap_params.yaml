@@ -15,18 +15,28 @@ local_costmap:
     - {name: inflation_layer, type: "costmap_2d::InflationLayer"}
 
   obstacle_layer:
-    observation_sources: velodyne_cloud
-    velodyne_cloud:
+    # Nube ya segmentada; filtro de altura desactivado a proposito.
+    observation_sources: obstacle_cloud
+    obstacle_cloud:
       sensor_frame: husky/velodyne_base_link
       data_type: PointCloud2
-      topic: /velodyne_points
+      topic: /husky/obstacles_cloud
       marking: true
       clearing: true
-      min_obstacle_height: 0.15
-      max_obstacle_height: 2.0
+      min_obstacle_height: -99999.0
+      max_obstacle_height:  99999.0
       obstacle_range: 5.0
       raytrace_range: 6.0
 
   inflation_layer:
-    inflation_radius: 0.40
+    # EQUAL ACROSS THE THREE ROBOTS, from planner.inflation_radius in
+    # robot_metrics/config/sim_config.yaml.  This was 0.25 on the Rocker-Bogie
+    # and 0.40 on the other two - never equalised, never checked.  It is a
+    # direct multiplier on how wide each platform believes it is, so an
+    # unequal value hands one platform more clearance than another in exactly
+    # the confined drift the study is about.
+    # 0.10 m: the widest platform (Rocker-Bogie, 0.96 m footprint) then needs
+    # 0.96 + 0.20 = 1.16 m, against the 1.35 m corridor measured at the point
+    # where it used to stall.
+    inflation_radius: 0.10
     cost_scaling_factor: 10.0

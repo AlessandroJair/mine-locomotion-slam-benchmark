@@ -1,6 +1,413 @@
 <?xml version="1.0" ?>
 <robot name="ensamblajeurdf" xmlns:xacro="http://www.ros.org/wiki/xacro">
 
+<!-- Geometric differential: a real beam and two rods.  The gearbox
+     version (<joint type="gearbox">, arg "differential") was removed on
+     2026-09-13: it tipped the vehicle over on the spawn drop. -->
+<xacro:arg name="differential_linkage" default="false"/>
+
+<!-- ============ ORIENTACION DEL VARILLAJE DEL DIFERENCIAL ============
+     true  (defecto desde 2026-09-16): BARRAS LONGITUDINALES.  La viga rola
+           sobre el eje VERTICAL (Z) y sus dos extremos barren en +-x, asi
+           que las dos varillas van horizontales y a lo largo del vehiculo,
+           de la viga a un punto 53.192 mm POR DEBAJO del eje de cada rocker.
+     false: la de antes, TRANSVERSAL.  La viga rola sobre el eje de balanceo
+           (X), sus extremos suben y bajan, y las varillas bajan inclinadas
+           55 grados hasta el soporte de BarraBR, 50.9 mm por delante del eje
+           del rocker.  Es el varillaje con el que se midieron drop3 y drop4,
+           asi que para comparar con esas corridas hay que poner false.
+
+     LAS DOS DAN EL MISMO ACOPLAMIENTO, y esa es la cuenta que importa.  Con
+     la viga en Z, su extremo izquierdo avanza +y_off*sin(psi) y el derecho
+     -y_off*sin(psi): en OPOSICION.  Un punto del rocker a dz del eje avanza
+     dz*theta al cabecear.  Con una barra rigida a lo largo de x, el avance
+     del extremo de la viga y el del enganche son el mismo, asi que
+         +y_off sin(psi) = dz*theta_izq      -y_off sin(psi) = dz*theta_der
+     y sumando sale theta_izq + theta_der = 0, que es el diferencial.
+
+     POR QUE NO VALE SOLO CAMBIAR EL <axis> A Z dejando lo demas: con la viga
+     transversal y las varillas colgando, girar en Z mueve los enganches
+     23.2 mm en X y 0.0 en Z (a 10 grados), o sea las varillas no suben ni
+     bajan y el diferencial deja de acoplar.  Medido antes de tocar nada.
+
+     LO QUE CUESTA: la viga baja de z 0.673472 a 0.523472 en el marco del
+     chasis, o sea de asomar 38 mm por encima del techo a quedarse DENTRO de
+     la caja del chasis, y las varillas pasan a correr por la panza, 8.5 mm
+     por encima de ella.  Ninguno de los tres eslabones lleva colision, asi
+     que la fisica no simula esa interferencia; en un vehiculo de verdad hay
+     que dejarles el hueco.
+     =================================================================== -->
+<xacro:arg name="diff_longitudinal" default="true"/>
+<xacro:property name="dlong"
+                value="${'$(arg diff_longitudinal)' == 'true'}"/>
+<!-- el brazo del rocker solo existe si el varillaje se construye Y es
+     longitudinal: en la variante transversal la barra baja inclinada y no
+     hace falta subir nada -->
+<xacro:property name="diff_brazo"
+                value="${'$(arg diff_longitudinal)' == 'true' and
+                         '$(arg differential_linkage)' == 'true'}"/>
+
+<!-- TOPE SUPERIOR DE LOS BOGIES (rev_3 / rev_4), en radianes.
+     SUBIDO DE 0.6 A 1.0 EL 2026-09-10, y es una hipotesis a contrastar, no un
+     valor asentado.  Medido sobre metrics_rocker_bogie_diagnostic/run01, una
+     vuelta de 135.8 m con los pivotes ya registrados:
+
+                        recorrido usado        toca +0.6   toca -0.6
+       rockers          -8.9 .. +8.2 deg  25%      0.00 %     0.00 %
+       rev_3 (bogie)   -19.0 .. +34.4 deg 100%     1.88 %     0.00 %
+       rev_4 (bogie)   -25.9 .. +34.4 deg 100%     0.06 %     0.00 %
+
+     Los dos pivotes llevaban el mismo +-0.6 rad: al rocker le sobran tres
+     cuartos y al bogie le falta, y le falta SOLO por arriba.  Y saturar no es
+     inocuo: con el bogie en el tope hay rueda en el aire el 100 % del tiempo,
+     sin una sola excepcion en la corrida; con las seis apoyadas, el tope no se
+     toca nunca (0.00 %).  La descarga previa al despegue es gradual (fuerza
+     normal 1.00 -> 0.12 en 200 ms), o sea el mecanismo se queda sin geometria,
+     no es un rebote de contacto.
+
+     PROBADO 1.0 Y ES PEOR.  MUCHO PEOR.  No ampliar sin leer esto.
+     A/B a igual seed, ruta y LiDAR, sobre el tramo que las dos corridas
+     recorrieron (0 - 52.2 m):
+
+                              0.6        1.0
+       n<6                   21.5 %     64.6 %
+       n<=4                   8.1 %     40.5 %
+       contacto Rueda_3_1    91.5 %     39.8 %
+       contacto Rueda_1_1    96.7 %     62.0 %
+       rev_4 en su tope       0.16 %    49.52 %
+       final                 135.8 m    VUELCO en 54.2 m (roll -112 deg)
+
+     Y el detalle que lo explica: con 1.0, rev_4 se enrolla hasta +57.3 deg en
+     el metro 17.7 y SE QUEDA CLAVADO AHI 25 metros seguidos.  Durante los
+     metros 20-40 la Rueda_3_1 esta en el aire el 100 % del tiempo y el
+     vehiculo rueda sobre cuatro.  Ese tramo es el LLANO, donde la corrida de
+     0.6 pierde contacto el 3.2 % y el 0.0 %.  No es el terreno pidiendo mas
+     recorrido: el balancin se va a tope y se aparca.
+
+     O SEA: el +-0.6 no ataba, SOSTENIA.  El tope estaba cargando el vehiculo.
+     Es el mismo sintoma que rocker_pivot_zero_note (sim_config.yaml) apunto en
+     los rockers -"pivots are DRIVEN to whatever stop exists", 34 deg -> 56 deg
+     al ampliar- y que quedo como "causa no encontrada".  Ahora se sabe que no
+     es especifico de los rockers: le pasa igual a los bogies, y el sentido es
+     siempre el mismo (+, nunca -).
+
+     HIPOTESIS PARA LA PROXIMA, no comprobada: el par de reaccion del motor de
+     la rueda.  Las ruedas van con controlador de velocidad y la reaccion cae
+     sobre el eslabon que lleva la articulacion, o sea el propio balancin.  Sin
+     nada que la equilibre -no hay muelle, y damping/friction solo resisten, no
+     devuelven- un par constante enrolla el pivote hasta donde le dejen.  Se
+     contrasta mirando si el enrollamiento sigue al par de rueda y si afloja al
+     parar o al retroceder: en el metro 45-50 rev_4 si aflojo (+5.1 deg) y la
+     Rueda_3_1 recupero el 55 % de contacto.
+
+     Mientras eso no se resuelva, ampliar el tope solo mueve el problema mas
+     lejos.  Se queda en 0.6, que es donde estaba.
+
+     EL LOWER NO SE TOCA a proposito: se queda en -0.6 y el maximo medido es
+     -25.9 deg, asi que no ata.  Cambiar solo lo que la hipotesis dice.
+
+     OJO, NO REPETIR EL FALLO DE LOS ROCKERS: ampliar +-0.6 a +-1.0 en
+     rocker_pivot_* empeoro las cosas y quedo como "causa no encontrada" en
+     rocker_pivot_zero_note (sim_config.yaml).  Ahora se sabe por que: se le dio
+     recorrido al pivote que iba sobrado.  Los rockers siguieron en +-0.6
+     hasta el 2026-09-13, cuando se ampliaron a +-1.0 a peticion: con el
+     varillaje del diferencial usan como mucho ~7 deg y no tocan el tope,
+     asi que el aviso de arriba ya no aplica a ellos (a los bogies SI).
+
+     A/B: differential_linkage y lo demas igual, y bogie_upper:=0.6 reproduce
+     el modelo con el que se tomo la corrida de referencia. -->
+<xacro:arg name="bogie_upper" default="0.6"/>
+
+<!-- ALTURA DEL PIVOTE DEL BOGIE (rev_3 / rev_4): cuanto se BAJA, en metros.
+     0.0 = el modelo de siempre, byte a byte.  El pivote esta hoy 0.529 m sobre
+     la huella de contacto (0.351 sobre el eje, mas el radio 0.178).
+
+     POR QUE ES UNA PALANCA.  El par de una rueda llega al brazo por DOS
+     caminos que suman: la reaccion -e en el eje, y la fuerza de traccion e/r
+     aplicada en la huella, que cuelga de ese brazo de 0.529 m.  El total es
+         M_motor = K * ( -(e_media + e_trasera) ),   K = h_huella / r
+     con K = 0.529/0.178 = 2.97 hoy.  Medido sobre
+     metrics_rocker_bogie_par_ruedas/run01 (135.5 m): K ajustado 3.15 (rev_4,
+     r=-0.93) y 3.07 (rev_3, r=-0.96), y el balance estatico del pivote cierra
+     con residuo -0.05 y -0.78 N*m.  M_motor positivo levanta la rueda MEDIA,
+     que es justo la peor de las seis en contacto (94.2 % y 92.2 %).
+     Despega con M_motor ~ +50 N*m = 8.4 N*m por rueda, menos de la mitad del
+     limite de 20.
+
+     K escala LINEAL con esta altura: K = (0.529 - bogie_drop) / 0.178.
+       0.100 -> K 2.41 (-19 %)
+       0.178 -> K 1.97 (-34 %)
+       0.351 -> K 1.00 (-66 %), el pivote a la altura del EJE
+     1.00 es el suelo: ahi ya solo queda la reaccion en el eje, porque la
+     huella siempre esta un radio por debajo.
+
+     QUE MUEVE Y QUE NO.  Solo baja el EJE del pivote y el soporte que cuelga
+     de el (Acople_Rodamiento_*_1: 1.4 kg, visual e inercia, sin colision).
+     Los cuatro hijos (link_r_15..18) se suben lo mismo, asi que las seis
+     ruedas, los brazos del balancin (-0.189 media / +0.237 trasera) y la
+     altura de reposo quedan EXACTAMENTE donde estaban -> spawn_z no se toca.
+     Lo comprueba src/robot_metrics/test/test_bogie_drop.py, que es el fallo
+     silencioso: bajar el pivote sin compensar hunde media suspension.
+
+     LA HUELLA DE APOYO NO SE PAGA, SE GANA.  En reposo es identica: 0.5383 m2,
+     batalla 0.8532, via 0.6775, las seis ruedas coplanarias.  Deflectado si
+     cambia, y a favor: hoy el brazo pivote->rueda esta INCLINADO (dx -0.189,
+     dz -0.351), asi que girar el balancin echa la rueda hacia ATRAS ademas de
+     subirla: en el tope de +34.4 deg la rueda media retrocede 0.165 m, la
+     batalla se hunde a 0.613 y el area cae un 27 %, hasta 0.391 m2.  Con el
+     pivote a la altura del eje el brazo queda horizontal, la rueda apenas se
+     mueve en x (+0.033) y el area solo pierde un 6 %.  Con los angulos
+     medidos en metrics_rocker_bogie_par_ruedas/run01: area p05 0.480 ->
+     0.528 m2, y en el peor instante 0.391 -> 0.507 (+30 %).
+
+     Y EL RECORRIDO DE LA SUSPENSION NO SE TOCA.  El desnivel que traga el
+     balancin (rueda media contra trasera) es +0.241 m a 34.4 deg con drop 0
+     y con drop 0.351: depende solo de los brazos HORIZONTALES, que no se
+     mueven.  El tope de +-0.6 rad sigue valiendo para el mismo escalon.
+
+     Como el varillaje, va por las DOS rutas de spawn del launch. -->
+<!-- TOPE DE bogie_drop, Y SE LO COME rocker_drop.  La cuenta de arriba
+     -0.178 -> K 1.97, 0.351 -> K 1.00- vale con rocker_drop = 0, que es cuando
+     el pivote del bogie sale de 0.351444 m sobre el eje.  Con rocker_drop en su
+     defecto (0.343839) el montante comun ya lo ha bajado a 0.178, o sea
+
+         tope de bogie_drop = 0.351444 - max(0, rocker_drop - 0.170395)
+
+     y con el defecto eso son 0.178 m EXACTOS, no 0.351.  Pasarse no da error:
+     mete el eje del bogie POR DEBAJO del plano de las ruedas, con lo que la
+     huella deja de estar un radio por debajo del pivote y K vuelve a subir por
+     el otro lado.  Las dos palancas ya estan igualadas en K = 2.00 con
+     bogie_drop = 0, asi que este arg solo hace falta para desnivelarlas a
+     proposito.  Lo comprueba test_bogie_drop.py (seccion 2). -->
+<xacro:arg name="bogie_drop" default="0.0"/>
+<xacro:property name="bogie_drop" value="$(arg bogie_drop)"/>
+<!-- El montante del pivote se fue con las mallas: los dos tubos del soporte
+     del bogie se dibujan ahora del eje a cada brazo con la macro tubo, asi
+     que su longitud sale de la geometria y no de una formula a mano. -->
+
+<!-- ==================== HUELLA REESCALADA ====================
+     Toda la cadena cinematica lleva X e Y multiplicados por 0.862.  Z NO se
+     toca: misma altura, misma guarda al suelo, misma altura de sensores.
+
+     POR QUE.  La huella de apoyo era 0.5383 m2 contra 0.3996 del tracked y
+     0.2923 del husky.  Con 0.862 queda en 0.4000 m2, la del tracked al 0.1 %.
+     Batalla 0.8532 -> 0.7355, via 0.7821 -> 0.5840.
+
+     0.862 ES EL MINIMO: las ruedas quedan a 0.3677 m entre centros, 11.7 mm
+     de holgura entre llantas de 0.178 m.  Menos factor y chocan, y encoger la
+     rueda rompe el radio igualado de las tres plataformas.
+
+     Se escalan solo los origin de los joint y las pose de los joints de bola;
+     NO los origin de dentro de los link: las piezas no cambian de tamaño,
+     solo se acercan, asi que conservan masa e inercia.  Las mallas no
+     encogen, asi que los eslabones estructurales se solapan un poco en
+     pantalla; ninguno tiene colision salvo las seis ruedas.
+
+     bogie_drop sube a 0.227 (K 1.70) porque el margen contra el despegue
+     escala con el brazo del balancin, que pasa a -0.1632 / +0.2046.
+
+     MEDIDO con esta geometria (metrics_rocker_bogie_drop3): n<6 = 11.37 %,
+     contra 4.91 % con la huella grande y el mismo K.  Encoger la huella
+     CUESTA contacto, sobre todo en las delanteras (96.51 / 95.01).
+     ========================================================== -->
+
+<!-- ==================== ALTURA DEL ROCKER ====================
+     rocker_drop: cuanto se ACORTA, en metros, la caida vertical del brazo del
+     rocker entre su pivote y el eje de las ruedas.  0.0 = el modelo de CAD.
+
+     QUE ERA.  El pivote del rocker estaba 0.5219 m por encima del plano de
+     los ejes, o sea 0.6999 m sobre la huella de contacto, con lo que
+         K_rocker = h_huella / r = 0.6999 / 0.178 = 3.93
+     contra 2.98 del bogie con bogie_drop = 0.  Es la misma palanca que la
+     nota de bogie_drop describe, y la del rocker era la mayor de las dos.  El
+     chasis quedaba 0.638 m sobre el suelo con las ruedas de 0.178: una mesa
+     sobre zancos, no un rover.
+
+     QUE HACE.  Acorta las DOS ramas del rocker en la misma cantidad, asi que
+     las seis ruedas suben lo mismo y siguen coplanarias:
+       * rama delantera - link_r_21 / link_r_22 (BarraBR -> ApoyoServomotor),
+         -0.256945 m de caida, se le resta rocker_drop entero.
+       * rama trasera   - link_r_7/8, link_r_9/10, link_r_11/12, 0.170395 m
+         de caida en total, se escalan las tres por rk_rear para que la rama
+         siga bajando de forma monotona en vez de doblarse.
+
+     LO QUE NO TOCA: nada en x ni en y.  Batalla, via, area de apoyo, brazos
+     del balancin y los tres parametros de twist_to_wheels se quedan
+     exactamente donde estaban.  Tampoco toca bogie_drop: el pivote del bogie
+     conserva su altura RELATIVA al brazo, asi que las dos palancas se pueden
+     mover por separado.  Tampoco toca link_r_5 / link_r_6, que es donde el
+     varillaje del diferencial cierra sus ball joints (-0.053192): el enganche
+     sigue siendo valido sin recalcular el varillaje.
+
+     SALE DE DOS SITIOS, Y EL PRIMERO SE AGOTA EN 0.170395 m.
+
+     TRAMO 1, hasta 0.170395: lo paga la RAMA TRASERA del rocker, que se va
+     aplanando.  0.170395 es exactamente lo que el pivote del rocker estaba por
+     encima del del bogie (0.5219 contra 0.3515 sobre los ejes), asi que al
+     agotarlo los DOS PIVOTES QUEDAN A LA MISMA ALTURA y la rama trasera queda
+     horizontal: el dibujo de libro del mecanismo.  Ahi K_rocker pasa de 3.93 a
+     2.97, la del bogie con bogie_drop = 0.  Mas alla, rk_rear seria negativo y
+     la rama subiria antes de bajar, asi que el tramo se cierra.
+
+     TRAMO 2, otros 0.211702: lo paga el MONTANTE COMUN, lo que hay entre el
+     extremo de cada brazo y el eje de su rueda.  Las SEIS ruedas lo comparten,
+     asi que encogerlo baja los dos pivotes A LA VEZ y en la misma cantidad:
+     siguen nivelados y los brazos no cambian de forma.  Por eso la ESTRUCTURA
+     SE CONSERVA: lo unico que encoge es el montaje de la rueda.
+
+     Y SE GASTA EN DOS PARTES, PORQUE NO SON LO MISMO.  El montante tiene
+     encima la junta de direccion (rev_5..8 en las cuatro ruedas de las
+     esquinas) y debajo la MANGUETA, que es la pieza que gira con ella:
+
+       2a. rev_5..8 y link_r_25/26, 0.074002 m: del extremo del brazo a la
+           junta de direccion.  Esto SI se gasta entero primero; al agotarlo la
+           junta queda en el propio extremo del brazo, que es donde va.
+       2b. link_r_27..32, 0.137700 m: la MANGUETA, el poste VERTICAL que cuelga
+           de la junta de direccion y del que cuelga la rueda.  Es el eje de
+           giro de la direccion en persona, asi que dejarlo sin altura hace que
+           las ruedas de las esquinas giren sobre un muñon de milimetros.  Se
+           gasta el ULTIMO y el defecto le deja el 60 %.
+
+     REPARTO NUEVO 2026-09-13: link_r_33..38 (soporte del motor) pasa de
+     "0 +-0.0270927 -0.05865" a "0 +-0.0270927 0", o sea a ser un brazo
+     PURAMENTE HORIZONTAL, y sus 0.05865 m de caida se los queda link_r_27..32.
+     El total no cambia -las ruedas siguen donde estaban- pero la union pasa a
+     leerse como lo que es: poste vertical a 90 grados + salida lateral al eje.
+     Antes la caida iba repartida entre los dos y la mangueta salia en diagonal.
+
+     TECHO 0.382097 = 0.170395 + 0.074002 + 0.137700.  Ahi la mangueta es cero
+     y la rueda colgaria del brazo. No llegar.
+
+     0.299477 POR DEFECTO, que deja la mangueta en el 60 % (82.6 mm).  Se
+     probo 0.239200 (K 2.59, mangueta entera) el 2026-09-13 y se volvio aqui
+     el mismo dia.  Con 0.299477:
+         pivote del rocker  0.5219 -> 0.2224 m sobre los ejes
+         K_rocker             3.93 -> 2.25
+         K_bogie              2.97 -> 2.25
+         panza del chasis    0.638 -> 0.338 m sobre el suelo
+     EL COMPROMISO ES EXPLICITO: la mangueta y K tiran en contra.  Con la
+     mangueta entera (rocker_drop 0.244397) K se queda en 2.56; gastandola toda
+     (0.382097) K baja a 1.78 pero no queda direccion que dibujar.  60 % es el
+     punto en que el poste sigue siendo un poste.  K = 1.00 no se alcanza:
+     haria falta 0.521839 y solo hay 0.382097, porque los brazos no se tocan.
+
+     QUE NO LIMITA, y parecia que si: el chasis.  Su caja va de y -0.009 a
+     0.241 y las ruedas apoyan en y -0.244 (izquierda) y +0.365 (derecha), o
+     sea 0.23 m por fuera a cada lado.  Ninguna rueda pasa por debajo del
+     chasis en ninguna combinacion de los cuatro pivotes pasivos a +-0.6 rad,
+     asi que bajar el chasis no le acerca ninguna rueda.  Barrido completo en
+     test_bogie_drop.py (seccion 8).
+
+     Todo lo que cuelga del chasis sube rocker_drop en el marco de base_link,
+     asi que spawn_z BAJA lo mismo (spawn_z = 1.16 - rocker_drop) y los tres sensores suben
+     rocker_drop en su montaje para conservar su altura sobre la huella: el
+     LiDAR y la camara se quedan donde manda sim_config.yaml y cuelgan de un
+     mastil, y el IMU sigue al CM con imu_rise_per_drop.
+     ========================================================== -->
+<xacro:arg name="rocker_drop" default="0.299477"/>
+<xacro:property name="rocker_drop" value="$(arg rocker_drop)"/>
+<!-- tramo 1: la rama trasera, hasta 0.170395 -->
+<xacro:property name="rk_t1" value="${min(rocker_drop, 0.170395)}"/>
+<!-- tramo 2a: brazo -> junta de direccion, los 0.074002 siguientes -->
+<xacro:property name="rk_t2a" value="${min(max(0.0, rocker_drop - 0.170395), 0.074002)}"/>
+<!-- tramo 2b: la MANGUETA, el poste vertical de la direccion.  El ultimo en
+     gastarse, porque es el que da el giro a las ruedas de las esquinas. -->
+<xacro:property name="rk_t2b" value="${max(0.0, rocker_drop - 0.244397)}"/>
+<xacro:property name="rk_rear" value="${1.0 - rk_t1/0.170395}"/>
+<xacro:property name="rk_arm" value="${1.0 - rk_t2a/0.074002}"/>
+<xacro:property name="rk_post" value="${1.0 - rk_t2b/0.137700}"/>
+<xacro:property name="rk_front_z" value="${-0.256945 + rk_t1}"/>
+<xacro:property name="rk_r7" value="${-0.053192*rk_rear}"/>
+<xacro:property name="rk_r9" value="${-0.086551*rk_rear}"/>
+<xacro:property name="rk_r11" value="${-0.030652*rk_rear}"/>
+<xacro:property name="rk_p74" value="${-0.074002*rk_arm}"/>
+<!-- la mangueta se queda con TODA la caida por debajo de la direccion -->
+<xacro:property name="rk_p79" value="${-0.137700*rk_post}"/>
+<xacro:property name="rk_p58" value="0"/>
+<!-- Cuanto SUBE el centro de masas por cada metro de rocker_drop, en el marco
+     de base_link.  Acortar el brazo se lleva hacia arriba todo lo que cuelga
+     del pivote -mas de la mitad de la masa del vehiculo- y el IMU tiene que
+     seguirlo, por el mismo motivo que lo sigue con bogie_drop: fuera del CM un
+     acelerometro mide a_cm + alpha x r + omega x (omega x r), y el brazo r es
+     justo lo que la estandarizacion puso a cero.  La subida es LINEAL en
+     rocker_drop porque todos los desplazamientos lo son; el coeficiente sale
+     de sumar m*dz sobre el modelo generado y lo comprueba check_sim_parity
+     13b con 2 mm de tolerancia. -->
+<!-- Dos coeficientes porque los dos tramos mueven masas distintas: el
+     primero solo levanta lo que cuelga del pivote del rocker, el segundo
+     levanta ADEMAS los dos pivotes y todos los brazos.  Los dos salen de sumar
+     m*dz sobre el modelo generado, y los dos los comprueba
+     check_sim_parity 13b con 2 mm de tolerancia. -->
+<xacro:property name="imu_rise_per_drop" value="0.522414"/>
+<xacro:property name="imu_rise_post" value="0.454931"/>
+<xacro:property name="imu_rise_knuckle" value="0.439732"/>
+
+<!-- ==================== FORMAS SIMPLES ====================
+     Los 43 eslabones estructurales se dibujan con tubos y cajas en vez de las
+     mallas del CAD.  Ninguno tiene elemento de colision -solo las seis ruedas
+     y el chasis lo tienen- asi que esto NO cambia la fisica: masas, inercias,
+     juntas y colisiones se quedan byte a byte donde estaban.
+
+     POR QUE.  Las mallas son un export de CAD con escala propia
+     (0.001417 0.001164 0.001275) y NO se reescalaron con la huella el
+     2026-09-11, asi que se solapaban en pantalla y el modelo no se podia leer
+     a ojo.  Un tubo dibujado ENTRE dos juntas no puede desincronizarse: se
+     recalcula solo con rocker_drop y con bogie_drop, y de paso se lleva por
+     delante el apaño del montante del bogie, que era un tubo de longitud
+     escrita a mano para tapar ese mismo hueco.
+
+     La RUEDA se queda con su malla: es el unico eslabon cuya forma se compara
+     entre plataformas y su radio (0.178) esta igualado a mano en las tres.
+     ========================================================== -->
+
+<!-- ============ LA MALLA DE LA RUEDA, A LA ESCALA DE SU COLISION ============
+     CORREGIDO EL 2026-09-16.  Las seis ruedas llevaban el visual a
+     "0.002588 0.002126 0.002329", que es la escala del export de CAD y NO la
+     de la rueda que se simula.  Sobre un STL de 86 x 50 x 86 unidades eso
+     dejaba un OVALO de 111.3 x 100.1 mm de semieje y 106.3 de ancho, contra
+     un cilindro de colision de 178 de radio y 114.3 de ancho:
+
+       * la rueda se veia un 44 % PEQUEÑA, con el borde de arriba a 200 mm
+         del suelo cuando la panza del chasis esta a 338.7, asi que en Gazebo
+         "las ruedas no llegan al chasis" y el vehiculo parece FLOTAR;
+       * y se veia OVALADA, porque la escala era anisotropa (111.3 en x
+         contra 100.1 en z, un 11 % de diferencia).
+
+     Y LA SIMULACION NO CAMBIA, que era la duda razonable.  La fisica no usa
+     los visuales -masa, inercia, juntas y colisiones siguen byte a byte- y el
+     LiDAR, que SI los usa porque un gpu_ray ve visuales y no colisiones, no
+     alcanza las ruedas: el rayo mas rasante que podria tocar una llanta pide
+     30.5 grados bajo la horizontal con la malla nueva (36.0 con la vieja) y
+     el anillo mas bajo del VLP-16 va a 15.0, ademas de un <range><min> de
+     0.3 m.  O sea que las ruedas no salian en la nube y siguen sin salir; lo
+     unico que cambia es que el dibujo ya coincide con lo que se simula, asi
+     que NO hay que repetir ninguna corrida por esto.  Medido con
+     ve_ruedas.py sobre los seis links.
+
+     ESCALA NUEVA = (2r/86, ancho/50, 2r/86) = 0.00413953 0.002286 0.00413953
+     Y HAY QUE RECALCULAR EL origin DEL VISUAL, que es el fallo silencioso:
+     en URDF el vertice cae en origin + escala * v, asi que al cambiar la
+     escala la malla se DESPLAZA.  Cada uno de los seis origin se ha sacado
+     para que el centro de la caja envolvente del STL caiga en el centro del
+     cilindro de colision, (0, +-0.052315, 0).  Comprobado sobre el URDF
+     generado: los seis visuales dan 178.00 / 57.15 / 178.00 mm de semieje y
+     su centro coincide con el de la colision con 3 um.
+
+     NO CAMBIA masa, inercia, juntas ni colisiones: solo se ha tocado
+     <visual>.  Lo que cambia es lo que ve el LiDAR.
+     ========================================================================= -->
+<xacro:macro name="tubo" params="x2 y2 z2 x1:=0 y1:=0 z1:=0 r:=0.020 mat:=silver">
+  <visual>
+    <origin xyz="${(x1+x2)/2} ${(y1+y2)/2} ${(z1+z2)/2}"
+            rpy="0 ${atan2(sqrt((x2-x1)**2+(y2-y1)**2), z2-z1)} ${atan2(y2-y1, x2-x1)}"/>
+    <geometry>
+      <cylinder radius="${r}"
+                length="${sqrt((x2-x1)**2+(y2-y1)**2+(z2-z1)**2)}"/>
+    </geometry>
+    <material name="${mat}"/>
+  </visual>
+</xacro:macro>
+
 <xacro:include filename="$(find rocker_bogie)/urdf/materials.xacro" />
 <xacro:include filename="$(find rocker_bogie)/urdf/ensamblajeurdf.trans" />
 <xacro:include filename="$(find rocker_bogie)/urdf/ensamblajeurdf.gazebo" />
@@ -15,675 +422,229 @@
      mass_scale to 1.0 to recover the native model.
      ============================================================ -->
 <xacro:property name="mass_scale" value="0.474039"/>
+<!-- Mass the differential linkage adds when it is built: 3 links x 0.05 kg.
+     Subtracted from base_link so the platform total is 45.000 kg either way. -->
+<xacro:property name="diff_linkage_mass"
+                value="${0.15 if '$(arg differential_linkage)' == 'true' else 0.0}"/>
 
-<link name="base_link">
+<!-- ==================== BASE_LINK VOLTEADO Y CENTRADO ====================
+     Desde 2026-09-13 base_link es un marco SIN masa que mira a +x (el avance),
+     con origen en el centro del poligono de apoyo -centros REALES de rueda- y
+     a la altura de los ejes (0.178 m sobre la huella, como el body del
+     tracked).  El chasis del CAD cuelga de el girado 180 grados como
+     chassis_link; Gazebo lo fusiona en base_link al cargar, asi que juntas,
+     signos y fisica no cambian.  Cambia el marco que ven TF, RTAB-Map, el
+     ground truth y los sensores.  Sustituye a base_link_nav. -->
+<link name="base_link"/>
+<joint name="base_to_chassis" type="fixed">
+  <origin xyz="0.244209 0.100343 ${-(0.054824 + rocker_drop)}" rpy="0 0 3.141592653589793"/>
+  <parent link="base_link"/>
+  <child link="chassis_link"/>
+</joint>
+
+<link name="chassis_link">
   <inertial>
-    <origin xyz="0.283293 0.116408 0.574618" rpy="0 0 0"/>
-    <mass value="${33.855*mass_scale}"/>
+    <!-- CENTRADO 2026-09-13.  Estaba en "0.283293 0.116408", que es el valor
+         de CAD SIN reescalar: el 2026-09-11 se multiplicaron por 0.862 los
+         origin de los JOINT pero no los de dentro de los link, y la caja del
+         chasis es de dentro de un link.  El centro del poligono de apoyo que
+         dan las seis ruedas esta en (0.244221, 0.100345) -y ahi es donde ya
+         estaban el LiDAR, la camara y los dos pivotes del rocker, porque esos
+         si son joints-, asi que el chasis se veia 39 mm adelantado y 16 mm
+         descentrado respecto a su propio vehiculo.  Se mueven a la vez el
+         inertial, el visual y la colision: son la misma pieza. -->
+    <origin xyz="0.244209 0.100344 0.574618" rpy="0 0 0"/>
+    <!-- 33.855 native, less whatever the differential linkage adds, so the
+         platform total stays at the 45.000 kg the mass matching sets whether
+         or not the linkage is built.  The subtraction has to be CONDITIONAL:
+         taking the 0.15 kg off unconditionally left the default (no linkage)
+         configuration at 44.929 kg, i.e. silently un-matched. -->
+    <!-- + la masa que el link del LiDAR cedio al igualarse con el husky -->
+    <mass value="${(33.855 - diff_linkage_mass)*mass_scale + 4.07779*mass_scale - 0.825345 + (0.073695 + 0.04913 + 0.004913)*mass_scale - 0.025854212}"/>
     <inertia ixx="${0.393878*mass_scale}" iyy="${0.982600*mass_scale}" izz="${1.193148*mass_scale}" ixy="${0*mass_scale}" iyz="${0*mass_scale}" ixz="${2.63e-05*mass_scale}"/>
   </inertial>
   <visual>
-    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <origin xyz="0.244209 0.100344 0.575" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="package://rocker_bogie/meshes/base_link.stl" scale="0.001417 0.001164 0.001275"/>
+      <box size="0.60 0.1926 0.12"/>
     </geometry>
     <material name="silver"/>
   </visual>
+  <!-- MASTILES.  LiDAR y camara se quedan a su altura sobre la HUELLA
+       (sim_config.yaml), asi que al bajar el chasis rocker_drop metros los
+       dos quedan por encima de el y necesitan algo que los sujete.
+       Geometria de DIBUJO, como el resto: sin colision.  El del LiDAR sube
+       recto desde el techo del chasis; el de la camara la une al morro. -->
+  <xacro:tubo x2="0.244209" y2="0.100343" z2="${0.5127 + rocker_drop}" x1="0.244209" y1="0.100343" z1="0.635" r="0.03"/>
+  <xacro:tubo x1="-0.055791" y1="0.100343" z1="0.635" x2="-0.055791" y2="0.100343" z2="${0.4375 + rocker_drop - 0.01925}" r="0.010"/>
+  <xacro:tubo x1="-0.055791" y1="0.100343" z1="${0.4375 + rocker_drop - 0.01925}" x2="-0.110091" y2="0.100343" z2="${0.4375 + rocker_drop - 0.01925}" r="0.008"/>
   <collision>
-    <origin xyz="0.283 0.116 0.575" rpy="0 0 0"/>
+    <origin xyz="0.244209 0.100344 0.575" rpy="0 0 0"/>
     <geometry>
-      <box size="0.60 0.25 0.12"/>
+      <box size="0.60 0.1926 0.12"/>
     </geometry>
   </collision>
 </link>
 
-<link name="AcopleRB_1_1">
-  <inertial>
-    <origin xyz="0 0.0042 -0.051" rpy="0 0 0"/>
-    <mass value="${1.60747*mass_scale}"/>
-    <inertia ixx="${0.001525*mass_scale}" iyy="${0.002987*mass_scale}" izz="${0.001525*mass_scale}" ixy="${0*mass_scale}" iyz="${0*mass_scale}" ixz="${0*mass_scale}"/>
-  </inertial>
-  <visual>
-    <origin xyz="-0.283305 -0.232815 -0.627665" rpy="0 0 0"/>
-    <geometry>
-      <mesh filename="package://rocker_bogie/meshes/AcopleRB_1_1.stl" scale="0.001417 0.001164 0.001275"/>
-    </geometry>
-    <material name="silver"/>
-  </visual>
-</link>
 
-<link name="AcopleRB_2_1">
-  <inertial>
-    <origin xyz="0 -0.0042 -0.051" rpy="0 0 0"/>
-    <mass value="${1.60747*mass_scale}"/>
-    <inertia ixx="${0.001525*mass_scale}" iyy="${0.002987*mass_scale}" izz="${0.001525*mass_scale}" ixy="${0*mass_scale}" iyz="${0*mass_scale}" ixz="${0*mass_scale}"/>
-  </inertial>
-  <visual>
-    <origin xyz="-0.283305 0 -0.627665" rpy="0 0 0"/>
-    <geometry>
-      <mesh filename="package://rocker_bogie/meshes/AcopleRB_2_1.stl" scale="0.001417 0.001164 0.001275"/>
-    </geometry>
-    <material name="silver"/>
-  </visual>
-</link>
 
-<link name="Barra_acople_1_1">
-  <inertial>
-    <origin xyz="0 -0.015133 0" rpy="0 0 0"/>
-    <mass value="${0.100807*mass_scale}"/>
-    <inertia ixx="${1.597336875e-05*mass_scale}" iyy="${7.9867125e-06*mass_scale}" izz="${1.597336875e-05*mass_scale}" ixy="${0*mass_scale}" iyz="${0*mass_scale}" ixz="${0*mass_scale}"/>
-  </inertial>
-  <visual>
-    <origin xyz="-0.283305 0.022117 -0.576664" rpy="0 0 0"/>
-    <geometry>
-      <mesh filename="package://rocker_bogie/meshes/Barra_acople_1_1.stl" scale="0.001417 0.001164 0.001275"/>
-    </geometry>
-    <material name="silver"/>
-  </visual>
-</link>
 
-<link name="Barra_acople_2_1">
-  <inertial>
-    <origin xyz="0 0.015133 0" rpy="0 0 0"/>
-    <mass value="${0.100807*mass_scale}"/>
-    <inertia ixx="${1.597336875e-05*mass_scale}" iyy="${7.9867125e-06*mass_scale}" izz="${1.597336875e-05*mass_scale}" ixy="${0*mass_scale}" iyz="${0*mass_scale}" ixz="${0*mass_scale}"/>
-  </inertial>
-  <visual>
-    <origin xyz="-0.283305 -0.254932 -0.576664" rpy="0 0 0"/>
-    <geometry>
-      <mesh filename="package://rocker_bogie/meshes/Barra_acople_2_1.stl" scale="0.001417 0.001164 0.001275"/>
-    </geometry>
-    <material name="silver"/>
-  </visual>
-</link>
 
-<link name="BarraBR_1_1">
-  <inertial>
-    <origin xyz="-0.142734 0 -0.128473" rpy="0 0 0"/>
-    <mass value="${1.105*mass_scale}"/>
-    <inertia ixx="${0.006166*mass_scale}" iyy="${0.01222*mass_scale}" izz="${0.006166*mass_scale}" ixy="${0*mass_scale}" iyz="${0*mass_scale}" ixz="${-0.006054*mass_scale}"/>
-  </inertial>
-  <visual>
-    <origin xyz="-0.22421 0.075665 -0.523473" rpy="0 0 0"/>
-    <geometry>
-      <mesh filename="package://rocker_bogie/meshes/BarraBR_1_1.stl" scale="0.001417 0.001164 0.001275"/>
-    </geometry>
-    <material name="silver"/>
-  </visual>
-</link>
 
-<link name="BarraBR_2_1">
-  <inertial>
-    <origin xyz="-0.142734 0 -0.128473" rpy="0 0 0"/>
-    <mass value="${1.105*mass_scale}"/>
-    <inertia ixx="${0.006166*mass_scale}" iyy="${0.01222*mass_scale}" izz="${0.006166*mass_scale}" ixy="${0*mass_scale}" iyz="${0*mass_scale}" ixz="${-0.006054*mass_scale}"/>
-  </inertial>
-  <visual>
-    <origin xyz="-0.22421 -0.30848 -0.523473" rpy="0 0 0"/>
-    <geometry>
-      <mesh filename="package://rocker_bogie/meshes/BarraBR_2_1.stl" scale="0.001417 0.001164 0.001275"/>
-    </geometry>
-    <material name="silver"/>
-  </visual>
-</link>
 
-<link name="BarraAcople1_1">
-  <inertial>
-    <origin xyz="0.048079 0 -0.043275" rpy="0 0 0"/>
-    <mass value="${0.37221*mass_scale}"/>
-    <inertia ixx="${0.000264*mass_scale}" iyy="${0.000487*mass_scale}" izz="${0.000264*mass_scale}" ixy="${0*mass_scale}" iyz="${0*mass_scale}" ixz="${0.000224*mass_scale}"/>
-  </inertial>
-  <visual>
-    <origin xyz="-0.342401 0.075665 -0.523473" rpy="0 0 0"/>
-    <geometry>
-      <mesh filename="package://rocker_bogie/meshes/BarraAcople1_1.stl" scale="0.001417 0.001164 0.001275"/>
-    </geometry>
-    <material name="silver"/>
-  </visual>
-</link>
 
-<link name="BarraAcople2_1">
-  <inertial>
-    <origin xyz="0.048079 0 -0.043275" rpy="0 0 0"/>
-    <mass value="${0.37221*mass_scale}"/>
-    <inertia ixx="${0.000264*mass_scale}" iyy="${0.000487*mass_scale}" izz="${0.000264*mass_scale}" ixy="${0*mass_scale}" iyz="${0*mass_scale}" ixz="${0.000224*mass_scale}"/>
-  </inertial>
-  <visual>
-    <origin xyz="-0.342401 -0.30848 -0.523473" rpy="0 0 0"/>
-    <geometry>
-      <mesh filename="package://rocker_bogie/meshes/BarraAcople2_1.stl" scale="0.001417 0.001164 0.001275"/>
-    </geometry>
-    <material name="silver"/>
-  </visual>
-</link>
 
-<link name="AcopleTubo90_1_1">
-  <inertial>
-    <origin xyz="0.027232 -0.00793 -0.024511" rpy="0 0 0"/>
-    <mass value="${0.160204*mass_scale}"/>
-    <inertia ixx="${0.00008*mass_scale}" iyy="${0.000072*mass_scale}" izz="${0.00008*mass_scale}" ixy="${7.9867125e-06*mass_scale}" iyz="${-7.9867125e-06*mass_scale}" ixz="${1.597336875e-05*mass_scale}"/>
-  </inertial>
-  <visual>
-    <origin xyz="-0.438558 0.075665 -0.436922" rpy="0 0 0"/>
-    <geometry>
-      <mesh filename="package://rocker_bogie/meshes/AcopleTubo90_1_1.stl" scale="0.001417 0.001164 0.001275"/>
-    </geometry>
-    <material name="silver"/>
-  </visual>
-</link>
 
-<link name="AcopleTubo90__2_1">
-  <inertial>
-    <origin xyz="0.027232 0.00793 -0.024511" rpy="0 0 0"/>
-    <mass value="${0.160204*mass_scale}"/>
-    <inertia ixx="${0.00008*mass_scale}" iyy="${0.000072*mass_scale}" izz="${0.00008*mass_scale}" ixy="${-7.9867125e-06*mass_scale}" iyz="${7.9867125e-06*mass_scale}" ixz="${1.597336875e-05*mass_scale}"/>
-  </inertial>
-  <visual>
-    <origin xyz="-0.438558 -0.30848 -0.436922" rpy="0 0 0"/>
-    <geometry>
-      <mesh filename="package://rocker_bogie/meshes/AcopleTubo90__2_1.stl" scale="0.001417 0.001164 0.001275"/>
-    </geometry>
-    <material name="silver"/>
-  </visual>
-</link>
 
-<link name="Barra_Acople_R_1_1">
-  <inertial>
-    <origin xyz="2.5730363188947406e-07 -0.015133 -2.31596427989478e-07" rpy="0 0 0"/>
-    <mass value="${0.100807*mass_scale}"/>
-    <inertia ixx="${1.597336875e-05*mass_scale}" iyy="${7.9867125e-06*mass_scale}" izz="${1.597336875e-05*mass_scale}" ixy="${0*mass_scale}" iyz="${0*mass_scale}" ixz="${0*mass_scale}"/>
-  </inertial>
-  <visual>
-    <origin xyz="-0.472614 0.115243 -0.40627" rpy="0 0 0"/>
-    <geometry>
-      <mesh filename="package://rocker_bogie/meshes/Barra_Acople_R_1_1.stl" scale="0.001417 0.001164 0.001275"/>
-    </geometry>
-    <material name="silver"/>
-  </visual>
-</link>
 
-<link name="Barra_Acople_R_2_1">
-  <inertial>
-    <origin xyz="2.5730363188947406e-07 0.015133 -2.31596427989478e-07" rpy="0 0 0"/>
-    <mass value="${0.100807*mass_scale}"/>
-    <inertia ixx="${1.597336875e-05*mass_scale}" iyy="${7.9867125e-06*mass_scale}" izz="${1.597336875e-05*mass_scale}" ixy="${0*mass_scale}" iyz="${0*mass_scale}" ixz="${0*mass_scale}"/>
-  </inertial>
-  <visual>
-    <origin xyz="-0.472614 -0.348058 -0.40627" rpy="0 0 0"/>
-    <geometry>
-      <mesh filename="package://rocker_bogie/meshes/Barra_Acople_R_2_1.stl" scale="0.001417 0.001164 0.001275"/>
-    </geometry>
-    <material name="silver"/>
-  </visual>
-</link>
 
+<!-- Acople_Rodamiento_1_1: pieza unica desde 2026-09-13.  Fusiona AcopleTubo135_1_1, ApoyoServomotor_4_1, BarraAcople4_1, BarraAcople5_1, BarraRuedas_2_1, Motor_2_1, SoporteMotor_2_1.  Masa, CM e
+     inercia son la suma exacta de las piezas (Steiner al CM comun), en
+     expresiones para que sigan a rocker_drop y bogie_drop. -->
+<xacro:property name="Acople_Rodamiento_1_1__m" value="${(1.39525*mass_scale) + (0.160204*mass_scale) + (0.27687*mass_scale) + (0.37221*mass_scale) + (0.37221*mass_scale) + (0.240385*mass_scale) + (3.81127*mass_scale) + (0.21391*mass_scale)}"/>
+<xacro:property name="Acople_Rodamiento_1_1__x" value="${((1.39525*mass_scale)*((2.5730363188947406e-07)) + (0.160204*mass_scale)*((-0.0509408)+(-0.0828865)+(-0.026766)) + (0.27687*mass_scale)*((0.0509408)+(0.0828882)+(0.061254)) + (0.37221*mass_scale)*((-0.0509408)+(-0.048079)) + (0.37221*mass_scale)*((0.0509408)+(0.04808)) + (0.240385*mass_scale)*((-0.0509408)+(-0.0828865)+(-0.0293571)+(0)) + (3.81127*mass_scale)*((-0.0509408)+(-0.0828865)+(-0.0293571)+(0)+(0)+(0)) + (0.21391*mass_scale)*((-0.0509408)+(-0.0828865)+(-0.0293571)+(0)+(0)))/Acople_Rodamiento_1_1__m}"/>
+<xacro:property name="Acople_Rodamiento_1_1__y" value="${((1.39525*mass_scale)*((-0.023282)) + (0.160204*mass_scale)*((-0.0161893)+(0.0000000)+(0)) + (0.27687*mass_scale)*((-0.0161893)+(0.0000000)+(0)) + (0.37221*mass_scale)*((-0.0161893)+(0)) + (0.37221*mass_scale)*((-0.0161893)+(0)) + (0.240385*mass_scale)*((-0.0161893)+(0.0000000)+(0.0000000)+(0)) + (3.81127*mass_scale)*((-0.0161893)+(0.0000000)+(0.0000000)+(0.0000000)+(-0.0218551)+(0.054562)) + (0.21391*mass_scale)*((-0.0161893)+(0.0000000)+(0.0000000)+(0.0000000)+(-0.004389)))/Acople_Rodamiento_1_1__m}"/>
+<xacro:property name="Acople_Rodamiento_1_1__z" value="${((1.39525*mass_scale)*((-0.002333)) + (0.160204*mass_scale)*((-0.053192 + bogie_drop)+(-0.086551)+(-0.033371)) + (0.27687*mass_scale)*((-0.053192 + bogie_drop)+(-0.086551)+(-0.034916)) + (0.37221*mass_scale)*((-0.053192 + bogie_drop)+(-0.043276)) + (0.37221*mass_scale)*((-0.053192 + bogie_drop)+(-0.043276)) + (0.240385*mass_scale)*((-0.053192 + bogie_drop)+(-0.086551)+(rk_p74)+(-0.039525)) + (3.81127*mass_scale)*((-0.053192 + bogie_drop)+(-0.086551)+(rk_p74)+(rk_p79)+(rk_p58)+(-4.6319285642130973e-07)) + (0.21391*mass_scale)*((-0.053192 + bogie_drop)+(-0.086551)+(rk_p74)+(rk_p79)+(-0.047494)))/Acople_Rodamiento_1_1__m}"/>
 <link name="Acople_Rodamiento_1_1">
   <inertial>
-    <origin xyz="2.5730363188947406e-07 -0.023282 -0.002333" rpy="0 0 0"/>
-    <mass value="${1.39525*mass_scale}"/>
-    <inertia ixx="${0.001533*mass_scale}" iyy="${0.002484*mass_scale}" izz="${0.001541*mass_scale}" ixy="${0*mass_scale}" iyz="${0*mass_scale}" ixz="${0*mass_scale}"/>
+    <origin xyz="${Acople_Rodamiento_1_1__x} ${Acople_Rodamiento_1_1__y} ${Acople_Rodamiento_1_1__z}" rpy="0 0 0"/>
+    <mass value="${Acople_Rodamiento_1_1__m}"/>
+    <inertia ixx="${(0.001533*mass_scale) + (1.39525*mass_scale)*((((-0.023282))-Acople_Rodamiento_1_1__y)**2 + (((-0.002333))-Acople_Rodamiento_1_1__z)**2) + (0.000096*mass_scale) + (0.160204*mass_scale)*((((-0.0161893)+(0.0000000)+(0))-Acople_Rodamiento_1_1__y)**2 + (((-0.053192 + bogie_drop)+(-0.086551)+(-0.033371))-Acople_Rodamiento_1_1__z)**2) + (0.000112*mass_scale) + (0.27687*mass_scale)*((((-0.0161893)+(0.0000000)+(0))-Acople_Rodamiento_1_1__y)**2 + (((-0.053192 + bogie_drop)+(-0.086551)+(-0.034916))-Acople_Rodamiento_1_1__z)**2) + (0.000264*mass_scale) + (0.37221*mass_scale)*((((-0.0161893)+(0))-Acople_Rodamiento_1_1__y)**2 + (((-0.053192 + bogie_drop)+(-0.043276))-Acople_Rodamiento_1_1__z)**2) + (0.000264*mass_scale) + (0.37221*mass_scale)*((((-0.0161893)+(0))-Acople_Rodamiento_1_1__y)**2 + (((-0.053192 + bogie_drop)+(-0.043276))-Acople_Rodamiento_1_1__z)**2) + (0.000136*mass_scale) + (0.240385*mass_scale)*((((-0.0161893)+(0.0000000)+(0.0000000)+(0))-Acople_Rodamiento_1_1__y)**2 + (((-0.053192 + bogie_drop)+(-0.086551)+(rk_p74)+(-0.039525))-Acople_Rodamiento_1_1__z)**2) + (0.005415*mass_scale) + (3.81127*mass_scale)*((((-0.0161893)+(0.0000000)+(0.0000000)+(0.0000000)+(-0.0218551)+(0.054562))-Acople_Rodamiento_1_1__y)**2 + (((-0.053192 + bogie_drop)+(-0.086551)+(rk_p74)+(rk_p79)+(rk_p58)+(-4.6319285642130973e-07))-Acople_Rodamiento_1_1__z)**2) + (0.000208*mass_scale) + (0.21391*mass_scale)*((((-0.0161893)+(0.0000000)+(0.0000000)+(0.0000000)+(-0.004389))-Acople_Rodamiento_1_1__y)**2 + (((-0.053192 + bogie_drop)+(-0.086551)+(rk_p74)+(rk_p79)+(-0.047494))-Acople_Rodamiento_1_1__z)**2)}" iyy="${(0.002484*mass_scale) + (1.39525*mass_scale)*((((2.5730363188947406e-07))-Acople_Rodamiento_1_1__x)**2 + (((-0.002333))-Acople_Rodamiento_1_1__z)**2) + (0.000112*mass_scale) + (0.160204*mass_scale)*((((-0.0509408)+(-0.0828865)+(-0.026766))-Acople_Rodamiento_1_1__x)**2 + (((-0.053192 + bogie_drop)+(-0.086551)+(-0.033371))-Acople_Rodamiento_1_1__z)**2) + (0.000415*mass_scale) + (0.27687*mass_scale)*((((0.0509408)+(0.0828882)+(0.061254))-Acople_Rodamiento_1_1__x)**2 + (((-0.053192 + bogie_drop)+(-0.086551)+(-0.034916))-Acople_Rodamiento_1_1__z)**2) + (0.000487*mass_scale) + (0.37221*mass_scale)*((((-0.0509408)+(-0.048079))-Acople_Rodamiento_1_1__x)**2 + (((-0.053192 + bogie_drop)+(-0.043276))-Acople_Rodamiento_1_1__z)**2) + (0.000487*mass_scale) + (0.37221*mass_scale)*((((0.0509408)+(0.04808))-Acople_Rodamiento_1_1__x)**2 + (((-0.053192 + bogie_drop)+(-0.043276))-Acople_Rodamiento_1_1__z)**2) + (0.000136*mass_scale) + (0.240385*mass_scale)*((((-0.0509408)+(-0.0828865)+(-0.0293571)+(0))-Acople_Rodamiento_1_1__x)**2 + (((-0.053192 + bogie_drop)+(-0.086551)+(rk_p74)+(-0.039525))-Acople_Rodamiento_1_1__z)**2) + (0.00099*mass_scale) + (3.81127*mass_scale)*((((-0.0509408)+(-0.0828865)+(-0.0293571)+(0)+(0)+(0))-Acople_Rodamiento_1_1__x)**2 + (((-0.053192 + bogie_drop)+(-0.086551)+(rk_p74)+(rk_p79)+(rk_p58)+(-4.6319285642130973e-07))-Acople_Rodamiento_1_1__z)**2) + (0.0002*mass_scale) + (0.21391*mass_scale)*((((-0.0509408)+(-0.0828865)+(-0.0293571)+(0)+(0))-Acople_Rodamiento_1_1__x)**2 + (((-0.053192 + bogie_drop)+(-0.086551)+(rk_p74)+(rk_p79)+(-0.047494))-Acople_Rodamiento_1_1__z)**2)}" izz="${(0.001541*mass_scale) + (1.39525*mass_scale)*((((2.5730363188947406e-07))-Acople_Rodamiento_1_1__x)**2 + (((-0.023282))-Acople_Rodamiento_1_1__y)**2) + (5.5906874999999997e-05*mass_scale) + (0.160204*mass_scale)*((((-0.0509408)+(-0.0828865)+(-0.026766))-Acople_Rodamiento_1_1__x)**2 + (((-0.0161893)+(0.0000000)+(0))-Acople_Rodamiento_1_1__y)**2) + (0.000367*mass_scale) + (0.27687*mass_scale)*((((0.0509408)+(0.0828882)+(0.061254))-Acople_Rodamiento_1_1__x)**2 + (((-0.0161893)+(0.0000000)+(0))-Acople_Rodamiento_1_1__y)**2) + (0.000264*mass_scale) + (0.37221*mass_scale)*((((-0.0509408)+(-0.048079))-Acople_Rodamiento_1_1__x)**2 + (((-0.0161893)+(0))-Acople_Rodamiento_1_1__y)**2) + (0.000264*mass_scale) + (0.37221*mass_scale)*((((0.0509408)+(0.04808))-Acople_Rodamiento_1_1__x)**2 + (((-0.0161893)+(0))-Acople_Rodamiento_1_1__y)**2) + (2.396008125e-05*mass_scale) + (0.240385*mass_scale)*((((-0.0509408)+(-0.0828865)+(-0.0293571)+(0))-Acople_Rodamiento_1_1__x)**2 + (((-0.0161893)+(0.0000000)+(0.0000000)+(0))-Acople_Rodamiento_1_1__y)**2) + (0.005415*mass_scale) + (3.81127*mass_scale)*((((-0.0509408)+(-0.0828865)+(-0.0293571)+(0)+(0)+(0))-Acople_Rodamiento_1_1__x)**2 + (((-0.0161893)+(0.0000000)+(0.0000000)+(0.0000000)+(-0.0218551)+(0.054562))-Acople_Rodamiento_1_1__y)**2) + (0.000136*mass_scale) + (0.21391*mass_scale)*((((-0.0509408)+(-0.0828865)+(-0.0293571)+(0)+(0))-Acople_Rodamiento_1_1__x)**2 + (((-0.0161893)+(0.0000000)+(0.0000000)+(0.0000000)+(-0.004389))-Acople_Rodamiento_1_1__y)**2)}" ixy="${(0*mass_scale) - (1.39525*mass_scale)*(((2.5730363188947406e-07))-Acople_Rodamiento_1_1__x)*(((-0.023282))-Acople_Rodamiento_1_1__y) + (0*mass_scale) - (0.160204*mass_scale)*(((-0.0509408)+(-0.0828865)+(-0.026766))-Acople_Rodamiento_1_1__x)*(((-0.0161893)+(0.0000000)+(0))-Acople_Rodamiento_1_1__y) + (0*mass_scale) - (0.27687*mass_scale)*(((0.0509408)+(0.0828882)+(0.061254))-Acople_Rodamiento_1_1__x)*(((-0.0161893)+(0.0000000)+(0))-Acople_Rodamiento_1_1__y) + (0*mass_scale) - (0.37221*mass_scale)*(((-0.0509408)+(-0.048079))-Acople_Rodamiento_1_1__x)*(((-0.0161893)+(0))-Acople_Rodamiento_1_1__y) + (0*mass_scale) - (0.37221*mass_scale)*(((0.0509408)+(0.04808))-Acople_Rodamiento_1_1__x)*(((-0.0161893)+(0))-Acople_Rodamiento_1_1__y) + (0*mass_scale) - (0.240385*mass_scale)*(((-0.0509408)+(-0.0828865)+(-0.0293571)+(0))-Acople_Rodamiento_1_1__x)*(((-0.0161893)+(0.0000000)+(0.0000000)+(0))-Acople_Rodamiento_1_1__y) + (0*mass_scale) - (3.81127*mass_scale)*(((-0.0509408)+(-0.0828865)+(-0.0293571)+(0)+(0)+(0))-Acople_Rodamiento_1_1__x)*(((-0.0161893)+(0.0000000)+(0.0000000)+(0.0000000)+(-0.0218551)+(0.054562))-Acople_Rodamiento_1_1__y) + (0*mass_scale) - (0.21391*mass_scale)*(((-0.0509408)+(-0.0828865)+(-0.0293571)+(0)+(0))-Acople_Rodamiento_1_1__x)*(((-0.0161893)+(0.0000000)+(0.0000000)+(0.0000000)+(-0.004389))-Acople_Rodamiento_1_1__y)}" iyz="${(0*mass_scale) - (1.39525*mass_scale)*(((-0.023282))-Acople_Rodamiento_1_1__y)*(((-0.002333))-Acople_Rodamiento_1_1__z) + (0*mass_scale) - (0.160204*mass_scale)*(((-0.0161893)+(0.0000000)+(0))-Acople_Rodamiento_1_1__y)*(((-0.053192 + bogie_drop)+(-0.086551)+(-0.033371))-Acople_Rodamiento_1_1__z) + (0*mass_scale) - (0.27687*mass_scale)*(((-0.0161893)+(0.0000000)+(0))-Acople_Rodamiento_1_1__y)*(((-0.053192 + bogie_drop)+(-0.086551)+(-0.034916))-Acople_Rodamiento_1_1__z) + (0*mass_scale) - (0.37221*mass_scale)*(((-0.0161893)+(0))-Acople_Rodamiento_1_1__y)*(((-0.053192 + bogie_drop)+(-0.043276))-Acople_Rodamiento_1_1__z) + (0*mass_scale) - (0.37221*mass_scale)*(((-0.0161893)+(0))-Acople_Rodamiento_1_1__y)*(((-0.053192 + bogie_drop)+(-0.043276))-Acople_Rodamiento_1_1__z) + (0*mass_scale) - (0.240385*mass_scale)*(((-0.0161893)+(0.0000000)+(0.0000000)+(0))-Acople_Rodamiento_1_1__y)*(((-0.053192 + bogie_drop)+(-0.086551)+(rk_p74)+(-0.039525))-Acople_Rodamiento_1_1__z) + (0*mass_scale) - (3.81127*mass_scale)*(((-0.0161893)+(0.0000000)+(0.0000000)+(0.0000000)+(-0.0218551)+(0.054562))-Acople_Rodamiento_1_1__y)*(((-0.053192 + bogie_drop)+(-0.086551)+(rk_p74)+(rk_p79)+(rk_p58)+(-4.6319285642130973e-07))-Acople_Rodamiento_1_1__z) + (-7.9867125e-06*mass_scale) - (0.21391*mass_scale)*(((-0.0161893)+(0.0000000)+(0.0000000)+(0.0000000)+(-0.004389))-Acople_Rodamiento_1_1__y)*(((-0.053192 + bogie_drop)+(-0.086551)+(rk_p74)+(rk_p79)+(-0.047494))-Acople_Rodamiento_1_1__z)}" ixz="${(0*mass_scale) - (1.39525*mass_scale)*(((2.5730363188947406e-07))-Acople_Rodamiento_1_1__x)*(((-0.002333))-Acople_Rodamiento_1_1__z) + (-2.396008125e-05*mass_scale) - (0.160204*mass_scale)*(((-0.0509408)+(-0.0828865)+(-0.026766))-Acople_Rodamiento_1_1__x)*(((-0.053192 + bogie_drop)+(-0.086551)+(-0.033371))-Acople_Rodamiento_1_1__z) + (0.000096*mass_scale) - (0.27687*mass_scale)*(((0.0509408)+(0.0828882)+(0.061254))-Acople_Rodamiento_1_1__x)*(((-0.053192 + bogie_drop)+(-0.086551)+(-0.034916))-Acople_Rodamiento_1_1__z) + (-0.000224*mass_scale) - (0.37221*mass_scale)*(((-0.0509408)+(-0.048079))-Acople_Rodamiento_1_1__x)*(((-0.053192 + bogie_drop)+(-0.043276))-Acople_Rodamiento_1_1__z) + (0.000224*mass_scale) - (0.37221*mass_scale)*(((0.0509408)+(0.04808))-Acople_Rodamiento_1_1__x)*(((-0.053192 + bogie_drop)+(-0.043276))-Acople_Rodamiento_1_1__z) + (0*mass_scale) - (0.240385*mass_scale)*(((-0.0509408)+(-0.0828865)+(-0.0293571)+(0))-Acople_Rodamiento_1_1__x)*(((-0.053192 + bogie_drop)+(-0.086551)+(rk_p74)+(-0.039525))-Acople_Rodamiento_1_1__z) + (0*mass_scale) - (3.81127*mass_scale)*(((-0.0509408)+(-0.0828865)+(-0.0293571)+(0)+(0)+(0))-Acople_Rodamiento_1_1__x)*(((-0.053192 + bogie_drop)+(-0.086551)+(rk_p74)+(rk_p79)+(rk_p58)+(-4.6319285642130973e-07))-Acople_Rodamiento_1_1__z) + (0*mass_scale) - (0.21391*mass_scale)*(((-0.0509408)+(-0.0828865)+(-0.0293571)+(0)+(0))-Acople_Rodamiento_1_1__x)*(((-0.053192 + bogie_drop)+(-0.086551)+(rk_p74)+(rk_p79)+(-0.047494))-Acople_Rodamiento_1_1__z)}"/>
   </inertial>
-  <visual>
-    <origin xyz="-0.472614 0.145509 -0.40627" rpy="0 0 0"/>
-    <geometry>
-      <mesh filename="package://rocker_bogie/meshes/Acople_Rodamiento_1_1.stl" scale="0.001417 0.001164 0.001275"/>
-    </geometry>
-    <material name="silver"/>
-  </visual>
+  <xacro:tubo x1="${0}" y1="${0}" z1="${0}" x2="${(0.0509408)+(0.0828882)+(0.0707323)}" y2="${(-0.0161893)+(0.0000000)+(0.0000000)}" z2="${(-0.053192 + bogie_drop)+(-0.086551)+(rk_p74)}" r="0.020"/>
+  <xacro:tubo x1="${0}" y1="${0}" z1="${0}" x2="${(-0.0509408)+(-0.0828865)+(-0.0293571)}" y2="${(-0.0161893)+(0.0000000)+(0.0000000)}" z2="${(-0.053192 + bogie_drop)+(-0.086551)+(rk_p74)}" r="0.020"/>
+  <xacro:tubo x1="${(-0.0509408)+(-0.0828865)+(-0.0293571)}" y1="${(-0.0161893)+(0.0000000)+(0.0000000)}" z1="${(-0.053192 + bogie_drop)+(-0.086551)+(rk_p74)}" x2="${(-0.0509408)+(-0.0828865)+(-0.0293571)+(0)}" y2="${(-0.0161893)+(0.0000000)+(0.0000000)+(0.0000000)}" z2="${(-0.053192 + bogie_drop)+(-0.086551)+(rk_p74)+(rk_p79)}" r="0.024"/>
+  <xacro:tubo x1="${(-0.0509408)+(-0.0828865)+(-0.0293571)+(0)}" y1="${(-0.0161893)+(0.0000000)+(0.0000000)+(0.0000000)}" z1="${(-0.053192 + bogie_drop)+(-0.086551)+(rk_p74)+(rk_p79)}" x2="${(-0.0509408)+(-0.0828865)+(-0.0293571)+(0)+(0)+(0)}" y2="${(-0.0161893)+(0.0000000)+(0.0000000)+(0.0000000)+(-0.0218551)+(-0.0153792)}" z2="${(-0.053192 + bogie_drop)+(-0.086551)+(rk_p74)+(rk_p79)+(rk_p58)+(0)}" r="0.045"/>
 </link>
 
+<!-- Acople_Rodamiento_2_1: pieza unica desde 2026-09-13.  Fusiona AcopleTubo135_2_1, ApoyoServomotor_3_1, BarraAcople3_1, BarraAcople6_1, BarraRuedas_5_1, Motor_5_1, SoporteMotor_5_1.  Masa, CM e
+     inercia son la suma exacta de las piezas (Steiner al CM comun), en
+     expresiones para que sigan a rocker_drop y bogie_drop. -->
+<xacro:property name="Acople_Rodamiento_2_1__m" value="${(1.39525*mass_scale) + (0.160204*mass_scale) + (0.27687*mass_scale) + (0.37221*mass_scale) + (0.37221*mass_scale) + (0.240385*mass_scale) + (3.81127*mass_scale) + (0.21391*mass_scale)}"/>
+<xacro:property name="Acople_Rodamiento_2_1__x" value="${((1.39525*mass_scale)*((2.5730363188947406e-07)) + (0.160204*mass_scale)*((-0.0509408)+(-0.0828865)+(-0.026766)) + (0.27687*mass_scale)*((0.0509408)+(0.0828882)+(0.061254)) + (0.37221*mass_scale)*((-0.0509408)+(-0.048079)) + (0.37221*mass_scale)*((0.0509408)+(0.04808)) + (0.240385*mass_scale)*((-0.0509408)+(-0.0828865)+(-0.0293571)+(0)) + (3.81127*mass_scale)*((-0.0509408)+(-0.0828865)+(-0.0293571)+(0)+(0)+(0)) + (0.21391*mass_scale)*((-0.0509408)+(-0.0828865)+(-0.0293571)+(0)+(0)))/Acople_Rodamiento_2_1__m}"/>
+<xacro:property name="Acople_Rodamiento_2_1__y" value="${((1.39525*mass_scale)*((0.023282)) + (0.160204*mass_scale)*((0.0161893)+(0.0000000)+(0)) + (0.27687*mass_scale)*((0.0161893)+(0.0000000)+(0)) + (0.37221*mass_scale)*((0.0161893)+(0)) + (0.37221*mass_scale)*((0.0161893)+(0)) + (0.240385*mass_scale)*((0.0161893)+(0.0000000)+(0.0000000)+(0)) + (3.81127*mass_scale)*((0.0161893)+(0.0000000)+(0.0000000)+(0.0000000)+(0.0218551)+(-0.054562)) + (0.21391*mass_scale)*((0.0161893)+(0.0000000)+(0.0000000)+(0.0000000)+(0.004389)))/Acople_Rodamiento_2_1__m}"/>
+<xacro:property name="Acople_Rodamiento_2_1__z" value="${((1.39525*mass_scale)*((-0.002333)) + (0.160204*mass_scale)*((-0.053192 + bogie_drop)+(-0.086551)+(-0.033371)) + (0.27687*mass_scale)*((-0.053192 + bogie_drop)+(-0.086551)+(-0.034916)) + (0.37221*mass_scale)*((-0.053192 + bogie_drop)+(-0.043276)) + (0.37221*mass_scale)*((-0.053192 + bogie_drop)+(-0.043276)) + (0.240385*mass_scale)*((-0.053192 + bogie_drop)+(-0.086551)+(rk_p74)+(-0.039525)) + (3.81127*mass_scale)*((-0.053192 + bogie_drop)+(-0.086551)+(rk_p74)+(rk_p79)+(rk_p58)+(-4.6319285617359156e-07)) + (0.21391*mass_scale)*((-0.053192 + bogie_drop)+(-0.086551)+(rk_p74)+(rk_p79)+(-0.047494)))/Acople_Rodamiento_2_1__m}"/>
 <link name="Acople_Rodamiento_2_1">
   <inertial>
-    <origin xyz="2.5730363188947406e-07 0.023282 -0.002333" rpy="0 0 0"/>
-    <mass value="${1.39525*mass_scale}"/>
-    <inertia ixx="${0.001533*mass_scale}" iyy="${0.002484*mass_scale}" izz="${0.001541*mass_scale}" ixy="${0*mass_scale}" iyz="${0*mass_scale}" ixz="${0*mass_scale}"/>
+    <origin xyz="${Acople_Rodamiento_2_1__x} ${Acople_Rodamiento_2_1__y} ${Acople_Rodamiento_2_1__z}" rpy="0 0 0"/>
+    <mass value="${Acople_Rodamiento_2_1__m}"/>
+    <inertia ixx="${(0.001533*mass_scale) + (1.39525*mass_scale)*((((0.023282))-Acople_Rodamiento_2_1__y)**2 + (((-0.002333))-Acople_Rodamiento_2_1__z)**2) + (0.000096*mass_scale) + (0.160204*mass_scale)*((((0.0161893)+(0.0000000)+(0))-Acople_Rodamiento_2_1__y)**2 + (((-0.053192 + bogie_drop)+(-0.086551)+(-0.033371))-Acople_Rodamiento_2_1__z)**2) + (0.000112*mass_scale) + (0.27687*mass_scale)*((((0.0161893)+(0.0000000)+(0))-Acople_Rodamiento_2_1__y)**2 + (((-0.053192 + bogie_drop)+(-0.086551)+(-0.034916))-Acople_Rodamiento_2_1__z)**2) + (0.000264*mass_scale) + (0.37221*mass_scale)*((((0.0161893)+(0))-Acople_Rodamiento_2_1__y)**2 + (((-0.053192 + bogie_drop)+(-0.043276))-Acople_Rodamiento_2_1__z)**2) + (0.000264*mass_scale) + (0.37221*mass_scale)*((((0.0161893)+(0))-Acople_Rodamiento_2_1__y)**2 + (((-0.053192 + bogie_drop)+(-0.043276))-Acople_Rodamiento_2_1__z)**2) + (0.000136*mass_scale) + (0.240385*mass_scale)*((((0.0161893)+(0.0000000)+(0.0000000)+(0))-Acople_Rodamiento_2_1__y)**2 + (((-0.053192 + bogie_drop)+(-0.086551)+(rk_p74)+(-0.039525))-Acople_Rodamiento_2_1__z)**2) + (0.005415*mass_scale) + (3.81127*mass_scale)*((((0.0161893)+(0.0000000)+(0.0000000)+(0.0000000)+(0.0218551)+(-0.054562))-Acople_Rodamiento_2_1__y)**2 + (((-0.053192 + bogie_drop)+(-0.086551)+(rk_p74)+(rk_p79)+(rk_p58)+(-4.6319285617359156e-07))-Acople_Rodamiento_2_1__z)**2) + (0.000208*mass_scale) + (0.21391*mass_scale)*((((0.0161893)+(0.0000000)+(0.0000000)+(0.0000000)+(0.004389))-Acople_Rodamiento_2_1__y)**2 + (((-0.053192 + bogie_drop)+(-0.086551)+(rk_p74)+(rk_p79)+(-0.047494))-Acople_Rodamiento_2_1__z)**2)}" iyy="${(0.002484*mass_scale) + (1.39525*mass_scale)*((((2.5730363188947406e-07))-Acople_Rodamiento_2_1__x)**2 + (((-0.002333))-Acople_Rodamiento_2_1__z)**2) + (0.000112*mass_scale) + (0.160204*mass_scale)*((((-0.0509408)+(-0.0828865)+(-0.026766))-Acople_Rodamiento_2_1__x)**2 + (((-0.053192 + bogie_drop)+(-0.086551)+(-0.033371))-Acople_Rodamiento_2_1__z)**2) + (0.000415*mass_scale) + (0.27687*mass_scale)*((((0.0509408)+(0.0828882)+(0.061254))-Acople_Rodamiento_2_1__x)**2 + (((-0.053192 + bogie_drop)+(-0.086551)+(-0.034916))-Acople_Rodamiento_2_1__z)**2) + (0.000487*mass_scale) + (0.37221*mass_scale)*((((-0.0509408)+(-0.048079))-Acople_Rodamiento_2_1__x)**2 + (((-0.053192 + bogie_drop)+(-0.043276))-Acople_Rodamiento_2_1__z)**2) + (0.000487*mass_scale) + (0.37221*mass_scale)*((((0.0509408)+(0.04808))-Acople_Rodamiento_2_1__x)**2 + (((-0.053192 + bogie_drop)+(-0.043276))-Acople_Rodamiento_2_1__z)**2) + (0.000136*mass_scale) + (0.240385*mass_scale)*((((-0.0509408)+(-0.0828865)+(-0.0293571)+(0))-Acople_Rodamiento_2_1__x)**2 + (((-0.053192 + bogie_drop)+(-0.086551)+(rk_p74)+(-0.039525))-Acople_Rodamiento_2_1__z)**2) + (0.00099*mass_scale) + (3.81127*mass_scale)*((((-0.0509408)+(-0.0828865)+(-0.0293571)+(0)+(0)+(0))-Acople_Rodamiento_2_1__x)**2 + (((-0.053192 + bogie_drop)+(-0.086551)+(rk_p74)+(rk_p79)+(rk_p58)+(-4.6319285617359156e-07))-Acople_Rodamiento_2_1__z)**2) + (0.0002*mass_scale) + (0.21391*mass_scale)*((((-0.0509408)+(-0.0828865)+(-0.0293571)+(0)+(0))-Acople_Rodamiento_2_1__x)**2 + (((-0.053192 + bogie_drop)+(-0.086551)+(rk_p74)+(rk_p79)+(-0.047494))-Acople_Rodamiento_2_1__z)**2)}" izz="${(0.001541*mass_scale) + (1.39525*mass_scale)*((((2.5730363188947406e-07))-Acople_Rodamiento_2_1__x)**2 + (((0.023282))-Acople_Rodamiento_2_1__y)**2) + (5.5906874999999997e-05*mass_scale) + (0.160204*mass_scale)*((((-0.0509408)+(-0.0828865)+(-0.026766))-Acople_Rodamiento_2_1__x)**2 + (((0.0161893)+(0.0000000)+(0))-Acople_Rodamiento_2_1__y)**2) + (0.000367*mass_scale) + (0.27687*mass_scale)*((((0.0509408)+(0.0828882)+(0.061254))-Acople_Rodamiento_2_1__x)**2 + (((0.0161893)+(0.0000000)+(0))-Acople_Rodamiento_2_1__y)**2) + (0.000264*mass_scale) + (0.37221*mass_scale)*((((-0.0509408)+(-0.048079))-Acople_Rodamiento_2_1__x)**2 + (((0.0161893)+(0))-Acople_Rodamiento_2_1__y)**2) + (0.000264*mass_scale) + (0.37221*mass_scale)*((((0.0509408)+(0.04808))-Acople_Rodamiento_2_1__x)**2 + (((0.0161893)+(0))-Acople_Rodamiento_2_1__y)**2) + (2.396008125e-05*mass_scale) + (0.240385*mass_scale)*((((-0.0509408)+(-0.0828865)+(-0.0293571)+(0))-Acople_Rodamiento_2_1__x)**2 + (((0.0161893)+(0.0000000)+(0.0000000)+(0))-Acople_Rodamiento_2_1__y)**2) + (0.005415*mass_scale) + (3.81127*mass_scale)*((((-0.0509408)+(-0.0828865)+(-0.0293571)+(0)+(0)+(0))-Acople_Rodamiento_2_1__x)**2 + (((0.0161893)+(0.0000000)+(0.0000000)+(0.0000000)+(0.0218551)+(-0.054562))-Acople_Rodamiento_2_1__y)**2) + (0.000136*mass_scale) + (0.21391*mass_scale)*((((-0.0509408)+(-0.0828865)+(-0.0293571)+(0)+(0))-Acople_Rodamiento_2_1__x)**2 + (((0.0161893)+(0.0000000)+(0.0000000)+(0.0000000)+(0.004389))-Acople_Rodamiento_2_1__y)**2)}" ixy="${(0*mass_scale) - (1.39525*mass_scale)*(((2.5730363188947406e-07))-Acople_Rodamiento_2_1__x)*(((0.023282))-Acople_Rodamiento_2_1__y) + (0*mass_scale) - (0.160204*mass_scale)*(((-0.0509408)+(-0.0828865)+(-0.026766))-Acople_Rodamiento_2_1__x)*(((0.0161893)+(0.0000000)+(0))-Acople_Rodamiento_2_1__y) + (0*mass_scale) - (0.27687*mass_scale)*(((0.0509408)+(0.0828882)+(0.061254))-Acople_Rodamiento_2_1__x)*(((0.0161893)+(0.0000000)+(0))-Acople_Rodamiento_2_1__y) + (0*mass_scale) - (0.37221*mass_scale)*(((-0.0509408)+(-0.048079))-Acople_Rodamiento_2_1__x)*(((0.0161893)+(0))-Acople_Rodamiento_2_1__y) + (0*mass_scale) - (0.37221*mass_scale)*(((0.0509408)+(0.04808))-Acople_Rodamiento_2_1__x)*(((0.0161893)+(0))-Acople_Rodamiento_2_1__y) + (0*mass_scale) - (0.240385*mass_scale)*(((-0.0509408)+(-0.0828865)+(-0.0293571)+(0))-Acople_Rodamiento_2_1__x)*(((0.0161893)+(0.0000000)+(0.0000000)+(0))-Acople_Rodamiento_2_1__y) + (0*mass_scale) - (3.81127*mass_scale)*(((-0.0509408)+(-0.0828865)+(-0.0293571)+(0)+(0)+(0))-Acople_Rodamiento_2_1__x)*(((0.0161893)+(0.0000000)+(0.0000000)+(0.0000000)+(0.0218551)+(-0.054562))-Acople_Rodamiento_2_1__y) + (0*mass_scale) - (0.21391*mass_scale)*(((-0.0509408)+(-0.0828865)+(-0.0293571)+(0)+(0))-Acople_Rodamiento_2_1__x)*(((0.0161893)+(0.0000000)+(0.0000000)+(0.0000000)+(0.004389))-Acople_Rodamiento_2_1__y)}" iyz="${(0*mass_scale) - (1.39525*mass_scale)*(((0.023282))-Acople_Rodamiento_2_1__y)*(((-0.002333))-Acople_Rodamiento_2_1__z) + (0*mass_scale) - (0.160204*mass_scale)*(((0.0161893)+(0.0000000)+(0))-Acople_Rodamiento_2_1__y)*(((-0.053192 + bogie_drop)+(-0.086551)+(-0.033371))-Acople_Rodamiento_2_1__z) + (0*mass_scale) - (0.27687*mass_scale)*(((0.0161893)+(0.0000000)+(0))-Acople_Rodamiento_2_1__y)*(((-0.053192 + bogie_drop)+(-0.086551)+(-0.034916))-Acople_Rodamiento_2_1__z) + (0*mass_scale) - (0.37221*mass_scale)*(((0.0161893)+(0))-Acople_Rodamiento_2_1__y)*(((-0.053192 + bogie_drop)+(-0.043276))-Acople_Rodamiento_2_1__z) + (0*mass_scale) - (0.37221*mass_scale)*(((0.0161893)+(0))-Acople_Rodamiento_2_1__y)*(((-0.053192 + bogie_drop)+(-0.043276))-Acople_Rodamiento_2_1__z) + (0*mass_scale) - (0.240385*mass_scale)*(((0.0161893)+(0.0000000)+(0.0000000)+(0))-Acople_Rodamiento_2_1__y)*(((-0.053192 + bogie_drop)+(-0.086551)+(rk_p74)+(-0.039525))-Acople_Rodamiento_2_1__z) + (0*mass_scale) - (3.81127*mass_scale)*(((0.0161893)+(0.0000000)+(0.0000000)+(0.0000000)+(0.0218551)+(-0.054562))-Acople_Rodamiento_2_1__y)*(((-0.053192 + bogie_drop)+(-0.086551)+(rk_p74)+(rk_p79)+(rk_p58)+(-4.6319285617359156e-07))-Acople_Rodamiento_2_1__z) + (7.9867125e-06*mass_scale) - (0.21391*mass_scale)*(((0.0161893)+(0.0000000)+(0.0000000)+(0.0000000)+(0.004389))-Acople_Rodamiento_2_1__y)*(((-0.053192 + bogie_drop)+(-0.086551)+(rk_p74)+(rk_p79)+(-0.047494))-Acople_Rodamiento_2_1__z)}" ixz="${(0*mass_scale) - (1.39525*mass_scale)*(((2.5730363188947406e-07))-Acople_Rodamiento_2_1__x)*(((-0.002333))-Acople_Rodamiento_2_1__z) + (-2.396008125e-05*mass_scale) - (0.160204*mass_scale)*(((-0.0509408)+(-0.0828865)+(-0.026766))-Acople_Rodamiento_2_1__x)*(((-0.053192 + bogie_drop)+(-0.086551)+(-0.033371))-Acople_Rodamiento_2_1__z) + (0.000096*mass_scale) - (0.27687*mass_scale)*(((0.0509408)+(0.0828882)+(0.061254))-Acople_Rodamiento_2_1__x)*(((-0.053192 + bogie_drop)+(-0.086551)+(-0.034916))-Acople_Rodamiento_2_1__z) + (-0.000224*mass_scale) - (0.37221*mass_scale)*(((-0.0509408)+(-0.048079))-Acople_Rodamiento_2_1__x)*(((-0.053192 + bogie_drop)+(-0.043276))-Acople_Rodamiento_2_1__z) + (0.000224*mass_scale) - (0.37221*mass_scale)*(((0.0509408)+(0.04808))-Acople_Rodamiento_2_1__x)*(((-0.053192 + bogie_drop)+(-0.043276))-Acople_Rodamiento_2_1__z) + (0*mass_scale) - (0.240385*mass_scale)*(((-0.0509408)+(-0.0828865)+(-0.0293571)+(0))-Acople_Rodamiento_2_1__x)*(((-0.053192 + bogie_drop)+(-0.086551)+(rk_p74)+(-0.039525))-Acople_Rodamiento_2_1__z) + (0*mass_scale) - (3.81127*mass_scale)*(((-0.0509408)+(-0.0828865)+(-0.0293571)+(0)+(0)+(0))-Acople_Rodamiento_2_1__x)*(((-0.053192 + bogie_drop)+(-0.086551)+(rk_p74)+(rk_p79)+(rk_p58)+(-4.6319285617359156e-07))-Acople_Rodamiento_2_1__z) + (0*mass_scale) - (0.21391*mass_scale)*(((-0.0509408)+(-0.0828865)+(-0.0293571)+(0)+(0))-Acople_Rodamiento_2_1__x)*(((-0.053192 + bogie_drop)+(-0.086551)+(rk_p74)+(rk_p79)+(-0.047494))-Acople_Rodamiento_2_1__z)}"/>
   </inertial>
-  <visual>
-    <origin xyz="-0.472614 -0.378324 -0.40627" rpy="0 0 0"/>
-    <geometry>
-      <mesh filename="package://rocker_bogie/meshes/Acople_Rodamiento_2_1.stl" scale="0.001417 0.001164 0.001275"/>
-    </geometry>
-    <material name="silver"/>
-  </visual>
+  <xacro:tubo x1="${0}" y1="${0}" z1="${0}" x2="${(0.0509408)+(0.0828882)+(0.0707323)}" y2="${(0.0161893)+(0.0000000)+(0.0000000)}" z2="${(-0.053192 + bogie_drop)+(-0.086551)+(rk_p74)}" r="0.020"/>
+  <xacro:tubo x1="${0}" y1="${0}" z1="${0}" x2="${(-0.0509408)+(-0.0828865)+(-0.0293571)}" y2="${(0.0161893)+(0.0000000)+(0.0000000)}" z2="${(-0.053192 + bogie_drop)+(-0.086551)+(rk_p74)}" r="0.020"/>
+  <xacro:tubo x1="${(-0.0509408)+(-0.0828865)+(-0.0293571)}" y1="${(0.0161893)+(0.0000000)+(0.0000000)}" z1="${(-0.053192 + bogie_drop)+(-0.086551)+(rk_p74)}" x2="${(-0.0509408)+(-0.0828865)+(-0.0293571)+(0)}" y2="${(0.0161893)+(0.0000000)+(0.0000000)+(0.0000000)}" z2="${(-0.053192 + bogie_drop)+(-0.086551)+(rk_p74)+(rk_p79)}" r="0.024"/>
+  <xacro:tubo x1="${(-0.0509408)+(-0.0828865)+(-0.0293571)+(0)}" y1="${(0.0161893)+(0.0000000)+(0.0000000)+(0.0000000)}" z1="${(-0.053192 + bogie_drop)+(-0.086551)+(rk_p74)+(rk_p79)}" x2="${(-0.0509408)+(-0.0828865)+(-0.0293571)+(0)+(0)+(0)}" y2="${(0.0161893)+(0.0000000)+(0.0000000)+(0.0000000)+(0.0218551)+(0.0153792)}" z2="${(-0.053192 + bogie_drop)+(-0.086551)+(rk_p74)+(rk_p79)+(rk_p58)+(0)}" r="0.045"/>
 </link>
 
-<link name="BarraAcople3_1">
-  <inertial>
-    <origin xyz="-0.048079 0 -0.043276" rpy="0 0 0"/>
-    <mass value="${0.37221*mass_scale}"/>
-    <inertia ixx="${0.000264*mass_scale}" iyy="${0.000487*mass_scale}" izz="${0.000264*mass_scale}" ixy="${0*mass_scale}" iyz="${0*mass_scale}" ixz="${-0.000224*mass_scale}"/>
-  </inertial>
-  <visual>
-    <origin xyz="-0.413518 -0.401606 -0.353078" rpy="0 0 0"/>
-    <geometry>
-      <mesh filename="package://rocker_bogie/meshes/BarraAcople3_1.stl" scale="0.001417 0.001164 0.001275"/>
-    </geometry>
-    <material name="silver"/>
-  </visual>
-</link>
 
-<link name="BarraAcople4_1">
-  <inertial>
-    <origin xyz="-0.048079 0 -0.043276" rpy="0 0 0"/>
-    <mass value="${0.37221*mass_scale}"/>
-    <inertia ixx="${0.000264*mass_scale}" iyy="${0.000487*mass_scale}" izz="${0.000264*mass_scale}" ixy="${0*mass_scale}" iyz="${0*mass_scale}" ixz="${-0.000224*mass_scale}"/>
-  </inertial>
-  <visual>
-    <origin xyz="-0.413518 0.168791 -0.353078" rpy="0 0 0"/>
-    <geometry>
-      <mesh filename="package://rocker_bogie/meshes/BarraAcople4_1.stl" scale="0.001417 0.001164 0.001275"/>
-    </geometry>
-    <material name="silver"/>
-  </visual>
-</link>
 
-<link name="BarraAcople5_1">
-  <inertial>
-    <origin xyz="0.04808 0 -0.043276" rpy="0 0 0"/>
-    <mass value="${0.37221*mass_scale}"/>
-    <inertia ixx="${0.000264*mass_scale}" iyy="${0.000487*mass_scale}" izz="${0.000264*mass_scale}" ixy="${0*mass_scale}" iyz="${0*mass_scale}" ixz="${0.000224*mass_scale}"/>
-  </inertial>
-  <visual>
-    <origin xyz="-0.531709 0.168791 -0.353078" rpy="0 0 0"/>
-    <geometry>
-      <mesh filename="package://rocker_bogie/meshes/BarraAcople5_1.stl" scale="0.001417 0.001164 0.001275"/>
-    </geometry>
-    <material name="silver"/>
-  </visual>
-</link>
 
-<link name="BarraAcople6_1">
-  <inertial>
-    <origin xyz="0.04808 0 -0.043276" rpy="0 0 0"/>
-    <mass value="${0.37221*mass_scale}"/>
-    <inertia ixx="${0.000264*mass_scale}" iyy="${0.000487*mass_scale}" izz="${0.000264*mass_scale}" ixy="${0*mass_scale}" iyz="${0*mass_scale}" ixz="${0.000224*mass_scale}"/>
-  </inertial>
-  <visual>
-    <origin xyz="-0.531709 -0.401606 -0.353078" rpy="0 0 0"/>
-    <geometry>
-      <mesh filename="package://rocker_bogie/meshes/BarraAcople6_1.stl" scale="0.001417 0.001164 0.001275"/>
-    </geometry>
-    <material name="silver"/>
-  </visual>
-</link>
 
-<link name="AcopleTubo135_1_1">
-  <inertial>
-    <origin xyz="-0.026766 0 -0.033371" rpy="0 0 0"/>
-    <mass value="${0.160204*mass_scale}"/>
-    <inertia ixx="${0.000096*mass_scale}" iyy="${0.000112*mass_scale}" izz="${5.5906874999999997e-05*mass_scale}" ixy="${0*mass_scale}" iyz="${0*mass_scale}" ixz="${-2.396008125e-05*mass_scale}"/>
-  </inertial>
-  <visual>
-    <origin xyz="-0.31736 0.168791 -0.266528" rpy="0 0 0"/>
-    <geometry>
-      <mesh filename="package://rocker_bogie/meshes/AcopleTubo135_1_1.stl" scale="0.001417 0.001164 0.001275"/>
-    </geometry>
-    <material name="silver"/>
-  </visual>
-</link>
 
-<link name="AcopleTubo135_2_1">
-  <inertial>
-    <origin xyz="-0.026766 0 -0.033371" rpy="0 0 0"/>
-    <mass value="${0.160204*mass_scale}"/>
-    <inertia ixx="${0.000096*mass_scale}" iyy="${0.000112*mass_scale}" izz="${5.5906874999999997e-05*mass_scale}" ixy="${0*mass_scale}" iyz="${0*mass_scale}" ixz="${-2.396008125e-05*mass_scale}"/>
-  </inertial>
-  <visual>
-    <origin xyz="-0.31736 -0.401606 -0.266528" rpy="0 0 0"/>
-    <geometry>
-      <mesh filename="package://rocker_bogie/meshes/AcopleTubo135_2_1.stl" scale="0.001417 0.001164 0.001275"/>
-    </geometry>
-    <material name="silver"/>
-  </visual>
-</link>
 
-<link name="ApoyoServomotor_1_1">
-  <inertial>
-    <origin xyz="-0.061254 0 -0.034916" rpy="0 0 0"/>
-    <mass value="${0.27687*mass_scale}"/>
-    <inertia ixx="${0.000112*mass_scale}" iyy="${0.000415*mass_scale}" izz="${0.000367*mass_scale}" ixy="${0*mass_scale}" iyz="${0*mass_scale}" ixz="${-0.000096*mass_scale}"/>
-  </inertial>
-  <visual>
-    <origin xyz="0.061257 0.075665 -0.266528" rpy="0 0 0"/>
-    <geometry>
-      <mesh filename="package://rocker_bogie/meshes/ApoyoServomotor_1_1.stl" scale="0.001417 0.001164 0.001275"/>
-    </geometry>
-    <material name="silver"/>
-  </visual>
-</link>
 
-<link name="ApoyoServomotor_2_1">
-  <inertial>
-    <origin xyz="-0.061254 0 -0.034916" rpy="0 0 0"/>
-    <mass value="${0.27687*mass_scale}"/>
-    <inertia ixx="${0.000112*mass_scale}" iyy="${0.000415*mass_scale}" izz="${0.000367*mass_scale}" ixy="${0*mass_scale}" iyz="${0*mass_scale}" ixz="${-0.000096*mass_scale}"/>
-  </inertial>
-  <visual>
-    <origin xyz="0.061257 -0.30848 -0.266528" rpy="0 0 0"/>
-    <geometry>
-      <mesh filename="package://rocker_bogie/meshes/ApoyoServomotor_2_1.stl" scale="0.001417 0.001164 0.001275"/>
-    </geometry>
-    <material name="silver"/>
-  </visual>
-</link>
 
-<link name="ApoyoServomotor_3_1">
-  <inertial>
-    <origin xyz="0.061254 0 -0.034916" rpy="0 0 0"/>
-    <mass value="${0.27687*mass_scale}"/>
-    <inertia ixx="${0.000112*mass_scale}" iyy="${0.000415*mass_scale}" izz="${0.000367*mass_scale}" ixy="${0*mass_scale}" iyz="${0*mass_scale}" ixz="${0.000096*mass_scale}"/>
-  </inertial>
-  <visual>
-    <origin xyz="-0.627868 -0.401606 -0.266528" rpy="0 0 0"/>
-    <geometry>
-      <mesh filename="package://rocker_bogie/meshes/ApoyoServomotor_3_1.stl" scale="0.001417 0.001164 0.001275"/>
-    </geometry>
-    <material name="silver"/>
-  </visual>
-</link>
 
-<link name="ApoyoServomotor_4_1">
-  <inertial>
-    <origin xyz="0.061254 0 -0.034916" rpy="0 0 0"/>
-    <mass value="${0.27687*mass_scale}"/>
-    <inertia ixx="${0.000112*mass_scale}" iyy="${0.000415*mass_scale}" izz="${0.000367*mass_scale}" ixy="${0*mass_scale}" iyz="${0*mass_scale}" ixz="${0.000096*mass_scale}"/>
-  </inertial>
-  <visual>
-    <origin xyz="-0.627868 0.168791 -0.266528" rpy="0 0 0"/>
-    <geometry>
-      <mesh filename="package://rocker_bogie/meshes/ApoyoServomotor_4_1.stl" scale="0.001417 0.001164 0.001275"/>
-    </geometry>
-    <material name="silver"/>
-  </visual>
-</link>
 
+<!-- BarraRuedas_1_1: pieza unica desde 2026-09-13.  Fusiona Motor_1_1, SoporteMotor_1_1.  Masa, CM e
+     inercia son la suma exacta de las piezas (Steiner al CM comun), en
+     expresiones para que sigan a rocker_drop y bogie_drop. -->
+<xacro:property name="BarraRuedas_1_1__m" value="${(0.240385*mass_scale) + (3.81127*mass_scale) + (0.21391*mass_scale)}"/>
+<xacro:property name="BarraRuedas_1_1__x" value="${((0.240385*mass_scale)*((-5.1460726387724e-07)) + (3.81127*mass_scale)*((0)+(0)+(-5.146072487797164e-07)) + (0.21391*mass_scale)*((0)+(-5.146072897081591e-07)))/BarraRuedas_1_1__m}"/>
+<xacro:property name="BarraRuedas_1_1__y" value="${((0.240385*mass_scale)*((0)) + (3.81127*mass_scale)*((0.0000000)+(-0.0218551)+(0.054562)) + (0.21391*mass_scale)*((0.0000000)+(-0.004389)))/BarraRuedas_1_1__m}"/>
+<xacro:property name="BarraRuedas_1_1__z" value="${((0.240385*mass_scale)*((-0.039525)) + (3.81127*mass_scale)*((rk_p79)+(rk_p58)+(-4.63192856651334e-07)) + (0.21391*mass_scale)*((rk_p79)+(-0.047494)))/BarraRuedas_1_1__m}"/>
 <link name="BarraRuedas_1_1">
   <inertial>
-    <origin xyz="-5.1460726387724e-07 0 -0.039525" rpy="0 0 0"/>
-    <mass value="${0.240385*mass_scale}"/>
-    <inertia ixx="${0.000136*mass_scale}" iyy="${0.000136*mass_scale}" izz="${2.396008125e-05*mass_scale}" ixy="${0*mass_scale}" iyz="${0*mass_scale}" ixz="${0*mass_scale}"/>
+    <origin xyz="${BarraRuedas_1_1__x} ${BarraRuedas_1_1__y} ${BarraRuedas_1_1__z}" rpy="0 0 0"/>
+    <mass value="${BarraRuedas_1_1__m}"/>
+    <inertia ixx="${(0.000136*mass_scale) + (0.240385*mass_scale)*((((0))-BarraRuedas_1_1__y)**2 + (((-0.039525))-BarraRuedas_1_1__z)**2) + (0.005415*mass_scale) + (3.81127*mass_scale)*((((0.0000000)+(-0.0218551)+(0.054562))-BarraRuedas_1_1__y)**2 + (((rk_p79)+(rk_p58)+(-4.63192856651334e-07))-BarraRuedas_1_1__z)**2) + (0.000208*mass_scale) + (0.21391*mass_scale)*((((0.0000000)+(-0.004389))-BarraRuedas_1_1__y)**2 + (((rk_p79)+(-0.047494))-BarraRuedas_1_1__z)**2)}" iyy="${(0.000136*mass_scale) + (0.240385*mass_scale)*((((-5.1460726387724e-07))-BarraRuedas_1_1__x)**2 + (((-0.039525))-BarraRuedas_1_1__z)**2) + (0.00099*mass_scale) + (3.81127*mass_scale)*((((0)+(0)+(-5.146072487797164e-07))-BarraRuedas_1_1__x)**2 + (((rk_p79)+(rk_p58)+(-4.63192856651334e-07))-BarraRuedas_1_1__z)**2) + (0.0002*mass_scale) + (0.21391*mass_scale)*((((0)+(-5.146072897081591e-07))-BarraRuedas_1_1__x)**2 + (((rk_p79)+(-0.047494))-BarraRuedas_1_1__z)**2)}" izz="${(2.396008125e-05*mass_scale) + (0.240385*mass_scale)*((((-5.1460726387724e-07))-BarraRuedas_1_1__x)**2 + (((0))-BarraRuedas_1_1__y)**2) + (0.005415*mass_scale) + (3.81127*mass_scale)*((((0)+(0)+(-5.146072487797164e-07))-BarraRuedas_1_1__x)**2 + (((0.0000000)+(-0.0218551)+(0.054562))-BarraRuedas_1_1__y)**2) + (0.000136*mass_scale) + (0.21391*mass_scale)*((((0)+(-5.146072897081591e-07))-BarraRuedas_1_1__x)**2 + (((0.0000000)+(-0.004389))-BarraRuedas_1_1__y)**2)}" ixy="${(0*mass_scale) - (0.240385*mass_scale)*(((-5.1460726387724e-07))-BarraRuedas_1_1__x)*(((0))-BarraRuedas_1_1__y) + (0*mass_scale) - (3.81127*mass_scale)*(((0)+(0)+(-5.146072487797164e-07))-BarraRuedas_1_1__x)*(((0.0000000)+(-0.0218551)+(0.054562))-BarraRuedas_1_1__y) + (0*mass_scale) - (0.21391*mass_scale)*(((0)+(-5.146072897081591e-07))-BarraRuedas_1_1__x)*(((0.0000000)+(-0.004389))-BarraRuedas_1_1__y)}" iyz="${(0*mass_scale) - (0.240385*mass_scale)*(((0))-BarraRuedas_1_1__y)*(((-0.039525))-BarraRuedas_1_1__z) + (0*mass_scale) - (3.81127*mass_scale)*(((0.0000000)+(-0.0218551)+(0.054562))-BarraRuedas_1_1__y)*(((rk_p79)+(rk_p58)+(-4.63192856651334e-07))-BarraRuedas_1_1__z) + (-7.9867125e-06*mass_scale) - (0.21391*mass_scale)*(((0.0000000)+(-0.004389))-BarraRuedas_1_1__y)*(((rk_p79)+(-0.047494))-BarraRuedas_1_1__z)}" ixz="${(0*mass_scale) - (0.240385*mass_scale)*(((-5.1460726387724e-07))-BarraRuedas_1_1__x)*(((-0.039525))-BarraRuedas_1_1__z) + (0*mass_scale) - (3.81127*mass_scale)*(((0)+(0)+(-5.146072487797164e-07))-BarraRuedas_1_1__x)*(((rk_p79)+(rk_p58)+(-4.63192856651334e-07))-BarraRuedas_1_1__z) + (0*mass_scale) - (0.21391*mass_scale)*(((0)+(-5.146072897081591e-07))-BarraRuedas_1_1__x)*(((rk_p79)+(-0.047494))-BarraRuedas_1_1__z)}"/>
   </inertial>
-  <visual>
-    <origin xyz="0.143315 0.075665 -0.192525" rpy="0 0 0"/>
-    <geometry>
-      <mesh filename="package://rocker_bogie/meshes/BarraRuedas_1_1.stl" scale="0.001417 0.001164 0.001275"/>
-    </geometry>
-    <material name="silver"/>
-  </visual>
+  <xacro:tubo x1="${0}" y1="${0}" z1="${0}" x2="${(0)}" y2="${(0.0000000)}" z2="${(rk_p79)}" r="0.024"/>
+  <xacro:tubo x1="${(0)}" y1="${(0.0000000)}" z1="${(rk_p79)}" x2="${(0)+(0)+(0)}" y2="${(0.0000000)+(-0.0218551)+(-0.0153792)}" z2="${(rk_p79)+(rk_p58)+(0)}" r="0.045"/>
 </link>
 
-<link name="BarraRuedas_2_1">
-  <inertial>
-    <origin xyz="0 0 -0.039525" rpy="0 0 0"/>
-    <mass value="${0.240385*mass_scale}"/>
-    <inertia ixx="${0.000136*mass_scale}" iyy="${0.000136*mass_scale}" izz="${2.396008125e-05*mass_scale}" ixy="${0*mass_scale}" iyz="${0*mass_scale}" ixz="${0*mass_scale}"/>
-  </inertial>
-  <visual>
-    <origin xyz="-0.283305 0.168791 -0.192525" rpy="0 0 0"/>
-    <geometry>
-      <mesh filename="package://rocker_bogie/meshes/BarraRuedas_2_1.stl" scale="0.001417 0.001164 0.001275"/>
-    </geometry>
-    <material name="silver"/>
-  </visual>
-</link>
 
+<!-- BarraRuedas_3_1: pieza unica desde 2026-09-13.  Fusiona Motor_3_1, SoporteMotor_4_1.  Masa, CM e
+     inercia son la suma exacta de las piezas (Steiner al CM comun), en
+     expresiones para que sigan a rocker_drop y bogie_drop. -->
+<xacro:property name="BarraRuedas_3_1__m" value="${(0.240385*mass_scale) + (3.81127*mass_scale) + (0.21391*mass_scale)}"/>
+<xacro:property name="BarraRuedas_3_1__x" value="${((0.240385*mass_scale)*((5.146072640934809e-07)) + (3.81127*mass_scale)*((0)+(0)+(5.146072791910043e-07)) + (0.21391*mass_scale)*((0)+(5.146072383018786e-07)))/BarraRuedas_3_1__m}"/>
+<xacro:property name="BarraRuedas_3_1__y" value="${((0.240385*mass_scale)*((0)) + (3.81127*mass_scale)*((0.0000000)+(-0.0218551)+(0.054562)) + (0.21391*mass_scale)*((0.0000000)+(-0.004389)))/BarraRuedas_3_1__m}"/>
+<xacro:property name="BarraRuedas_3_1__z" value="${((0.240385*mass_scale)*((-0.039525)) + (3.81127*mass_scale)*((rk_p79)+(rk_p58)+(-4.6319285629745096e-07)) + (0.21391*mass_scale)*((rk_p79)+(-0.047494)))/BarraRuedas_3_1__m}"/>
 <link name="BarraRuedas_3_1">
   <inertial>
-    <origin xyz="5.146072640934809e-07 0 -0.039525" rpy="0 0 0"/>
-    <mass value="${0.240385*mass_scale}"/>
-    <inertia ixx="${0.000136*mass_scale}" iyy="${0.000136*mass_scale}" izz="${2.396008125e-05*mass_scale}" ixy="${0*mass_scale}" iyz="${0*mass_scale}" ixz="${0*mass_scale}"/>
+    <origin xyz="${BarraRuedas_3_1__x} ${BarraRuedas_3_1__y} ${BarraRuedas_3_1__z}" rpy="0 0 0"/>
+    <mass value="${BarraRuedas_3_1__m}"/>
+    <inertia ixx="${(0.000136*mass_scale) + (0.240385*mass_scale)*((((0))-BarraRuedas_3_1__y)**2 + (((-0.039525))-BarraRuedas_3_1__z)**2) + (0.005415*mass_scale) + (3.81127*mass_scale)*((((0.0000000)+(-0.0218551)+(0.054562))-BarraRuedas_3_1__y)**2 + (((rk_p79)+(rk_p58)+(-4.6319285629745096e-07))-BarraRuedas_3_1__z)**2) + (0.000208*mass_scale) + (0.21391*mass_scale)*((((0.0000000)+(-0.004389))-BarraRuedas_3_1__y)**2 + (((rk_p79)+(-0.047494))-BarraRuedas_3_1__z)**2)}" iyy="${(0.000136*mass_scale) + (0.240385*mass_scale)*((((5.146072640934809e-07))-BarraRuedas_3_1__x)**2 + (((-0.039525))-BarraRuedas_3_1__z)**2) + (0.00099*mass_scale) + (3.81127*mass_scale)*((((0)+(0)+(5.146072791910043e-07))-BarraRuedas_3_1__x)**2 + (((rk_p79)+(rk_p58)+(-4.6319285629745096e-07))-BarraRuedas_3_1__z)**2) + (0.0002*mass_scale) + (0.21391*mass_scale)*((((0)+(5.146072383018786e-07))-BarraRuedas_3_1__x)**2 + (((rk_p79)+(-0.047494))-BarraRuedas_3_1__z)**2)}" izz="${(2.396008125e-05*mass_scale) + (0.240385*mass_scale)*((((5.146072640934809e-07))-BarraRuedas_3_1__x)**2 + (((0))-BarraRuedas_3_1__y)**2) + (0.005415*mass_scale) + (3.81127*mass_scale)*((((0)+(0)+(5.146072791910043e-07))-BarraRuedas_3_1__x)**2 + (((0.0000000)+(-0.0218551)+(0.054562))-BarraRuedas_3_1__y)**2) + (0.000136*mass_scale) + (0.21391*mass_scale)*((((0)+(5.146072383018786e-07))-BarraRuedas_3_1__x)**2 + (((0.0000000)+(-0.004389))-BarraRuedas_3_1__y)**2)}" ixy="${(0*mass_scale) - (0.240385*mass_scale)*(((5.146072640934809e-07))-BarraRuedas_3_1__x)*(((0))-BarraRuedas_3_1__y) + (0*mass_scale) - (3.81127*mass_scale)*(((0)+(0)+(5.146072791910043e-07))-BarraRuedas_3_1__x)*(((0.0000000)+(-0.0218551)+(0.054562))-BarraRuedas_3_1__y) + (0*mass_scale) - (0.21391*mass_scale)*(((0)+(5.146072383018786e-07))-BarraRuedas_3_1__x)*(((0.0000000)+(-0.004389))-BarraRuedas_3_1__y)}" iyz="${(0*mass_scale) - (0.240385*mass_scale)*(((0))-BarraRuedas_3_1__y)*(((-0.039525))-BarraRuedas_3_1__z) + (0*mass_scale) - (3.81127*mass_scale)*(((0.0000000)+(-0.0218551)+(0.054562))-BarraRuedas_3_1__y)*(((rk_p79)+(rk_p58)+(-4.6319285629745096e-07))-BarraRuedas_3_1__z) + (-7.9867125e-06*mass_scale) - (0.21391*mass_scale)*(((0.0000000)+(-0.004389))-BarraRuedas_3_1__y)*(((rk_p79)+(-0.047494))-BarraRuedas_3_1__z)}" ixz="${(0*mass_scale) - (0.240385*mass_scale)*(((5.146072640934809e-07))-BarraRuedas_3_1__x)*(((-0.039525))-BarraRuedas_3_1__z) + (0*mass_scale) - (3.81127*mass_scale)*(((0)+(0)+(5.146072791910043e-07))-BarraRuedas_3_1__x)*(((rk_p79)+(rk_p58)+(-4.6319285629745096e-07))-BarraRuedas_3_1__z) + (0*mass_scale) - (0.21391*mass_scale)*(((0)+(5.146072383018786e-07))-BarraRuedas_3_1__x)*(((rk_p79)+(-0.047494))-BarraRuedas_3_1__z)}"/>
   </inertial>
-  <visual>
-    <origin xyz="-0.709925 0.168791 -0.192525" rpy="0 0 0"/>
-    <geometry>
-      <mesh filename="package://rocker_bogie/meshes/BarraRuedas_3_1.stl" scale="0.001417 0.001164 0.001275"/>
-    </geometry>
-    <material name="silver"/>
-  </visual>
+  <xacro:tubo x1="${0}" y1="${0}" z1="${0}" x2="${(0)}" y2="${(0.0000000)}" z2="${(rk_p79)}" r="0.024"/>
+  <xacro:tubo x1="${(0)}" y1="${(0.0000000)}" z1="${(rk_p79)}" x2="${(0)+(0)+(0)}" y2="${(0.0000000)+(-0.0218551)+(-0.0153792)}" z2="${(rk_p79)+(rk_p58)+(0)}" r="0.045"/>
 </link>
 
+<!-- BarraRuedas_4_1: pieza unica desde 2026-09-13.  Fusiona Motor_6_1, SoporteMotor_3_1.  Masa, CM e
+     inercia son la suma exacta de las piezas (Steiner al CM comun), en
+     expresiones para que sigan a rocker_drop y bogie_drop. -->
+<xacro:property name="BarraRuedas_4_1__m" value="${(0.240385*mass_scale) + (3.81127*mass_scale) + (0.21391*mass_scale)}"/>
+<xacro:property name="BarraRuedas_4_1__x" value="${((0.240385*mass_scale)*((-5.146072639558729e-07)) + (3.81127*mass_scale)*((0)+(0)+(-5.146072789354465e-07)) + (0.21391*mass_scale)*((0)+(-5.146072376924728e-07)))/BarraRuedas_4_1__m}"/>
+<xacro:property name="BarraRuedas_4_1__y" value="${((0.240385*mass_scale)*((0)) + (3.81127*mass_scale)*((0.0000000)+(0.0218551)+(-0.054562)) + (0.21391*mass_scale)*((0.0000000)+(0.004389)))/BarraRuedas_4_1__m}"/>
+<xacro:property name="BarraRuedas_4_1__z" value="${((0.240385*mass_scale)*((-0.039525)) + (3.81127*mass_scale)*((rk_p79)+(rk_p58)+(-4.6319285612050874e-07)) + (0.21391*mass_scale)*((rk_p79)+(-0.047494)))/BarraRuedas_4_1__m}"/>
 <link name="BarraRuedas_4_1">
   <inertial>
-    <origin xyz="-5.146072639558729e-07 0 -0.039525" rpy="0 0 0"/>
-    <mass value="${0.240385*mass_scale}"/>
-    <inertia ixx="${0.000136*mass_scale}" iyy="${0.000136*mass_scale}" izz="${2.396008125e-05*mass_scale}" ixy="${0*mass_scale}" iyz="${0*mass_scale}" ixz="${0*mass_scale}"/>
+    <origin xyz="${BarraRuedas_4_1__x} ${BarraRuedas_4_1__y} ${BarraRuedas_4_1__z}" rpy="0 0 0"/>
+    <mass value="${BarraRuedas_4_1__m}"/>
+    <inertia ixx="${(0.000136*mass_scale) + (0.240385*mass_scale)*((((0))-BarraRuedas_4_1__y)**2 + (((-0.039525))-BarraRuedas_4_1__z)**2) + (0.005415*mass_scale) + (3.81127*mass_scale)*((((0.0000000)+(0.0218551)+(-0.054562))-BarraRuedas_4_1__y)**2 + (((rk_p79)+(rk_p58)+(-4.6319285612050874e-07))-BarraRuedas_4_1__z)**2) + (0.000208*mass_scale) + (0.21391*mass_scale)*((((0.0000000)+(0.004389))-BarraRuedas_4_1__y)**2 + (((rk_p79)+(-0.047494))-BarraRuedas_4_1__z)**2)}" iyy="${(0.000136*mass_scale) + (0.240385*mass_scale)*((((-5.146072639558729e-07))-BarraRuedas_4_1__x)**2 + (((-0.039525))-BarraRuedas_4_1__z)**2) + (0.00099*mass_scale) + (3.81127*mass_scale)*((((0)+(0)+(-5.146072789354465e-07))-BarraRuedas_4_1__x)**2 + (((rk_p79)+(rk_p58)+(-4.6319285612050874e-07))-BarraRuedas_4_1__z)**2) + (0.0002*mass_scale) + (0.21391*mass_scale)*((((0)+(-5.146072376924728e-07))-BarraRuedas_4_1__x)**2 + (((rk_p79)+(-0.047494))-BarraRuedas_4_1__z)**2)}" izz="${(2.396008125e-05*mass_scale) + (0.240385*mass_scale)*((((-5.146072639558729e-07))-BarraRuedas_4_1__x)**2 + (((0))-BarraRuedas_4_1__y)**2) + (0.005415*mass_scale) + (3.81127*mass_scale)*((((0)+(0)+(-5.146072789354465e-07))-BarraRuedas_4_1__x)**2 + (((0.0000000)+(0.0218551)+(-0.054562))-BarraRuedas_4_1__y)**2) + (0.000136*mass_scale) + (0.21391*mass_scale)*((((0)+(-5.146072376924728e-07))-BarraRuedas_4_1__x)**2 + (((0.0000000)+(0.004389))-BarraRuedas_4_1__y)**2)}" ixy="${(0*mass_scale) - (0.240385*mass_scale)*(((-5.146072639558729e-07))-BarraRuedas_4_1__x)*(((0))-BarraRuedas_4_1__y) + (0*mass_scale) - (3.81127*mass_scale)*(((0)+(0)+(-5.146072789354465e-07))-BarraRuedas_4_1__x)*(((0.0000000)+(0.0218551)+(-0.054562))-BarraRuedas_4_1__y) + (0*mass_scale) - (0.21391*mass_scale)*(((0)+(-5.146072376924728e-07))-BarraRuedas_4_1__x)*(((0.0000000)+(0.004389))-BarraRuedas_4_1__y)}" iyz="${(0*mass_scale) - (0.240385*mass_scale)*(((0))-BarraRuedas_4_1__y)*(((-0.039525))-BarraRuedas_4_1__z) + (0*mass_scale) - (3.81127*mass_scale)*(((0.0000000)+(0.0218551)+(-0.054562))-BarraRuedas_4_1__y)*(((rk_p79)+(rk_p58)+(-4.6319285612050874e-07))-BarraRuedas_4_1__z) + (7.9867125e-06*mass_scale) - (0.21391*mass_scale)*(((0.0000000)+(0.004389))-BarraRuedas_4_1__y)*(((rk_p79)+(-0.047494))-BarraRuedas_4_1__z)}" ixz="${(0*mass_scale) - (0.240385*mass_scale)*(((-5.146072639558729e-07))-BarraRuedas_4_1__x)*(((-0.039525))-BarraRuedas_4_1__z) + (0*mass_scale) - (3.81127*mass_scale)*(((0)+(0)+(-5.146072789354465e-07))-BarraRuedas_4_1__x)*(((rk_p79)+(rk_p58)+(-4.6319285612050874e-07))-BarraRuedas_4_1__z) + (0*mass_scale) - (0.21391*mass_scale)*(((0)+(-5.146072376924728e-07))-BarraRuedas_4_1__x)*(((rk_p79)+(-0.047494))-BarraRuedas_4_1__z)}"/>
   </inertial>
-  <visual>
-    <origin xyz="0.143315 -0.30848 -0.192525" rpy="0 0 0"/>
-    <geometry>
-      <mesh filename="package://rocker_bogie/meshes/BarraRuedas_4_1.stl" scale="0.001417 0.001164 0.001275"/>
-    </geometry>
-    <material name="silver"/>
-  </visual>
+  <xacro:tubo x1="${0}" y1="${0}" z1="${0}" x2="${(0)}" y2="${(0.0000000)}" z2="${(rk_p79)}" r="0.024"/>
+  <xacro:tubo x1="${(0)}" y1="${(0.0000000)}" z1="${(rk_p79)}" x2="${(0)+(0)+(0)}" y2="${(0.0000000)+(0.0218551)+(0.0153792)}" z2="${(rk_p79)+(rk_p58)+(0)}" r="0.045"/>
 </link>
 
-<link name="BarraRuedas_5_1">
-  <inertial>
-    <origin xyz="0 0 -0.039525" rpy="0 0 0"/>
-    <mass value="${0.240385*mass_scale}"/>
-    <inertia ixx="${0.000136*mass_scale}" iyy="${0.000136*mass_scale}" izz="${2.396008125e-05*mass_scale}" ixy="${0*mass_scale}" iyz="${0*mass_scale}" ixz="${0*mass_scale}"/>
-  </inertial>
-  <visual>
-    <origin xyz="-0.283305 -0.401606 -0.192525" rpy="0 0 0"/>
-    <geometry>
-      <mesh filename="package://rocker_bogie/meshes/BarraRuedas_5_1.stl" scale="0.001417 0.001164 0.001275"/>
-    </geometry>
-    <material name="silver"/>
-  </visual>
-</link>
 
+<!-- BarraRuedas_6_1: pieza unica desde 2026-09-13.  Fusiona Motor_4_1, SoporteMotor_6_1.  Masa, CM e
+     inercia son la suma exacta de las piezas (Steiner al CM comun), en
+     expresiones para que sigan a rocker_drop y bogie_drop. -->
+<xacro:property name="BarraRuedas_6_1__m" value="${(0.240385*mass_scale) + (3.81127*mass_scale) + (0.21391*mass_scale)}"/>
+<xacro:property name="BarraRuedas_6_1__x" value="${((0.240385*mass_scale)*((5.14607263778949e-07)) + (3.81127*mass_scale)*((0)+(0)+(5.146072486814256e-07)) + (0.21391*mass_scale)*((0)+(5.146072897278172e-07)))/BarraRuedas_6_1__m}"/>
+<xacro:property name="BarraRuedas_6_1__y" value="${((0.240385*mass_scale)*((0)) + (3.81127*mass_scale)*((0.0000000)+(0.0218551)+(-0.054562)) + (0.21391*mass_scale)*((0.0000000)+(0.004389)))/BarraRuedas_6_1__m}"/>
+<xacro:property name="BarraRuedas_6_1__z" value="${((0.240385*mass_scale)*((-0.039525)) + (3.81127*mass_scale)*((rk_p79)+(rk_p58)+(-4.631928563682277e-07)) + (0.21391*mass_scale)*((rk_p79)+(-0.047494)))/BarraRuedas_6_1__m}"/>
 <link name="BarraRuedas_6_1">
   <inertial>
-    <origin xyz="5.14607263778949e-07 0 -0.039525" rpy="0 0 0"/>
-    <mass value="${0.240385*mass_scale}"/>
-    <inertia ixx="${0.000136*mass_scale}" iyy="${0.000136*mass_scale}" izz="${2.396008125e-05*mass_scale}" ixy="${0*mass_scale}" iyz="${0*mass_scale}" ixz="${0*mass_scale}"/>
+    <origin xyz="${BarraRuedas_6_1__x} ${BarraRuedas_6_1__y} ${BarraRuedas_6_1__z}" rpy="0 0 0"/>
+    <mass value="${BarraRuedas_6_1__m}"/>
+    <inertia ixx="${(0.000136*mass_scale) + (0.240385*mass_scale)*((((0))-BarraRuedas_6_1__y)**2 + (((-0.039525))-BarraRuedas_6_1__z)**2) + (0.005415*mass_scale) + (3.81127*mass_scale)*((((0.0000000)+(0.0218551)+(-0.054562))-BarraRuedas_6_1__y)**2 + (((rk_p79)+(rk_p58)+(-4.631928563682277e-07))-BarraRuedas_6_1__z)**2) + (0.000208*mass_scale) + (0.21391*mass_scale)*((((0.0000000)+(0.004389))-BarraRuedas_6_1__y)**2 + (((rk_p79)+(-0.047494))-BarraRuedas_6_1__z)**2)}" iyy="${(0.000136*mass_scale) + (0.240385*mass_scale)*((((5.14607263778949e-07))-BarraRuedas_6_1__x)**2 + (((-0.039525))-BarraRuedas_6_1__z)**2) + (0.00099*mass_scale) + (3.81127*mass_scale)*((((0)+(0)+(5.146072486814256e-07))-BarraRuedas_6_1__x)**2 + (((rk_p79)+(rk_p58)+(-4.631928563682277e-07))-BarraRuedas_6_1__z)**2) + (0.0002*mass_scale) + (0.21391*mass_scale)*((((0)+(5.146072897278172e-07))-BarraRuedas_6_1__x)**2 + (((rk_p79)+(-0.047494))-BarraRuedas_6_1__z)**2)}" izz="${(2.396008125e-05*mass_scale) + (0.240385*mass_scale)*((((5.14607263778949e-07))-BarraRuedas_6_1__x)**2 + (((0))-BarraRuedas_6_1__y)**2) + (0.005415*mass_scale) + (3.81127*mass_scale)*((((0)+(0)+(5.146072486814256e-07))-BarraRuedas_6_1__x)**2 + (((0.0000000)+(0.0218551)+(-0.054562))-BarraRuedas_6_1__y)**2) + (0.000136*mass_scale) + (0.21391*mass_scale)*((((0)+(5.146072897278172e-07))-BarraRuedas_6_1__x)**2 + (((0.0000000)+(0.004389))-BarraRuedas_6_1__y)**2)}" ixy="${(0*mass_scale) - (0.240385*mass_scale)*(((5.14607263778949e-07))-BarraRuedas_6_1__x)*(((0))-BarraRuedas_6_1__y) + (0*mass_scale) - (3.81127*mass_scale)*(((0)+(0)+(5.146072486814256e-07))-BarraRuedas_6_1__x)*(((0.0000000)+(0.0218551)+(-0.054562))-BarraRuedas_6_1__y) + (0*mass_scale) - (0.21391*mass_scale)*(((0)+(5.146072897278172e-07))-BarraRuedas_6_1__x)*(((0.0000000)+(0.004389))-BarraRuedas_6_1__y)}" iyz="${(0*mass_scale) - (0.240385*mass_scale)*(((0))-BarraRuedas_6_1__y)*(((-0.039525))-BarraRuedas_6_1__z) + (0*mass_scale) - (3.81127*mass_scale)*(((0.0000000)+(0.0218551)+(-0.054562))-BarraRuedas_6_1__y)*(((rk_p79)+(rk_p58)+(-4.631928563682277e-07))-BarraRuedas_6_1__z) + (7.9867125e-06*mass_scale) - (0.21391*mass_scale)*(((0.0000000)+(0.004389))-BarraRuedas_6_1__y)*(((rk_p79)+(-0.047494))-BarraRuedas_6_1__z)}" ixz="${(0*mass_scale) - (0.240385*mass_scale)*(((5.14607263778949e-07))-BarraRuedas_6_1__x)*(((-0.039525))-BarraRuedas_6_1__z) + (0*mass_scale) - (3.81127*mass_scale)*(((0)+(0)+(5.146072486814256e-07))-BarraRuedas_6_1__x)*(((rk_p79)+(rk_p58)+(-4.631928563682277e-07))-BarraRuedas_6_1__z) + (0*mass_scale) - (0.21391*mass_scale)*(((0)+(5.146072897278172e-07))-BarraRuedas_6_1__x)*(((rk_p79)+(-0.047494))-BarraRuedas_6_1__z)}"/>
   </inertial>
-  <visual>
-    <origin xyz="-0.709925 -0.401606 -0.192525" rpy="0 0 0"/>
-    <geometry>
-      <mesh filename="package://rocker_bogie/meshes/BarraRuedas_6_1.stl" scale="0.001417 0.001164 0.001275"/>
-    </geometry>
-    <material name="silver"/>
-  </visual>
+  <xacro:tubo x1="${0}" y1="${0}" z1="${0}" x2="${(0)}" y2="${(0.0000000)}" z2="${(rk_p79)}" r="0.024"/>
+  <xacro:tubo x1="${(0)}" y1="${(0.0000000)}" z1="${(rk_p79)}" x2="${(0)+(0)+(0)}" y2="${(0.0000000)+(0.0218551)+(0.0153792)}" z2="${(rk_p79)+(rk_p58)+(0)}" r="0.045"/>
 </link>
 
-<link name="SoporteMotor_1_1">
-  <inertial>
-    <origin xyz="-5.146072897081591e-07 -0.004389 -0.047494" rpy="0 0 0"/>
-    <mass value="${0.21391*mass_scale}"/>
-    <inertia ixx="${0.000208*mass_scale}" iyy="${0.0002*mass_scale}" izz="${0.000136*mass_scale}" ixy="${0*mass_scale}" iyz="${-7.9867125e-06*mass_scale}" ixz="${0*mass_scale}"/>
-  </inertial>
-  <visual>
-    <origin xyz="0.143315 0.075665 -0.113475" rpy="0 0 0"/>
-    <geometry>
-      <mesh filename="package://rocker_bogie/meshes/SoporteMotor_1_1.stl" scale="0.001417 0.001164 0.001275"/>
-    </geometry>
-    <material name="silver"/>
-  </visual>
-</link>
 
-<link name="SoporteMotor_2_1">
-  <inertial>
-    <origin xyz="0 -0.004389 -0.047494" rpy="0 0 0"/>
-    <mass value="${0.21391*mass_scale}"/>
-    <inertia ixx="${0.000208*mass_scale}" iyy="${0.0002*mass_scale}" izz="${0.000136*mass_scale}" ixy="${0*mass_scale}" iyz="${-7.9867125e-06*mass_scale}" ixz="${0*mass_scale}"/>
-  </inertial>
-  <visual>
-    <origin xyz="-0.283305 0.168791 -0.113475" rpy="0 0 0"/>
-    <geometry>
-      <mesh filename="package://rocker_bogie/meshes/SoporteMotor_2_1.stl" scale="0.001417 0.001164 0.001275"/>
-    </geometry>
-    <material name="silver"/>
-  </visual>
-</link>
 
-<link name="SoporteMotor_4_1">
-  <inertial>
-    <origin xyz="5.146072383018786e-07 -0.004389 -0.047494" rpy="0 0 0"/>
-    <mass value="${0.21391*mass_scale}"/>
-    <inertia ixx="${0.000208*mass_scale}" iyy="${0.0002*mass_scale}" izz="${0.000136*mass_scale}" ixy="${0*mass_scale}" iyz="${-7.9867125e-06*mass_scale}" ixz="${0*mass_scale}"/>
-  </inertial>
-  <visual>
-    <origin xyz="-0.709925 0.168791 -0.113475" rpy="0 0 0"/>
-    <geometry>
-      <mesh filename="package://rocker_bogie/meshes/SoporteMotor_4_1.stl" scale="0.001417 0.001164 0.001275"/>
-    </geometry>
-    <material name="silver"/>
-  </visual>
-</link>
 
-<link name="SoporteMotor_3_1">
-  <inertial>
-    <origin xyz="-5.146072376924728e-07 0.004389 -0.047494" rpy="0 0 0"/>
-    <mass value="${0.21391*mass_scale}"/>
-    <inertia ixx="${0.000208*mass_scale}" iyy="${0.0002*mass_scale}" izz="${0.000136*mass_scale}" ixy="${0*mass_scale}" iyz="${7.9867125e-06*mass_scale}" ixz="${0*mass_scale}"/>
-  </inertial>
-  <visual>
-    <origin xyz="0.143315 -0.30848 -0.113475" rpy="0 0 0"/>
-    <geometry>
-      <mesh filename="package://rocker_bogie/meshes/SoporteMotor_3_1.stl" scale="0.001417 0.001164 0.001275"/>
-    </geometry>
-    <material name="silver"/>
-  </visual>
-</link>
 
-<link name="SoporteMotor_5_1">
-  <inertial>
-    <origin xyz="0 0.004389 -0.047494" rpy="0 0 0"/>
-    <mass value="${0.21391*mass_scale}"/>
-    <inertia ixx="${0.000208*mass_scale}" iyy="${0.0002*mass_scale}" izz="${0.000136*mass_scale}" ixy="${0*mass_scale}" iyz="${7.9867125e-06*mass_scale}" ixz="${0*mass_scale}"/>
-  </inertial>
-  <visual>
-    <origin xyz="-0.283305 -0.401606 -0.113475" rpy="0 0 0"/>
-    <geometry>
-      <mesh filename="package://rocker_bogie/meshes/SoporteMotor_5_1.stl" scale="0.001417 0.001164 0.001275"/>
-    </geometry>
-    <material name="silver"/>
-  </visual>
-</link>
 
-<link name="SoporteMotor_6_1">
-  <inertial>
-    <origin xyz="5.146072897278172e-07 0.004389 -0.047494" rpy="0 0 0"/>
-    <mass value="${0.21391*mass_scale}"/>
-    <inertia ixx="${0.000208*mass_scale}" iyy="${0.0002*mass_scale}" izz="${0.000136*mass_scale}" ixy="${0*mass_scale}" iyz="${7.9867125e-06*mass_scale}" ixz="${0*mass_scale}"/>
-  </inertial>
-  <visual>
-    <origin xyz="-0.709925 -0.401606 -0.113475" rpy="0 0 0"/>
-    <geometry>
-      <mesh filename="package://rocker_bogie/meshes/SoporteMotor_6_1.stl" scale="0.001417 0.001164 0.001275"/>
-    </geometry>
-    <material name="silver"/>
-  </visual>
-</link>
 
-<link name="Motor_1_1">
-  <inertial>
-    <origin xyz="-5.146072487797164e-07 0.054562 -4.63192856651334e-07" rpy="0 0 0"/>
-    <mass value="${3.81127*mass_scale}"/>
-    <inertia ixx="${0.005415*mass_scale}" iyy="${0.00099*mass_scale}" izz="${0.005415*mass_scale}" ixy="${0*mass_scale}" iyz="${0*mass_scale}" ixz="${0*mass_scale}"/>
-  </inertial>
-  <visual>
-    <origin xyz="0.143315 0.107095 -0.054825" rpy="0 0 0"/>
-    <geometry>
-      <mesh filename="package://rocker_bogie/meshes/Motor_1_1.stl" scale="0.001417 0.001164 0.001275"/>
-    </geometry>
-    <material name="silver"/>
-  </visual>
-</link>
 
-<link name="Motor_2_1">
-  <inertial>
-    <origin xyz="0 0.054562 -4.6319285642130973e-07" rpy="0 0 0"/>
-    <mass value="${3.81127*mass_scale}"/>
-    <inertia ixx="${0.005415*mass_scale}" iyy="${0.00099*mass_scale}" izz="${0.005415*mass_scale}" ixy="${0*mass_scale}" iyz="${0*mass_scale}" ixz="${0*mass_scale}"/>
-  </inertial>
-  <visual>
-    <origin xyz="-0.283305 0.200221 -0.054825" rpy="0 0 0"/>
-    <geometry>
-      <mesh filename="package://rocker_bogie/meshes/Motor_2_1.stl" scale="0.001417 0.001164 0.001275"/>
-    </geometry>
-    <material name="silver"/>
-  </visual>
-</link>
 
-<link name="Motor_3_1">
-  <inertial>
-    <origin xyz="5.146072791910043e-07 0.054562 -4.6319285629745096e-07" rpy="0 0 0"/>
-    <mass value="${3.81127*mass_scale}"/>
-    <inertia ixx="${0.005415*mass_scale}" iyy="${0.00099*mass_scale}" izz="${0.005415*mass_scale}" ixy="${0*mass_scale}" iyz="${0*mass_scale}" ixz="${0*mass_scale}"/>
-  </inertial>
-  <visual>
-    <origin xyz="-0.709925 0.200221 -0.054825" rpy="0 0 0"/>
-    <geometry>
-      <mesh filename="package://rocker_bogie/meshes/Motor_3_1.stl" scale="0.001417 0.001164 0.001275"/>
-    </geometry>
-    <material name="silver"/>
-  </visual>
-</link>
 
-<link name="Motor_6_1">
-  <inertial>
-    <origin xyz="-5.146072789354465e-07 -0.054562 -4.6319285612050874e-07" rpy="0 0 0"/>
-    <mass value="${3.81127*mass_scale}"/>
-    <inertia ixx="${0.005415*mass_scale}" iyy="${0.00099*mass_scale}" izz="${0.005415*mass_scale}" ixy="${0*mass_scale}" iyz="${0*mass_scale}" ixz="${0*mass_scale}"/>
-  </inertial>
-  <visual>
-    <origin xyz="0.143315 -0.33991 -0.054825" rpy="0 0 0"/>
-    <geometry>
-      <mesh filename="package://rocker_bogie/meshes/Motor_6_1.stl" scale="0.001417 0.001164 0.001275"/>
-    </geometry>
-    <material name="silver"/>
-  </visual>
-</link>
 
-<link name="Motor_5_1">
-  <inertial>
-    <origin xyz="0 -0.054562 -4.6319285617359156e-07" rpy="0 0 0"/>
-    <mass value="${3.81127*mass_scale}"/>
-    <inertia ixx="${0.005415*mass_scale}" iyy="${0.00099*mass_scale}" izz="${0.005415*mass_scale}" ixy="${0*mass_scale}" iyz="${0*mass_scale}" ixz="${0*mass_scale}"/>
-  </inertial>
-  <visual>
-    <origin xyz="-0.283305 -0.433036 -0.054825" rpy="0 0 0"/>
-    <geometry>
-      <mesh filename="package://rocker_bogie/meshes/Motor_5_1.stl" scale="0.001417 0.001164 0.001275"/>
-    </geometry>
-    <material name="silver"/>
-  </visual>
-</link>
 
-<link name="Motor_4_1">
-  <inertial>
-    <origin xyz="5.146072486814256e-07 -0.054562 -4.631928563682277e-07" rpy="0 0 0"/>
-    <mass value="${3.81127*mass_scale}"/>
-    <inertia ixx="${0.005415*mass_scale}" iyy="${0.00099*mass_scale}" izz="${0.005415*mass_scale}" ixy="${0*mass_scale}" iyz="${0*mass_scale}" ixz="${0*mass_scale}"/>
-  </inertial>
-  <visual>
-    <origin xyz="-0.709925 -0.433036 -0.054825" rpy="0 0 0"/>
-    <geometry>
-      <mesh filename="package://rocker_bogie/meshes/Motor_4_1.stl" scale="0.001417 0.001164 0.001275"/>
-    </geometry>
-    <material name="silver"/>
-  </visual>
-</link>
 
 <link name="Rueda_2_1">
   <inertial>
     <origin xyz="-0.000463 -0.052315 0.000324" rpy="0 0 0"/>
     <mass value="${2.6357*mass_scale}"/>
-    <inertia ixx="${0.007449*mass_scale}" iyy="${0.015036*mass_scale}" izz="${0.007449*mass_scale}" ixy="${0.0*mass_scale}" iyz="${0.0*mass_scale}" ixz="${0.0*mass_scale}"/>
+    <inertia ixx="${2.6357*mass_scale*0.0065647075}" iyy="${2.6357*mass_scale*0.010952}" izz="${2.6357*mass_scale*0.0065647075}" ixy="${0.0*mass_scale}" iyz="${0.0*mass_scale}" ixz="${0.0*mass_scale}"/>
   </inertial>
   <visual>
-    <origin xyz="-1.296759 0.406102 -0.1001" rpy="0 0 0"/>
+    <origin xyz="-1.724969 0.441461 -0.147999" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="package://rocker_bogie/meshes/Rueda_2_1.stl" scale="0.002588 0.002126 0.002329"/>
+      <mesh filename="package://rocker_bogie/meshes/Rueda_2_1.stl" scale="0.00344186 0.00228600 0.00344186"/>
     </geometry>
     <material name="silver"/>
   </visual>
   <collision>
     <origin xyz="0 -0.052315 0" rpy="1.5707963 0 0"/>
     <geometry>
-      <cylinder radius="0.178" length="0.1143"/>
+      <cylinder radius="0.148" length="0.1143"/>
     </geometry>
   </collision>
 </link>
@@ -692,19 +653,19 @@
   <inertial>
     <origin xyz="-0.000464 -0.052315 0.000324" rpy="0 0 0"/>
     <mass value="${2.6357*mass_scale}"/>
-    <inertia ixx="${0.007449*mass_scale}" iyy="${0.015036*mass_scale}" izz="${0.007449*mass_scale}" ixy="${0.0*mass_scale}" iyz="${0.0*mass_scale}" ixz="${0.0*mass_scale}"/>
+    <inertia ixx="${2.6357*mass_scale*0.0065647075}" iyy="${2.6357*mass_scale*0.010952}" izz="${2.6357*mass_scale*0.0065647075}" ixy="${0.0*mass_scale}" iyz="${0.0*mass_scale}" ixz="${0.0*mass_scale}"/>
   </inertial>
   <visual>
-    <origin xyz="-0.517504 0.406102 -0.1001" rpy="0 0 0"/>
+    <origin xyz="-0.688372 0.441461 -0.147999" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="package://rocker_bogie/meshes/Rueda_4_1.stl" scale="0.002588 0.002126 0.002329"/>
+      <mesh filename="package://rocker_bogie/meshes/Rueda_4_1.stl" scale="0.00344186 0.00228600 0.00344186"/>
     </geometry>
     <material name="silver"/>
   </visual>
   <collision>
     <origin xyz="0 -0.052315 0" rpy="1.5707963 0 0"/>
     <geometry>
-      <cylinder radius="0.178" length="0.1143"/>
+      <cylinder radius="0.148" length="0.1143"/>
     </geometry>
   </collision>
 </link>
@@ -713,19 +674,19 @@
   <inertial>
     <origin xyz="-0.000466 -0.052315 0.000324" rpy="0 0 0"/>
     <mass value="${2.6357*mass_scale}"/>
-    <inertia ixx="${0.007449*mass_scale}" iyy="${0.015036*mass_scale}" izz="${0.007449*mass_scale}" ixy="${0.0*mass_scale}" iyz="${0.0*mass_scale}" ixz="${0.0*mass_scale}"/>
+    <inertia ixx="${2.6357*mass_scale*0.0065647075}" iyy="${2.6357*mass_scale*0.010952}" izz="${2.6357*mass_scale*0.0065647075}" ixy="${0.0*mass_scale}" iyz="${0.0*mass_scale}" ixz="${0.0*mass_scale}"/>
   </inertial>
   <visual>
-    <origin xyz="0.261752 0.236011 -0.1001" rpy="0 0 0"/>
+    <origin xyz="0.348225 0.258581 -0.147999" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="package://rocker_bogie/meshes/Rueda_6_1.stl" scale="0.002588 0.002126 0.002329"/>
+      <mesh filename="package://rocker_bogie/meshes/Rueda_6_1.stl" scale="0.00344186 0.00228600 0.00344186"/>
     </geometry>
     <material name="silver"/>
   </visual>
   <collision>
     <origin xyz="0 -0.052315 0" rpy="1.5707963 0 0"/>
     <geometry>
-      <cylinder radius="0.178" length="0.1143"/>
+      <cylinder radius="0.148" length="0.1143"/>
     </geometry>
   </collision>
 </link>
@@ -734,19 +695,19 @@
   <inertial>
     <origin xyz="0.000463 0.052315 0.000324" rpy="0 0 0"/>
     <mass value="${2.6357*mass_scale}"/>
-    <inertia ixx="${0.007449*mass_scale}" iyy="${0.015036*mass_scale}" izz="${0.007449*mass_scale}" ixy="${0.0*mass_scale}" iyz="${0.0*mass_scale}" ixz="${0.0*mass_scale}"/>
+    <inertia ixx="${2.6357*mass_scale*0.0065647075}" iyy="${2.6357*mass_scale*0.010952}" izz="${2.6357*mass_scale*0.0065647075}" ixy="${0.0*mass_scale}" iyz="${0.0*mass_scale}" ixz="${0.0*mass_scale}"/>
   </inertial>
   <visual>
-    <origin xyz="0.261752 -0.661286 -0.1001" rpy="0 0 0"/>
+    <origin xyz="0.348225 -0.715781 -0.147999" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="package://rocker_bogie/meshes/Rueda_1_1.stl" scale="0.002588 0.002126 0.002329"/>
+      <mesh filename="package://rocker_bogie/meshes/Rueda_1_1.stl" scale="0.00344186 0.00228600 0.00344186"/>
     </geometry>
     <material name="silver"/>
   </visual>
   <collision>
     <origin xyz="0 0.052315 0" rpy="1.5707963 0 0"/>
     <geometry>
-      <cylinder radius="0.178" length="0.1143"/>
+      <cylinder radius="0.148" length="0.1143"/>
     </geometry>
   </collision>
 </link>
@@ -755,19 +716,19 @@
   <inertial>
     <origin xyz="0.000464 0.052315 0.000324" rpy="0 0 0"/>
     <mass value="${2.6357*mass_scale}"/>
-    <inertia ixx="${0.007449*mass_scale}" iyy="${0.015036*mass_scale}" izz="${0.007449*mass_scale}" ixy="${0.0*mass_scale}" iyz="${0.0*mass_scale}" ixz="${0.0*mass_scale}"/>
+    <inertia ixx="${2.6357*mass_scale*0.0065647075}" iyy="${2.6357*mass_scale*0.010952}" izz="${2.6357*mass_scale*0.0065647075}" ixy="${0.0*mass_scale}" iyz="${0.0*mass_scale}" ixz="${0.0*mass_scale}"/>
   </inertial>
   <visual>
-    <origin xyz="-0.517504 -0.831378 -0.1001" rpy="0 0 0"/>
+    <origin xyz="-0.688372 -0.898661 -0.147999" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="package://rocker_bogie/meshes/Rueda_3_1.stl" scale="0.002588 0.002126 0.002329"/>
+      <mesh filename="package://rocker_bogie/meshes/Rueda_3_1.stl" scale="0.00344186 0.00228600 0.00344186"/>
     </geometry>
     <material name="silver"/>
   </visual>
   <collision>
     <origin xyz="0 0.052315 0" rpy="1.5707963 0 0"/>
     <geometry>
-      <cylinder radius="0.178" length="0.1143"/>
+      <cylinder radius="0.148" length="0.1143"/>
     </geometry>
   </collision>
 </link>
@@ -776,51 +737,83 @@
   <inertial>
     <origin xyz="0.000466 0.052315 0.000324" rpy="0 0 0"/>
     <mass value="${2.6357*mass_scale}"/>
-    <inertia ixx="${0.007449*mass_scale}" iyy="${0.015036*mass_scale}" izz="${0.007449*mass_scale}" ixy="${0.0*mass_scale}" iyz="${0.0*mass_scale}" ixz="${0.0*mass_scale}"/>
+    <inertia ixx="${2.6357*mass_scale*0.0065647075}" iyy="${2.6357*mass_scale*0.010952}" izz="${2.6357*mass_scale*0.0065647075}" ixy="${0.0*mass_scale}" iyz="${0.0*mass_scale}" ixz="${0.0*mass_scale}"/>
   </inertial>
   <visual>
-    <origin xyz="-1.296759 -0.831378 -0.1001" rpy="0 0 0"/>
+    <origin xyz="-1.724969 -0.898661 -0.147999" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="package://rocker_bogie/meshes/Rueda_5_1.stl" scale="0.002588 0.002126 0.002329"/>
+      <mesh filename="package://rocker_bogie/meshes/Rueda_5_1.stl" scale="0.00344186 0.00228600 0.00344186"/>
     </geometry>
     <material name="silver"/>
   </visual>
   <collision>
     <origin xyz="0 0.052315 0" rpy="1.5707963 0 0"/>
     <geometry>
-      <cylinder radius="0.178" length="0.1143"/>
+      <cylinder radius="0.148" length="0.1143"/>
     </geometry>
   </collision>
 </link>
 
+<!-- AcopleTuboRB_2_1: pieza unica desde 2026-09-13.  Fusiona AcopleRB_2_1, AcopleTubo90_1_1, ApoyoServomotor_1_1, BarraAcople1_1, BarraBR_1_1, Barra_Acople_R_1_1, Barra_acople_1_1.  Masa, CM e
+     inercia son la suma exacta de las piezas (Steiner al CM comun), en
+     expresiones para que sigan a rocker_drop y bogie_drop. -->
+<xacro:property name="AcopleTuboRB_2_1__m" value="${(1.43027*mass_scale) + (1.60747*mass_scale) + (0.160204*mass_scale) + (0.27687*mass_scale) + (0.37221*mass_scale) + (1.105*mass_scale) + (0.100807*mass_scale) + (0.100807*mass_scale)}"/>
+<xacro:property name="AcopleTuboRB_2_1__x" value="${((1.43027*mass_scale)*((0)) + (1.60747*mass_scale)*((0)+(0)+(0)) + (0.160204*mass_scale)*((0.0509408)+(0.0828882)+(0.027232)) + (0.27687*mass_scale)*((-0.0509408)+(-0.246072)+(-0.061254)) + (0.37221*mass_scale)*((0.0509408)+(0.048079)) + (1.105*mass_scale)*((-0.0509408)+(-0.142734)) + (0.100807*mass_scale)*((0.0509408)+(0.0828882)+(0.0293545)+(2.5730363188947406e-07)) + (0.100807*mass_scale)*((0)+(0)))/AcopleTuboRB_2_1__m}"/>
+<xacro:property name="AcopleTuboRB_2_1__y" value="${((1.43027*mass_scale)*((-0.023282)) + (1.60747*mass_scale)*((0.0210457)+(0.0153792)+(-0.0042)) + (0.160204*mass_scale)*((-0.0161893)+(0.0000000)+(-0.00793)) + (0.27687*mass_scale)*((-0.0161893)+(0.0000000)+(0)) + (0.37221*mass_scale)*((-0.0161893)+(0)) + (1.105*mass_scale)*((-0.0161893)+(0)) + (0.100807*mass_scale)*((-0.0161893)+(0.0000000)+(-0.0275215)+(-0.015133)) + (0.100807*mass_scale)*((0.0210457)+(-0.015133)))/AcopleTuboRB_2_1__m}"/>
+<xacro:property name="AcopleTuboRB_2_1__z" value="${((1.43027*mass_scale)*((-0.000667)) + (1.60747*mass_scale)*((0)+(0.051)+(-0.051)) + (0.160204*mass_scale)*((rk_r7)+(rk_r9)+(-0.024511)) + (0.27687*mass_scale)*((-0.053192)+(rk_front_z)+(-0.034916)) + (0.37221*mass_scale)*((rk_r7)+(-0.043275)) + (1.105*mass_scale)*((-0.053192)+(-0.128473)) + (0.100807*mass_scale)*((rk_r7)+(rk_r9)+(rk_r11)+(-2.31596427989478e-07)) + (0.100807*mass_scale)*((0)+(0)))/AcopleTuboRB_2_1__m}"/>
+<xacro:property name="AcopleTuboRB_2_1__t" value="${(-0.0509408)/((-0.0509408)+(-0.246072)+(-0.0707323))}"/>
 <link name="AcopleTuboRB_2_1">
   <inertial>
-    <origin xyz="0 -0.023282 -0.000667" rpy="0 0 0"/>
-    <mass value="${1.43027*mass_scale}"/>
-    <inertia ixx="${0.001701*mass_scale}" iyy="${0.002652*mass_scale}" izz="${0.001549*mass_scale}" ixy="${0*mass_scale}" iyz="${0*mass_scale}" ixz="${0*mass_scale}"/>
+    <origin xyz="${AcopleTuboRB_2_1__x} ${AcopleTuboRB_2_1__y} ${AcopleTuboRB_2_1__z}" rpy="0 0 0"/>
+    <mass value="${AcopleTuboRB_2_1__m}"/>
+    <inertia ixx="${(0.001701*mass_scale) + (1.43027*mass_scale)*((((-0.023282))-AcopleTuboRB_2_1__y)**2 + (((-0.000667))-AcopleTuboRB_2_1__z)**2) + (0.001525*mass_scale) + (1.60747*mass_scale)*((((0.0210457)+(0.0153792)+(-0.0042))-AcopleTuboRB_2_1__y)**2 + (((0)+(0.051)+(-0.051))-AcopleTuboRB_2_1__z)**2) + (0.00008*mass_scale) + (0.160204*mass_scale)*((((-0.0161893)+(0.0000000)+(-0.00793))-AcopleTuboRB_2_1__y)**2 + (((rk_r7)+(rk_r9)+(-0.024511))-AcopleTuboRB_2_1__z)**2) + (0.000112*mass_scale) + (0.27687*mass_scale)*((((-0.0161893)+(0.0000000)+(0))-AcopleTuboRB_2_1__y)**2 + (((-0.053192)+(rk_front_z)+(-0.034916))-AcopleTuboRB_2_1__z)**2) + (0.000264*mass_scale) + (0.37221*mass_scale)*((((-0.0161893)+(0))-AcopleTuboRB_2_1__y)**2 + (((rk_r7)+(-0.043275))-AcopleTuboRB_2_1__z)**2) + (0.006166*mass_scale) + (1.105*mass_scale)*((((-0.0161893)+(0))-AcopleTuboRB_2_1__y)**2 + (((-0.053192)+(-0.128473))-AcopleTuboRB_2_1__z)**2) + (1.597336875e-05*mass_scale) + (0.100807*mass_scale)*((((-0.0161893)+(0.0000000)+(-0.0275215)+(-0.015133))-AcopleTuboRB_2_1__y)**2 + (((rk_r7)+(rk_r9)+(rk_r11)+(-2.31596427989478e-07))-AcopleTuboRB_2_1__z)**2) + (1.597336875e-05*mass_scale) + (0.100807*mass_scale)*((((0.0210457)+(-0.015133))-AcopleTuboRB_2_1__y)**2 + (((0)+(0))-AcopleTuboRB_2_1__z)**2)}" iyy="${(0.002652*mass_scale) + (1.43027*mass_scale)*((((0))-AcopleTuboRB_2_1__x)**2 + (((-0.000667))-AcopleTuboRB_2_1__z)**2) + (0.002987*mass_scale) + (1.60747*mass_scale)*((((0)+(0)+(0))-AcopleTuboRB_2_1__x)**2 + (((0)+(0.051)+(-0.051))-AcopleTuboRB_2_1__z)**2) + (0.000072*mass_scale) + (0.160204*mass_scale)*((((0.0509408)+(0.0828882)+(0.027232))-AcopleTuboRB_2_1__x)**2 + (((rk_r7)+(rk_r9)+(-0.024511))-AcopleTuboRB_2_1__z)**2) + (0.000415*mass_scale) + (0.27687*mass_scale)*((((-0.0509408)+(-0.246072)+(-0.061254))-AcopleTuboRB_2_1__x)**2 + (((-0.053192)+(rk_front_z)+(-0.034916))-AcopleTuboRB_2_1__z)**2) + (0.000487*mass_scale) + (0.37221*mass_scale)*((((0.0509408)+(0.048079))-AcopleTuboRB_2_1__x)**2 + (((rk_r7)+(-0.043275))-AcopleTuboRB_2_1__z)**2) + (0.01222*mass_scale) + (1.105*mass_scale)*((((-0.0509408)+(-0.142734))-AcopleTuboRB_2_1__x)**2 + (((-0.053192)+(-0.128473))-AcopleTuboRB_2_1__z)**2) + (7.9867125e-06*mass_scale) + (0.100807*mass_scale)*((((0.0509408)+(0.0828882)+(0.0293545)+(2.5730363188947406e-07))-AcopleTuboRB_2_1__x)**2 + (((rk_r7)+(rk_r9)+(rk_r11)+(-2.31596427989478e-07))-AcopleTuboRB_2_1__z)**2) + (7.9867125e-06*mass_scale) + (0.100807*mass_scale)*((((0)+(0))-AcopleTuboRB_2_1__x)**2 + (((0)+(0))-AcopleTuboRB_2_1__z)**2)}" izz="${(0.001549*mass_scale) + (1.43027*mass_scale)*((((0))-AcopleTuboRB_2_1__x)**2 + (((-0.023282))-AcopleTuboRB_2_1__y)**2) + (0.001525*mass_scale) + (1.60747*mass_scale)*((((0)+(0)+(0))-AcopleTuboRB_2_1__x)**2 + (((0.0210457)+(0.0153792)+(-0.0042))-AcopleTuboRB_2_1__y)**2) + (0.00008*mass_scale) + (0.160204*mass_scale)*((((0.0509408)+(0.0828882)+(0.027232))-AcopleTuboRB_2_1__x)**2 + (((-0.0161893)+(0.0000000)+(-0.00793))-AcopleTuboRB_2_1__y)**2) + (0.000367*mass_scale) + (0.27687*mass_scale)*((((-0.0509408)+(-0.246072)+(-0.061254))-AcopleTuboRB_2_1__x)**2 + (((-0.0161893)+(0.0000000)+(0))-AcopleTuboRB_2_1__y)**2) + (0.000264*mass_scale) + (0.37221*mass_scale)*((((0.0509408)+(0.048079))-AcopleTuboRB_2_1__x)**2 + (((-0.0161893)+(0))-AcopleTuboRB_2_1__y)**2) + (0.006166*mass_scale) + (1.105*mass_scale)*((((-0.0509408)+(-0.142734))-AcopleTuboRB_2_1__x)**2 + (((-0.0161893)+(0))-AcopleTuboRB_2_1__y)**2) + (1.597336875e-05*mass_scale) + (0.100807*mass_scale)*((((0.0509408)+(0.0828882)+(0.0293545)+(2.5730363188947406e-07))-AcopleTuboRB_2_1__x)**2 + (((-0.0161893)+(0.0000000)+(-0.0275215)+(-0.015133))-AcopleTuboRB_2_1__y)**2) + (1.597336875e-05*mass_scale) + (0.100807*mass_scale)*((((0)+(0))-AcopleTuboRB_2_1__x)**2 + (((0.0210457)+(-0.015133))-AcopleTuboRB_2_1__y)**2)}" ixy="${(0*mass_scale) - (1.43027*mass_scale)*(((0))-AcopleTuboRB_2_1__x)*(((-0.023282))-AcopleTuboRB_2_1__y) + (0*mass_scale) - (1.60747*mass_scale)*(((0)+(0)+(0))-AcopleTuboRB_2_1__x)*(((0.0210457)+(0.0153792)+(-0.0042))-AcopleTuboRB_2_1__y) + (7.9867125e-06*mass_scale) - (0.160204*mass_scale)*(((0.0509408)+(0.0828882)+(0.027232))-AcopleTuboRB_2_1__x)*(((-0.0161893)+(0.0000000)+(-0.00793))-AcopleTuboRB_2_1__y) + (0*mass_scale) - (0.27687*mass_scale)*(((-0.0509408)+(-0.246072)+(-0.061254))-AcopleTuboRB_2_1__x)*(((-0.0161893)+(0.0000000)+(0))-AcopleTuboRB_2_1__y) + (0*mass_scale) - (0.37221*mass_scale)*(((0.0509408)+(0.048079))-AcopleTuboRB_2_1__x)*(((-0.0161893)+(0))-AcopleTuboRB_2_1__y) + (0*mass_scale) - (1.105*mass_scale)*(((-0.0509408)+(-0.142734))-AcopleTuboRB_2_1__x)*(((-0.0161893)+(0))-AcopleTuboRB_2_1__y) + (0*mass_scale) - (0.100807*mass_scale)*(((0.0509408)+(0.0828882)+(0.0293545)+(2.5730363188947406e-07))-AcopleTuboRB_2_1__x)*(((-0.0161893)+(0.0000000)+(-0.0275215)+(-0.015133))-AcopleTuboRB_2_1__y) + (0*mass_scale) - (0.100807*mass_scale)*(((0)+(0))-AcopleTuboRB_2_1__x)*(((0.0210457)+(-0.015133))-AcopleTuboRB_2_1__y)}" iyz="${(0*mass_scale) - (1.43027*mass_scale)*(((-0.023282))-AcopleTuboRB_2_1__y)*(((-0.000667))-AcopleTuboRB_2_1__z) + (0*mass_scale) - (1.60747*mass_scale)*(((0.0210457)+(0.0153792)+(-0.0042))-AcopleTuboRB_2_1__y)*(((0)+(0.051)+(-0.051))-AcopleTuboRB_2_1__z) + (-7.9867125e-06*mass_scale) - (0.160204*mass_scale)*(((-0.0161893)+(0.0000000)+(-0.00793))-AcopleTuboRB_2_1__y)*(((rk_r7)+(rk_r9)+(-0.024511))-AcopleTuboRB_2_1__z) + (0*mass_scale) - (0.27687*mass_scale)*(((-0.0161893)+(0.0000000)+(0))-AcopleTuboRB_2_1__y)*(((-0.053192)+(rk_front_z)+(-0.034916))-AcopleTuboRB_2_1__z) + (0*mass_scale) - (0.37221*mass_scale)*(((-0.0161893)+(0))-AcopleTuboRB_2_1__y)*(((rk_r7)+(-0.043275))-AcopleTuboRB_2_1__z) + (0*mass_scale) - (1.105*mass_scale)*(((-0.0161893)+(0))-AcopleTuboRB_2_1__y)*(((-0.053192)+(-0.128473))-AcopleTuboRB_2_1__z) + (0*mass_scale) - (0.100807*mass_scale)*(((-0.0161893)+(0.0000000)+(-0.0275215)+(-0.015133))-AcopleTuboRB_2_1__y)*(((rk_r7)+(rk_r9)+(rk_r11)+(-2.31596427989478e-07))-AcopleTuboRB_2_1__z) + (0*mass_scale) - (0.100807*mass_scale)*(((0.0210457)+(-0.015133))-AcopleTuboRB_2_1__y)*(((0)+(0))-AcopleTuboRB_2_1__z)}" ixz="${(0*mass_scale) - (1.43027*mass_scale)*(((0))-AcopleTuboRB_2_1__x)*(((-0.000667))-AcopleTuboRB_2_1__z) + (0*mass_scale) - (1.60747*mass_scale)*(((0)+(0)+(0))-AcopleTuboRB_2_1__x)*(((0)+(0.051)+(-0.051))-AcopleTuboRB_2_1__z) + (1.597336875e-05*mass_scale) - (0.160204*mass_scale)*(((0.0509408)+(0.0828882)+(0.027232))-AcopleTuboRB_2_1__x)*(((rk_r7)+(rk_r9)+(-0.024511))-AcopleTuboRB_2_1__z) + (-0.000096*mass_scale) - (0.27687*mass_scale)*(((-0.0509408)+(-0.246072)+(-0.061254))-AcopleTuboRB_2_1__x)*(((-0.053192)+(rk_front_z)+(-0.034916))-AcopleTuboRB_2_1__z) + (0.000224*mass_scale) - (0.37221*mass_scale)*(((0.0509408)+(0.048079))-AcopleTuboRB_2_1__x)*(((rk_r7)+(-0.043275))-AcopleTuboRB_2_1__z) + (-0.006054*mass_scale) - (1.105*mass_scale)*(((-0.0509408)+(-0.142734))-AcopleTuboRB_2_1__x)*(((-0.053192)+(-0.128473))-AcopleTuboRB_2_1__z) + (0*mass_scale) - (0.100807*mass_scale)*(((0.0509408)+(0.0828882)+(0.0293545)+(2.5730363188947406e-07))-AcopleTuboRB_2_1__x)*(((rk_r7)+(rk_r9)+(rk_r11)+(-2.31596427989478e-07))-AcopleTuboRB_2_1__z) + (0*mass_scale) - (0.100807*mass_scale)*(((0)+(0))-AcopleTuboRB_2_1__x)*(((0)+(0))-AcopleTuboRB_2_1__z)}"/>
   </inertial>
-  <visual>
-    <origin xyz="-0.283305 0.052383 -0.576664" rpy="0 0 0"/>
-    <geometry>
-      <mesh filename="package://rocker_bogie/meshes/AcopleTuboRB_2_1.stl" scale="0.001417 0.001164 0.001275"/>
-    </geometry>
-    <material name="silver"/>
-  </visual>
+  <xacro:tubo x1="${0}" y1="${0}" z1="${0}" x2="${0}" y2="${0.0210457}" z2="${0}" r="0.028"/>
+  <xacro:tubo x1="${0}" y1="${0}" z1="${0}" x2="${(0.0509408)+(0.0828882)+(0.0293545)+(0)}" y2="${(-0.0161893)+(0.0000000)+(-0.0275215)+(-0.0210457)}" z2="${(rk_r7)+(rk_r9)+(rk_r11)+(-bogie_drop)}" r="0.025"/>
+  <xacro:tubo x1="${0}" y1="${0}" z1="${0}" x2="${(-0.0509408)+(-0.246072)+(-0.0707323)}" y2="${(-0.0161893)+(0.0000000)+(0.0000000)}" z2="${(-0.053192)+(rk_front_z)+(rk_p74)}" r="0.025"/>
+  <xacro:tubo x1="${((-0.0509408)+(-0.246072)+(-0.0707323))*AcopleTuboRB_2_1__t}" y1="${((-0.0161893)+(0.0000000)+(0.0000000))*AcopleTuboRB_2_1__t}" z1="${((-0.053192)+(rk_front_z)+(rk_p74))*AcopleTuboRB_2_1__t}" x2="${-0.0509408}" y2="${-0.0161893}" z2="${-0.053192}" r="0.014"/>
+  <!-- BRAZO DEL DIFERENCIAL.  Sube del eje del rocker a la altura
+       de la viga para que la barra salga horizontal.  Va RIGIDO con
+       el rocker -no lleva junta- asi que no anade cuerpo ni grado
+       de libertad; lo unico que hace la punta es llevar la junta de
+       bola 96.808 mm arriba.  Sale a y = +-0.1335592 del centro del
+       vehiculo, o sea 37 mm POR FUERA del costado del chasis
+       (+-0.0963): no lo atraviesa. -->
+  <xacro:if value="${diff_brazo}">
+    <xacro:tubo x1="${0}" y1="${-0.0161893}" z1="${0}"
+                x2="${0}" y2="${-0.0161893}" z2="${0.096808}" r="0.012"/>
+  </xacro:if>
 </link>
 
+<!-- AcopleTuboRB_1_1: pieza unica desde 2026-09-13.  Fusiona AcopleRB_1_1, AcopleTubo90__2_1, ApoyoServomotor_2_1, BarraAcople2_1, BarraBR_2_1, Barra_Acople_R_2_1, Barra_acople_2_1.  Masa, CM e
+     inercia son la suma exacta de las piezas (Steiner al CM comun), en
+     expresiones para que sigan a rocker_drop y bogie_drop. -->
+<xacro:property name="AcopleTuboRB_1_1__m" value="${(1.43027*mass_scale) + (1.60747*mass_scale) + (0.160204*mass_scale) + (0.27687*mass_scale) + (0.37221*mass_scale) + (1.105*mass_scale) + (0.100807*mass_scale) + (0.100807*mass_scale)}"/>
+<xacro:property name="AcopleTuboRB_1_1__x" value="${((1.43027*mass_scale)*((0)) + (1.60747*mass_scale)*((0)+(0)+(0)) + (0.160204*mass_scale)*((0.0509408)+(0.0828882)+(0.027232)) + (0.27687*mass_scale)*((-0.0509408)+(-0.246072)+(-0.061254)) + (0.37221*mass_scale)*((0.0509408)+(0.048079)) + (1.105*mass_scale)*((-0.0509408)+(-0.142734)) + (0.100807*mass_scale)*((0.0509408)+(0.0828882)+(0.0293545)+(2.5730363188947406e-07)) + (0.100807*mass_scale)*((0)+(0)))/AcopleTuboRB_1_1__m}"/>
+<xacro:property name="AcopleTuboRB_1_1__y" value="${((1.43027*mass_scale)*((0.023282)) + (1.60747*mass_scale)*((-0.0210457)+(-0.0153792)+(0.0042)) + (0.160204*mass_scale)*((0.0161893)+(0.0000000)+(0.00793)) + (0.27687*mass_scale)*((0.0161893)+(0.0000000)+(0)) + (0.37221*mass_scale)*((0.0161893)+(0)) + (1.105*mass_scale)*((0.0161893)+(0)) + (0.100807*mass_scale)*((0.0161893)+(0.0000000)+(0.0275215)+(0.015133)) + (0.100807*mass_scale)*((-0.0210457)+(0.015133)))/AcopleTuboRB_1_1__m}"/>
+<xacro:property name="AcopleTuboRB_1_1__z" value="${((1.43027*mass_scale)*((-0.000667)) + (1.60747*mass_scale)*((0)+(0.051)+(-0.051)) + (0.160204*mass_scale)*((rk_r7)+(rk_r9)+(-0.024511)) + (0.27687*mass_scale)*((-0.053192)+(rk_front_z)+(-0.034916)) + (0.37221*mass_scale)*((rk_r7)+(-0.043275)) + (1.105*mass_scale)*((-0.053192)+(-0.128473)) + (0.100807*mass_scale)*((rk_r7)+(rk_r9)+(rk_r11)+(-2.31596427989478e-07)) + (0.100807*mass_scale)*((0)+(0)))/AcopleTuboRB_1_1__m}"/>
+<xacro:property name="AcopleTuboRB_1_1__t" value="${(-0.0509408)/((-0.0509408)+(-0.246072)+(-0.0707323))}"/>
 <link name="AcopleTuboRB_1_1">
   <inertial>
-    <origin xyz="0 0.023282 -0.000667" rpy="0 0 0"/>
-    <mass value="${1.43027*mass_scale}"/>
-    <inertia ixx="${0.001701*mass_scale}" iyy="${0.002652*mass_scale}" izz="${0.001549*mass_scale}" ixy="${0*mass_scale}" iyz="${0*mass_scale}" ixz="${0*mass_scale}"/>
+    <origin xyz="${AcopleTuboRB_1_1__x} ${AcopleTuboRB_1_1__y} ${AcopleTuboRB_1_1__z}" rpy="0 0 0"/>
+    <mass value="${AcopleTuboRB_1_1__m}"/>
+    <inertia ixx="${(0.001701*mass_scale) + (1.43027*mass_scale)*((((0.023282))-AcopleTuboRB_1_1__y)**2 + (((-0.000667))-AcopleTuboRB_1_1__z)**2) + (0.001525*mass_scale) + (1.60747*mass_scale)*((((-0.0210457)+(-0.0153792)+(0.0042))-AcopleTuboRB_1_1__y)**2 + (((0)+(0.051)+(-0.051))-AcopleTuboRB_1_1__z)**2) + (0.00008*mass_scale) + (0.160204*mass_scale)*((((0.0161893)+(0.0000000)+(0.00793))-AcopleTuboRB_1_1__y)**2 + (((rk_r7)+(rk_r9)+(-0.024511))-AcopleTuboRB_1_1__z)**2) + (0.000112*mass_scale) + (0.27687*mass_scale)*((((0.0161893)+(0.0000000)+(0))-AcopleTuboRB_1_1__y)**2 + (((-0.053192)+(rk_front_z)+(-0.034916))-AcopleTuboRB_1_1__z)**2) + (0.000264*mass_scale) + (0.37221*mass_scale)*((((0.0161893)+(0))-AcopleTuboRB_1_1__y)**2 + (((rk_r7)+(-0.043275))-AcopleTuboRB_1_1__z)**2) + (0.006166*mass_scale) + (1.105*mass_scale)*((((0.0161893)+(0))-AcopleTuboRB_1_1__y)**2 + (((-0.053192)+(-0.128473))-AcopleTuboRB_1_1__z)**2) + (1.597336875e-05*mass_scale) + (0.100807*mass_scale)*((((0.0161893)+(0.0000000)+(0.0275215)+(0.015133))-AcopleTuboRB_1_1__y)**2 + (((rk_r7)+(rk_r9)+(rk_r11)+(-2.31596427989478e-07))-AcopleTuboRB_1_1__z)**2) + (1.597336875e-05*mass_scale) + (0.100807*mass_scale)*((((-0.0210457)+(0.015133))-AcopleTuboRB_1_1__y)**2 + (((0)+(0))-AcopleTuboRB_1_1__z)**2)}" iyy="${(0.002652*mass_scale) + (1.43027*mass_scale)*((((0))-AcopleTuboRB_1_1__x)**2 + (((-0.000667))-AcopleTuboRB_1_1__z)**2) + (0.002987*mass_scale) + (1.60747*mass_scale)*((((0)+(0)+(0))-AcopleTuboRB_1_1__x)**2 + (((0)+(0.051)+(-0.051))-AcopleTuboRB_1_1__z)**2) + (0.000072*mass_scale) + (0.160204*mass_scale)*((((0.0509408)+(0.0828882)+(0.027232))-AcopleTuboRB_1_1__x)**2 + (((rk_r7)+(rk_r9)+(-0.024511))-AcopleTuboRB_1_1__z)**2) + (0.000415*mass_scale) + (0.27687*mass_scale)*((((-0.0509408)+(-0.246072)+(-0.061254))-AcopleTuboRB_1_1__x)**2 + (((-0.053192)+(rk_front_z)+(-0.034916))-AcopleTuboRB_1_1__z)**2) + (0.000487*mass_scale) + (0.37221*mass_scale)*((((0.0509408)+(0.048079))-AcopleTuboRB_1_1__x)**2 + (((rk_r7)+(-0.043275))-AcopleTuboRB_1_1__z)**2) + (0.01222*mass_scale) + (1.105*mass_scale)*((((-0.0509408)+(-0.142734))-AcopleTuboRB_1_1__x)**2 + (((-0.053192)+(-0.128473))-AcopleTuboRB_1_1__z)**2) + (7.9867125e-06*mass_scale) + (0.100807*mass_scale)*((((0.0509408)+(0.0828882)+(0.0293545)+(2.5730363188947406e-07))-AcopleTuboRB_1_1__x)**2 + (((rk_r7)+(rk_r9)+(rk_r11)+(-2.31596427989478e-07))-AcopleTuboRB_1_1__z)**2) + (7.9867125e-06*mass_scale) + (0.100807*mass_scale)*((((0)+(0))-AcopleTuboRB_1_1__x)**2 + (((0)+(0))-AcopleTuboRB_1_1__z)**2)}" izz="${(0.001549*mass_scale) + (1.43027*mass_scale)*((((0))-AcopleTuboRB_1_1__x)**2 + (((0.023282))-AcopleTuboRB_1_1__y)**2) + (0.001525*mass_scale) + (1.60747*mass_scale)*((((0)+(0)+(0))-AcopleTuboRB_1_1__x)**2 + (((-0.0210457)+(-0.0153792)+(0.0042))-AcopleTuboRB_1_1__y)**2) + (0.00008*mass_scale) + (0.160204*mass_scale)*((((0.0509408)+(0.0828882)+(0.027232))-AcopleTuboRB_1_1__x)**2 + (((0.0161893)+(0.0000000)+(0.00793))-AcopleTuboRB_1_1__y)**2) + (0.000367*mass_scale) + (0.27687*mass_scale)*((((-0.0509408)+(-0.246072)+(-0.061254))-AcopleTuboRB_1_1__x)**2 + (((0.0161893)+(0.0000000)+(0))-AcopleTuboRB_1_1__y)**2) + (0.000264*mass_scale) + (0.37221*mass_scale)*((((0.0509408)+(0.048079))-AcopleTuboRB_1_1__x)**2 + (((0.0161893)+(0))-AcopleTuboRB_1_1__y)**2) + (0.006166*mass_scale) + (1.105*mass_scale)*((((-0.0509408)+(-0.142734))-AcopleTuboRB_1_1__x)**2 + (((0.0161893)+(0))-AcopleTuboRB_1_1__y)**2) + (1.597336875e-05*mass_scale) + (0.100807*mass_scale)*((((0.0509408)+(0.0828882)+(0.0293545)+(2.5730363188947406e-07))-AcopleTuboRB_1_1__x)**2 + (((0.0161893)+(0.0000000)+(0.0275215)+(0.015133))-AcopleTuboRB_1_1__y)**2) + (1.597336875e-05*mass_scale) + (0.100807*mass_scale)*((((0)+(0))-AcopleTuboRB_1_1__x)**2 + (((-0.0210457)+(0.015133))-AcopleTuboRB_1_1__y)**2)}" ixy="${(0*mass_scale) - (1.43027*mass_scale)*(((0))-AcopleTuboRB_1_1__x)*(((0.023282))-AcopleTuboRB_1_1__y) + (0*mass_scale) - (1.60747*mass_scale)*(((0)+(0)+(0))-AcopleTuboRB_1_1__x)*(((-0.0210457)+(-0.0153792)+(0.0042))-AcopleTuboRB_1_1__y) + (-7.9867125e-06*mass_scale) - (0.160204*mass_scale)*(((0.0509408)+(0.0828882)+(0.027232))-AcopleTuboRB_1_1__x)*(((0.0161893)+(0.0000000)+(0.00793))-AcopleTuboRB_1_1__y) + (0*mass_scale) - (0.27687*mass_scale)*(((-0.0509408)+(-0.246072)+(-0.061254))-AcopleTuboRB_1_1__x)*(((0.0161893)+(0.0000000)+(0))-AcopleTuboRB_1_1__y) + (0*mass_scale) - (0.37221*mass_scale)*(((0.0509408)+(0.048079))-AcopleTuboRB_1_1__x)*(((0.0161893)+(0))-AcopleTuboRB_1_1__y) + (0*mass_scale) - (1.105*mass_scale)*(((-0.0509408)+(-0.142734))-AcopleTuboRB_1_1__x)*(((0.0161893)+(0))-AcopleTuboRB_1_1__y) + (0*mass_scale) - (0.100807*mass_scale)*(((0.0509408)+(0.0828882)+(0.0293545)+(2.5730363188947406e-07))-AcopleTuboRB_1_1__x)*(((0.0161893)+(0.0000000)+(0.0275215)+(0.015133))-AcopleTuboRB_1_1__y) + (0*mass_scale) - (0.100807*mass_scale)*(((0)+(0))-AcopleTuboRB_1_1__x)*(((-0.0210457)+(0.015133))-AcopleTuboRB_1_1__y)}" iyz="${(0*mass_scale) - (1.43027*mass_scale)*(((0.023282))-AcopleTuboRB_1_1__y)*(((-0.000667))-AcopleTuboRB_1_1__z) + (0*mass_scale) - (1.60747*mass_scale)*(((-0.0210457)+(-0.0153792)+(0.0042))-AcopleTuboRB_1_1__y)*(((0)+(0.051)+(-0.051))-AcopleTuboRB_1_1__z) + (7.9867125e-06*mass_scale) - (0.160204*mass_scale)*(((0.0161893)+(0.0000000)+(0.00793))-AcopleTuboRB_1_1__y)*(((rk_r7)+(rk_r9)+(-0.024511))-AcopleTuboRB_1_1__z) + (0*mass_scale) - (0.27687*mass_scale)*(((0.0161893)+(0.0000000)+(0))-AcopleTuboRB_1_1__y)*(((-0.053192)+(rk_front_z)+(-0.034916))-AcopleTuboRB_1_1__z) + (0*mass_scale) - (0.37221*mass_scale)*(((0.0161893)+(0))-AcopleTuboRB_1_1__y)*(((rk_r7)+(-0.043275))-AcopleTuboRB_1_1__z) + (0*mass_scale) - (1.105*mass_scale)*(((0.0161893)+(0))-AcopleTuboRB_1_1__y)*(((-0.053192)+(-0.128473))-AcopleTuboRB_1_1__z) + (0*mass_scale) - (0.100807*mass_scale)*(((0.0161893)+(0.0000000)+(0.0275215)+(0.015133))-AcopleTuboRB_1_1__y)*(((rk_r7)+(rk_r9)+(rk_r11)+(-2.31596427989478e-07))-AcopleTuboRB_1_1__z) + (0*mass_scale) - (0.100807*mass_scale)*(((-0.0210457)+(0.015133))-AcopleTuboRB_1_1__y)*(((0)+(0))-AcopleTuboRB_1_1__z)}" ixz="${(0*mass_scale) - (1.43027*mass_scale)*(((0))-AcopleTuboRB_1_1__x)*(((-0.000667))-AcopleTuboRB_1_1__z) + (0*mass_scale) - (1.60747*mass_scale)*(((0)+(0)+(0))-AcopleTuboRB_1_1__x)*(((0)+(0.051)+(-0.051))-AcopleTuboRB_1_1__z) + (1.597336875e-05*mass_scale) - (0.160204*mass_scale)*(((0.0509408)+(0.0828882)+(0.027232))-AcopleTuboRB_1_1__x)*(((rk_r7)+(rk_r9)+(-0.024511))-AcopleTuboRB_1_1__z) + (-0.000096*mass_scale) - (0.27687*mass_scale)*(((-0.0509408)+(-0.246072)+(-0.061254))-AcopleTuboRB_1_1__x)*(((-0.053192)+(rk_front_z)+(-0.034916))-AcopleTuboRB_1_1__z) + (0.000224*mass_scale) - (0.37221*mass_scale)*(((0.0509408)+(0.048079))-AcopleTuboRB_1_1__x)*(((rk_r7)+(-0.043275))-AcopleTuboRB_1_1__z) + (-0.006054*mass_scale) - (1.105*mass_scale)*(((-0.0509408)+(-0.142734))-AcopleTuboRB_1_1__x)*(((-0.053192)+(-0.128473))-AcopleTuboRB_1_1__z) + (0*mass_scale) - (0.100807*mass_scale)*(((0.0509408)+(0.0828882)+(0.0293545)+(2.5730363188947406e-07))-AcopleTuboRB_1_1__x)*(((rk_r7)+(rk_r9)+(rk_r11)+(-2.31596427989478e-07))-AcopleTuboRB_1_1__z) + (0*mass_scale) - (0.100807*mass_scale)*(((0)+(0))-AcopleTuboRB_1_1__x)*(((0)+(0))-AcopleTuboRB_1_1__z)}"/>
   </inertial>
-  <visual>
-    <origin xyz="-0.283305 -0.285198 -0.576664" rpy="0 0 0"/>
-    <geometry>
-      <mesh filename="package://rocker_bogie/meshes/AcopleTuboRB_1_1.stl" scale="0.001417 0.001164 0.001275"/>
-    </geometry>
-    <material name="silver"/>
-  </visual>
+  <xacro:tubo x1="${0}" y1="${0}" z1="${0}" x2="${0}" y2="${-0.0210457}" z2="${0}" r="0.028"/>
+  <xacro:tubo x1="${0}" y1="${0}" z1="${0}" x2="${(0.0509408)+(0.0828882)+(0.0293545)+(0)}" y2="${(0.0161893)+(0.0000000)+(0.0275215)+(0.0210457)}" z2="${(rk_r7)+(rk_r9)+(rk_r11)+(-bogie_drop)}" r="0.025"/>
+  <xacro:tubo x1="${0}" y1="${0}" z1="${0}" x2="${(-0.0509408)+(-0.246072)+(-0.0707323)}" y2="${(0.0161893)+(0.0000000)+(0.0000000)}" z2="${(-0.053192)+(rk_front_z)+(rk_p74)}" r="0.025"/>
+  <xacro:tubo x1="${((-0.0509408)+(-0.246072)+(-0.0707323))*AcopleTuboRB_1_1__t}" y1="${((0.0161893)+(0.0000000)+(0.0000000))*AcopleTuboRB_1_1__t}" z1="${((-0.053192)+(rk_front_z)+(rk_p74))*AcopleTuboRB_1_1__t}" x2="${-0.0509408}" y2="${0.0161893}" z2="${-0.053192}" r="0.014"/>
+  <!-- BRAZO DEL DIFERENCIAL.  Sube del eje del rocker a la altura
+       de la viga para que la barra salga horizontal.  Va RIGIDO con
+       el rocker -no lleva junta- asi que no anade cuerpo ni grado
+       de libertad; lo unico que hace la punta es llevar la junta de
+       bola 96.808 mm arriba.  Sale a y = +-0.1335592 del centro del
+       vehiculo, o sea 37 mm POR FUERA del costado del chasis
+       (+-0.0963): no lo atraviesa. -->
+  <xacro:if value="${diff_brazo}">
+    <xacro:tubo x1="${0}" y1="${0.0161893}" z1="${0}"
+                x2="${0}" y2="${0.0161893}" z2="${0.096808}" r="0.012"/>
+  </xacro:if>
 </link>
 
 <!-- ================= ROCKER PIVOTS (passive suspension) ================= -->
@@ -899,13 +892,92 @@
   command stays at zero and the joints are free - which is exactly the
   "no differential" ablation.  They are never position- or velocity-driven.
 -->
+<!-- ==================== SUSPENSION TRAVEL ====================
+     The two rocker pivots below travel +-1.0 rad (set again 2026-09-13;
+     the bogies stay at -0.6 / bogie_upper, see the top of this file).  They were +-0.6 rad, sized against the
+     0.10 m step obstacle alone: "0.10 m step over a 0.285 m half-span needs
+     ~0.34 rad" - true, but the step is not the demanding case.  On the mine
+     route the gallery climbs about 5 m, and both rocker pivots were measured
+     PINNED against the +0.6 rad stop for minutes at a time (sd 0.25 deg),
+     with the chassis riding at a mean pitch of -27 deg where the terrain grade
+     was only about 7 deg.  A suspension at its stop does not articulate: it
+     transmits terrain pitch straight into the chassis, which is the opposite
+     of the property this study is measuring.
+
+     +-1.0 rad comes from the criterion that DEFINES the mechanism - all six
+     wheels stay in ground contact while surmounting an obstacle of one wheel
+     diameter (MER is specified at roughly 1.5 diameters; one is conservative).
+     With this model's measured geometry:
+
+         wheel diameter D        = 0.356 m
+         rocker front lever arm  = 0.4266 m   front wheel to rocker pivot
+         bogie half-span         = 0.2133 m   middle wheel to bogie pivot
+
+         rocker: asin(D / 0.4266)       = 0.988 rad = 56.6 deg
+         bogie : asin(D / (2 x 0.2133)) = 0.988 rad = 56.6 deg
+
+     Both round to 1.0 rad, which is what is set here.  At the old +-0.6 rad the
+     same criterion admitted only a 0.24 m obstacle - two thirds of a wheel.
+
+     STILL TO CHECK: whether the CAD linkage actually clears itself at 1.0 rad.
+     The meshes are a CAD export and self_collide is false on the wheels, so
+     Gazebo will not complain about interpenetration - look at it in the GUI
+     before trusting a contact result.
+     ============================================================ -->
+
+<!-- ================= SUSPENSION DAMPING ================= -->
+<!--
+  damping = 5.0 N*m*s/rad on the four PASSIVE suspension joints
+  (rocker_pivot_left, rocker_pivot_right, rev_3, rev_4), set 2026-09-08.
+  History of this number: 80.0 in the original GitHub model (2026-03-12),
+  0.5 for most of this study, then 80.0, 0.1 and 5.0 on 2026-09-08 as the
+  suspension was being swept by hand.
+
+  WHAT THE SWEEP IS FOR.  Damping trades ground contact for ride
+  smoothness on this platform, and the two points measured over the full
+  mine route (robot_metrics/ROCKER_RUEDAS_AL_AIRE.md section 2) are the
+  ends of the range, not this value:
+
+                           damping 0.5     damping 80
+      vibration RMS            2.281          1.693
+      az_max                 160.9           53.3
+      peak |a|               365            123
+      time with <6 wheels     19.7 %         51.7 %
+      Rueda_4_1 airborne       6.4 %         38.0 %
+
+  5.0 is an INTERIOR point of that pair and nothing here says where it
+  lands.  The two ends differ by a factor of 160 and the response is not
+  known to be linear in damping, so do not read a proportion off the
+  table.  If 5.0 is meant to be the compromise between the smooth ride of
+  80 and the ground contact of 0.5, that claim needs its own run: the two
+  numbers to log are vibration RMS and time with fewer than six wheels,
+  and they are the two that move in opposite directions.
+
+  friction stays at 0.2 and has not moved through any of these changes.
+  At 5.0 the viscous term is back in charge: 5.0 * qdot outweighs the
+  0.2 N*m of Coulomb friction above qdot = 0.04 rad/s, which the
+  suspension is above whenever it is doing anything at all.  That was not
+  true at damping 0.1, where friction was the governing term.
+
+  STABILITY: gazebo-classic integrates joint damping explicitly
+  (implicitSpringDamper is not set here), and the explicit form is stable
+  while damping < 2*I/dt, i.e. 4000*I at dt = 0.0005 s.  The rocker
+  pivots (I ~ 4.05 kg*m^2) are bounded near 16000 and the bogies, the
+  lighter pair, near a few hundred.  5.0 is far below both.
+
+  check_sim_parity.py does NOT police these four: the other two platforms
+  have no passive suspension to match.  The DRIVE joints (rev_9..rev_14)
+  are the policed ones and stay at damping 0.0.
+-->
+
 <joint name="rocker_pivot_right" type="revolute">
-  <origin xyz="0.283305 0.285198 0.576664" rpy="0 0 0"/>
-  <parent link="base_link"/>
+  <origin xyz="0.244209 0.2177132 0.576664" rpy="0 0 0"/>
+  <parent link="chassis_link"/>
   <child link="AcopleTuboRB_1_1"/>
   <axis xyz="0.0 1.0 0.0"/>
-  <limit lower="-0.6" upper="0.6" effort="1000" velocity="10.0"/>
-  <dynamics damping="0.5" friction="0.2"/>
+  <!-- +-1.0 rad desde 2026-09-13 (antes +-0.6); ver SUSPENSION TRAVEL. -->
+  <limit lower="-1.0" upper="1.0" effort="1000" velocity="10.0"/>
+  <dynamics damping="5.0" friction="0.2"/>
 </joint>
 
 <joint name="rocker_pivot_left" type="revolute">
@@ -916,93 +988,32 @@
     y = 0.285198 - 0.337582 = -0.052384, so the link keeps exactly the pose it
     had before; only its parent and its degree of freedom changed.
   -->
-  <origin xyz="0.283305 -0.052384 0.576664" rpy="0 0 0"/>
-  <parent link="base_link"/>
+  <origin xyz="0.244209 -0.0170268 0.576664" rpy="0 0 0"/>
+  <parent link="chassis_link"/>
   <child link="AcopleTuboRB_2_1"/>
   <axis xyz="0.0 1.0 0.0"/>
-  <limit lower="-0.6" upper="0.6" effort="1000" velocity="10.0"/>
-  <dynamics damping="0.5" friction="0.2"/>
+  <!-- +-1.0 rad desde 2026-09-13 (antes +-0.6); ver SUSPENSION TRAVEL. -->
+  <limit lower="-1.0" upper="1.0" effort="1000" velocity="10.0"/>
+  <dynamics damping="5.0" friction="0.2"/>
 </joint>
 
-<!-- ================= ROCKER END COUPLINGS (cosmetic) ================= -->
-<!--
-  Barra_acople_1_1 / Barra_acople_2_1 and the AcopleRB_* links they carry are
-  structural stubs of the CAD assembly.  They are leaves of the tree: no wheel
-  hangs from them, so a revolute joint here adds a degree of freedom with mass
-  but no kinematic function - unmodelled dynamics that only injects noise into
-  the IMU.  They are fixed to the rocker they belong to.
--->
-<joint name="rocker_joint_r" type="fixed">
-  <origin xyz="0 -0.030266 0" rpy="0 0 0"/>
-  <parent link="AcopleTuboRB_1_1"/>
-  <child link="Barra_acople_2_1"/>
-</joint>
+<!-- ================= PIEZAS FUSIONADAS =================
+  Desde 2026-09-13 las cadenas de juntas fijas del CAD (acoples, codos de
+  90 y 135, soportes, motores) estan fusionadas en la pieza que articula:
+  AcopleTuboRB_* (rocker), Acople_Rodamiento_* (bogie) y BarraRuedas_1/3/4/6
+  (direccion).  Gazebo ya las fusionaba al cargar, asi que la fisica es la
+  misma; la geometria de juntas tambien.  Cada brazo es un tubo recto. -->
 
-<joint name="rocker_acople_r" type="fixed">
-  <origin xyz="0 -0.022117 0.051" rpy="0 0 0"/>
-  <parent link="Barra_acople_2_1"/>
-  <child link="AcopleRB_1_1"/>
-</joint>
 
-<joint name="rocker_joint_l" type="fixed">
-  <origin xyz="0 0.030266 0" rpy="0 0 0"/>
-  <parent link="AcopleTuboRB_2_1"/>
-  <child link="Barra_acople_1_1"/>
-</joint>
 
-<joint name="rocker_acople_l" type="fixed">
-  <origin xyz="0 0.022117 0.051" rpy="0 0 0"/>
-  <parent link="Barra_acople_1_1"/>
-  <child link="AcopleRB_2_1"/>
-</joint>
 
-<joint name="link_r_5" type="fixed">
-  <origin xyz="-0.059096 -0.023282 -0.053192" rpy="0 0 0"/>
-  <parent link="AcopleTuboRB_2_1"/>
-  <child link="BarraBR_1_1"/>
-</joint>
 
-<joint name="link_r_6" type="fixed">
-  <origin xyz="-0.059096 0.023282 -0.053192" rpy="0 0 0"/>
-  <parent link="AcopleTuboRB_1_1"/>
-  <child link="BarraBR_2_1"/>
-</joint>
 
-<joint name="link_r_7" type="fixed">
-  <origin xyz="0.059096 -0.023282 -0.053192" rpy="0 0 0"/>
-  <parent link="AcopleTuboRB_2_1"/>
-  <child link="BarraAcople1_1"/>
-</joint>
 
-<joint name="link_r_8" type="fixed">
-  <origin xyz="0.059096 0.023282 -0.053192" rpy="0 0 0"/>
-  <parent link="AcopleTuboRB_1_1"/>
-  <child link="BarraAcople2_1"/>
-</joint>
 
-<joint name="link_r_9" type="fixed">
-  <origin xyz="0.096158 0 -0.086551" rpy="0 0 0"/>
-  <parent link="BarraAcople1_1"/>
-  <child link="AcopleTubo90_1_1"/>
-</joint>
 
-<joint name="link_r_10" type="fixed">
-  <origin xyz="0.096158 0 -0.086551" rpy="0 0 0"/>
-  <parent link="BarraAcople2_1"/>
-  <child link="AcopleTubo90__2_1"/>
-</joint>
 
-<joint name="link_r_11" type="fixed">
-  <origin xyz="0.034054 -0.039579 -0.030652" rpy="0 0 0"/>
-  <parent link="AcopleTubo90_1_1"/>
-  <child link="Barra_Acople_R_1_1"/>
-</joint>
 
-<joint name="link_r_12" type="fixed">
-  <origin xyz="0.034054 0.039579 -0.030652" rpy="0 0 0"/>
-  <parent link="AcopleTubo90__2_1"/>
-  <child link="Barra_Acople_R_2_1"/>
-</joint>
 
 <!-- ================= BOGIE PIVOTS (passive) ================= -->
 <!--
@@ -1036,255 +1047,198 @@
   span is shorter still, so the old stop was close to binding).
 -->
 <joint name="rev_3" type="revolute">
-  <origin xyz="0 -0.030266 0" rpy="0 0 0"/>
-  <parent link="Barra_Acople_R_1_1"/>
+  <origin xyz="${(0.0509408)+(0.0828882)+(0.0293545)+(0)} ${(-0.0161893)+(0.0000000)+(-0.0275215)+(-0.0210457)} ${(rk_r7)+(rk_r9)+(rk_r11)+(-bogie_drop)}" rpy="0 0 0"/>
+  <parent link="AcopleTuboRB_2_1"/>
   <child link="Acople_Rodamiento_1_1"/>
   <axis xyz="-0.0 1.0 -0.0"/>
-  <limit lower="-0.6" upper="0.6" effort="1000" velocity="10.0"/>
-  <dynamics damping="0.5" friction="0.2"/>
+  <limit lower="-0.6" upper="$(arg bogie_upper)" effort="1000" velocity="10.0"/>
+  <dynamics damping="5.0" friction="0.2"/>
 </joint>
 
 <joint name="rev_4" type="revolute">
-  <origin xyz="0 0.030266 0" rpy="0 0 0"/>
-  <parent link="Barra_Acople_R_2_1"/>
+  <origin xyz="${(0.0509408)+(0.0828882)+(0.0293545)+(0)} ${(0.0161893)+(0.0000000)+(0.0275215)+(0.0210457)} ${(rk_r7)+(rk_r9)+(rk_r11)+(-bogie_drop)}" rpy="0 0 0"/>
+  <parent link="AcopleTuboRB_1_1"/>
   <child link="Acople_Rodamiento_2_1"/>
   <axis xyz="0.0 1.0 0.0"/>
-  <limit lower="-0.6" upper="0.6" effort="1000" velocity="10.0"/>
-  <dynamics damping="0.5" friction="0.2"/>
+  <limit lower="-0.6" upper="$(arg bogie_upper)" effort="1000" velocity="10.0"/>
+  <dynamics damping="5.0" friction="0.2"/>
 </joint>
 
-<joint name="link_r_15" type="fixed">
-  <origin xyz="-0.059096 0.023282 -0.053192" rpy="0 0 0"/>
-  <parent link="Acople_Rodamiento_2_1"/>
-  <child link="BarraAcople3_1"/>
-</joint>
 
-<joint name="link_r_16" type="fixed">
-  <origin xyz="-0.059096 -0.023282 -0.053192" rpy="0 0 0"/>
-  <parent link="Acople_Rodamiento_1_1"/>
-  <child link="BarraAcople4_1"/>
-</joint>
 
-<joint name="link_r_17" type="fixed">
-  <origin xyz="0.059096 -0.023282 -0.053192" rpy="0 0 0"/>
-  <parent link="Acople_Rodamiento_1_1"/>
-  <child link="BarraAcople5_1"/>
-</joint>
 
-<joint name="link_r_18" type="fixed">
-  <origin xyz="0.059096 0.023282 -0.053192" rpy="0 0 0"/>
-  <parent link="Acople_Rodamiento_2_1"/>
-  <child link="BarraAcople6_1"/>
-</joint>
 
-<joint name="link_r_19" type="fixed">
-  <origin xyz="-0.096156 0 -0.086551" rpy="0 0 0"/>
-  <parent link="BarraAcople4_1"/>
-  <child link="AcopleTubo135_1_1"/>
-</joint>
 
-<joint name="link_r_20" type="fixed">
-  <origin xyz="-0.096156 0 -0.086551" rpy="0 0 0"/>
-  <parent link="BarraAcople3_1"/>
-  <child link="AcopleTubo135_2_1"/>
-</joint>
 
-<joint name="link_r_21" type="fixed">
-  <origin xyz="-0.285466 0 -0.256945" rpy="0 0 0"/>
-  <parent link="BarraBR_1_1"/>
-  <child link="ApoyoServomotor_1_1"/>
-</joint>
 
-<joint name="link_r_22" type="fixed">
-  <origin xyz="-0.285466 0 -0.256945" rpy="0 0 0"/>
-  <parent link="BarraBR_2_1"/>
-  <child link="ApoyoServomotor_2_1"/>
-</joint>
 
-<joint name="link_r_23" type="fixed">
-  <origin xyz="0.096158 0 -0.086551" rpy="0 0 0"/>
-  <parent link="BarraAcople6_1"/>
-  <child link="ApoyoServomotor_3_1"/>
-</joint>
 
-<joint name="link_r_24" type="fixed">
-  <origin xyz="0.096158 0 -0.086551" rpy="0 0 0"/>
-  <parent link="BarraAcople5_1"/>
-  <child link="ApoyoServomotor_4_1"/>
-</joint>
 
+<!-- ================= STEERING LOCK =================
+  +-1.1 rad (63 deg), not the +-0.5 rad (28.6 deg) this used to be.
+
+  A rocker-bogie turns on the spot: the four corner wheels steer tangent to a
+  circle about the vehicle centre while the two middle wheels, which sit ON
+  that centre line, stay straight and are already tangent.  Every Mars rover
+  from MER onward does this, and twist_to_wheels.py has always had the
+  spin_turn() routine for it - its own comment says the wheels are "turned as
+  close to tangent as the steering lock allows", which at 0.5 rad was not close
+  at all.
+
+  The angles the manoeuvre needs, computed from this model's own measured wheel
+  positions about the centre (0.2833, 0.1164):
+
+      front-left  -60.07 deg    front-right  +60.07 deg
+      rear-left   +51.55 deg    rear-right   -51.55 deg
+
+  so 1.0484 rad is the requirement and 1.1 gives a little margin.  The middle
+  axle sits at x = 0.2833 against a rotation centre of x = 0.2833, an offset of
+  0.0000 m - the geometry was laid out for this manoeuvre, and only the joint
+  limit was stopping it.
+
+  What this removes: with a 28.6 deg lock the platform could not achieve any
+  turn tighter than a 1.56 m radius, while DWA - which has no notion of a
+  minimum radius - was measured commanding radii down to 0.13 m.  The
+  difference was scrubbed off sideways by the tyres, which is where the 17-21
+  N*m torque peaks came from.
+
+  STILL TO CHECK: whether the CAD steering linkage actually clears itself at
+  1.1 rad.  Widening a joint limit without looking is how the suspension travel
+  change went wrong earlier - look at it in the GUI.
+  ================================================= -->
 <joint name="rev_5" type="revolute">
-  <origin xyz="-0.082056 0 -0.074002" rpy="0 0 0"/>
-  <parent link="ApoyoServomotor_1_1"/>
+  <origin xyz="${(-0.0509408)+(-0.246072)+(-0.0707323)} ${(-0.0161893)+(0.0000000)+(0.0000000)} ${(-0.053192)+(rk_front_z)+(rk_p74)}" rpy="0 0 0"/>
+  <parent link="AcopleTuboRB_2_1"/>
   <child link="BarraRuedas_1_1"/>
   <axis xyz="0 0 1"/>
-  <limit lower="-0.5" upper="0.5" effort="100" velocity="1.0"/>
+  <limit lower="-1.1" upper="1.1" effort="100" velocity="1.0"/>
   <dynamics damping="10.0" friction="1.0"/>
 </joint>
 
-<joint name="link_r_25" type="fixed">
-  <origin xyz="-0.034057 0 -0.074002" rpy="0 0 0"/>
-  <parent link="AcopleTubo135_1_1"/>
-  <child link="BarraRuedas_2_1"/>
-</joint>
 
 <joint name="rev_6" type="revolute">
-  <origin xyz="0.082056 0 -0.074002" rpy="0 0 0"/>
-  <parent link="ApoyoServomotor_4_1"/>
+  <origin xyz="${(0.0509408)+(0.0828882)+(0.0707323)} ${(-0.0161893)+(0.0000000)+(0.0000000)} ${(-0.053192 + bogie_drop)+(-0.086551)+(rk_p74)}" rpy="0 0 0"/>
+  <parent link="Acople_Rodamiento_1_1"/>
   <child link="BarraRuedas_3_1"/>
   <axis xyz="0 0 1"/>
-  <limit lower="-0.5" upper="0.5" effort="100" velocity="1.0"/>
+  <limit lower="-1.1" upper="1.1" effort="100" velocity="1.0"/>
   <dynamics damping="10.0" friction="1.0"/>
 </joint>
 
 <joint name="rev_7" type="revolute">
-  <origin xyz="-0.082056 0 -0.074002" rpy="0 0 0"/>
-  <parent link="ApoyoServomotor_2_1"/>
+  <origin xyz="${(-0.0509408)+(-0.246072)+(-0.0707323)} ${(0.0161893)+(0.0000000)+(0.0000000)} ${(-0.053192)+(rk_front_z)+(rk_p74)}" rpy="0 0 0"/>
+  <parent link="AcopleTuboRB_1_1"/>
   <child link="BarraRuedas_4_1"/>
   <axis xyz="0 0 1"/>
-  <limit lower="-0.5" upper="0.5" effort="100" velocity="1.0"/>
+  <limit lower="-1.1" upper="1.1" effort="100" velocity="1.0"/>
   <dynamics damping="10.0" friction="1.0"/>
 </joint>
 
-<joint name="link_r_26" type="fixed">
-  <origin xyz="-0.034057 0 -0.074002" rpy="0 0 0"/>
-  <parent link="AcopleTubo135_2_1"/>
-  <child link="BarraRuedas_5_1"/>
-</joint>
 
 <joint name="rev_8" type="revolute">
-  <origin xyz="0.082056 0 -0.074002" rpy="0 0 0"/>
-  <parent link="ApoyoServomotor_3_1"/>
+  <origin xyz="${(0.0509408)+(0.0828882)+(0.0707323)} ${(0.0161893)+(0.0000000)+(0.0000000)} ${(-0.053192 + bogie_drop)+(-0.086551)+(rk_p74)}" rpy="0 0 0"/>
+  <parent link="Acople_Rodamiento_2_1"/>
   <child link="BarraRuedas_6_1"/>
   <axis xyz="0 0 1"/>
-  <limit lower="-0.5" upper="0.5" effort="100" velocity="1.0"/>
+  <limit lower="-1.1" upper="1.1" effort="100" velocity="1.0"/>
   <dynamics damping="10.0" friction="1.0"/>
 </joint>
 
-<joint name="link_r_27" type="fixed">
-  <origin xyz="0 0 -0.07905" rpy="0 0 0"/>
-  <parent link="BarraRuedas_1_1"/>
-  <child link="SoporteMotor_1_1"/>
-</joint>
 
-<joint name="link_r_28" type="fixed">
-  <origin xyz="0 0 -0.07905" rpy="0 0 0"/>
-  <parent link="BarraRuedas_2_1"/>
-  <child link="SoporteMotor_2_1"/>
-</joint>
 
-<joint name="link_r_29" type="fixed">
-  <origin xyz="0 0 -0.07905" rpy="0 0 0"/>
-  <parent link="BarraRuedas_3_1"/>
-  <child link="SoporteMotor_4_1"/>
-</joint>
 
-<joint name="link_r_30" type="fixed">
-  <origin xyz="0 0 -0.07905" rpy="0 0 0"/>
-  <parent link="BarraRuedas_4_1"/>
-  <child link="SoporteMotor_3_1"/>
-</joint>
 
-<joint name="link_r_31" type="fixed">
-  <origin xyz="0 0 -0.07905" rpy="0 0 0"/>
-  <parent link="BarraRuedas_5_1"/>
-  <child link="SoporteMotor_5_1"/>
-</joint>
 
-<joint name="link_r_32" type="fixed">
-  <origin xyz="0 0 -0.07905" rpy="0 0 0"/>
-  <parent link="BarraRuedas_6_1"/>
-  <child link="SoporteMotor_6_1"/>
-</joint>
 
-<joint name="link_r_33" type="fixed">
-  <origin xyz="0 -0.03143 -0.05865" rpy="0 0 0"/>
-  <parent link="SoporteMotor_1_1"/>
-  <child link="Motor_1_1"/>
-</joint>
 
-<joint name="link_r_34" type="fixed">
-  <origin xyz="0 -0.03143 -0.05865" rpy="0 0 0"/>
-  <parent link="SoporteMotor_2_1"/>
-  <child link="Motor_2_1"/>
-</joint>
 
-<joint name="link_r_35" type="fixed">
-  <origin xyz="0 -0.03143 -0.05865" rpy="0 0 0"/>
-  <parent link="SoporteMotor_4_1"/>
-  <child link="Motor_3_1"/>
-</joint>
 
-<joint name="link_r_36" type="fixed">
-  <origin xyz="0 0.03143 -0.05865" rpy="0 0 0"/>
-  <parent link="SoporteMotor_3_1"/>
-  <child link="Motor_6_1"/>
-</joint>
 
-<joint name="link_r_37" type="fixed">
-  <origin xyz="0 0.03143 -0.05865" rpy="0 0 0"/>
-  <parent link="SoporteMotor_5_1"/>
-  <child link="Motor_5_1"/>
-</joint>
 
-<joint name="link_r_38" type="fixed">
-  <origin xyz="0 0.03143 -0.05865" rpy="0 0 0"/>
-  <parent link="SoporteMotor_6_1"/>
-  <child link="Motor_4_1"/>
-</joint>
+
+<!-- ==================== ACTUATION BUDGET ====================
+     The six drive joints below (rev_9 .. rev_14) carry the Rocker-Bogie's
+     share of the shared tractive-force budget declared in
+     robot_metrics/config/sim_config.yaml:
+
+         tau_max = F_budget * r / n_driven = 810.811 * 0.148 / 6 = 20.000 N*m
+
+     so that the three platforms have the same total drive authority at the
+     contact patch (674.2 N) despite driving 4, 2 and 6 joints respectively.
+     check_sim_parity.py fails the campaign if this figure drifts from the
+     config.  It was 100.0 N*m, which gave this platform a 600 N*m / 3371 N
+     ceiling - the largest of the three, and the reason its trouble on grades
+     was never a torque-ceiling problem.
+
+     SWEPT BY HAND 2026-09-06 to 2026-09-08: 20.0 -> 15.0 -> 10.0 -> 20.0
+     N*m per wheel, i.e. back to where it started.  This platform is the
+     ANCHOR of the budget: the figure here is chosen and the other two are
+     solved from it (Husky 29.958 -> 22.468 -> 14.979 -> 29.958, Tracked
+     60.0 -> 45.0 -> 30.0 -> 60.0), which is why moving it by hand means
+     editing sim_config.yaml too.
+     20.0 N*m per wheel is ~5.3x the 3.76 N*m the 16.7 deg ramp demands of
+     each of the six.
+
+     damping and friction are 0.0 for the same parity reason: they used to be
+     0.5 and 0.1 here and absent on the other two platforms, i.e. 7.4 N*m of
+     drag (a third of the ramp torque) that only this platform paid.  Joint
+     drag is not a locomotion property being compared; contact friction, which
+     is shared, is.  The PASSIVE suspension pivots and the steering joints keep
+     their damping - they model real hardware and have no counterpart to match.
+     ========================================================== -->
 
 <joint name="rev_9" type="continuous">
-  <origin xyz="0 -0.022117 0" rpy="0 0 0"/>
-  <parent link="Motor_3_1"/>
+  <origin xyz="${(0)+(0)+(0)} ${(0.0000000)+(-0.0218551)+(-0.0153792)} ${(rk_p79)+(rk_p58)+(0)}" rpy="0 0 0"/>
+  <parent link="BarraRuedas_3_1"/>
   <child link="Rueda_2_1"/>
   <axis xyz="0.0 1.0 0.0"/>
-  <limit effort="100.0" velocity="5.0"/>
-  <dynamics damping="0.5" friction="0.1"/>
+  <limit effort="20.0" velocity="5.0"/>
+  <dynamics damping="0.0" friction="0.0"/>
 </joint>
 
 <joint name="rev_10" type="continuous">
-  <origin xyz="0 -0.022117 0" rpy="0 0 0"/>
-  <parent link="Motor_2_1"/>
+  <origin xyz="${(-0.0509408)+(-0.0828865)+(-0.0293571)+(0)+(0)+(0)} ${(-0.0161893)+(0.0000000)+(0.0000000)+(0.0000000)+(-0.0218551)+(-0.0153792)} ${(-0.053192 + bogie_drop)+(-0.086551)+(rk_p74)+(rk_p79)+(rk_p58)+(0)}" rpy="0 0 0"/>
+  <parent link="Acople_Rodamiento_1_1"/>
   <child link="Rueda_4_1"/>
   <axis xyz="0.0 1.0 0.0"/>
-  <limit effort="100.0" velocity="5.0"/>
-  <dynamics damping="0.5" friction="0.1"/>
+  <limit effort="20.0" velocity="5.0"/>
+  <dynamics damping="0.0" friction="0.0"/>
 </joint>
 
 <joint name="rev_11" type="continuous">
-  <origin xyz="0 -0.022117 0" rpy="0 0 0"/>
-  <parent link="Motor_1_1"/>
+  <origin xyz="${(0)+(0)+(0)} ${(0.0000000)+(-0.0218551)+(-0.0153792)} ${(rk_p79)+(rk_p58)+(0)}" rpy="0 0 0"/>
+  <parent link="BarraRuedas_1_1"/>
   <child link="Rueda_6_1"/>
   <axis xyz="0.0 1.0 0.0"/>
-  <limit effort="100.0" velocity="5.0"/>
-  <dynamics damping="0.5" friction="0.1"/>
+  <limit effort="20.0" velocity="5.0"/>
+  <dynamics damping="0.0" friction="0.0"/>
 </joint>
 
 <joint name="rev_12" type="continuous">
-  <origin xyz="0 0.022117 0" rpy="0 0 0"/>
-  <parent link="Motor_6_1"/>
+  <origin xyz="${(0)+(0)+(0)} ${(0.0000000)+(0.0218551)+(0.0153792)} ${(rk_p79)+(rk_p58)+(0)}" rpy="0 0 0"/>
+  <parent link="BarraRuedas_4_1"/>
   <child link="Rueda_1_1"/>
   <axis xyz="-0.0 1.0 -0.0"/>
-  <limit effort="100.0" velocity="5.0"/>
-  <dynamics damping="0.5" friction="0.1"/>
+  <limit effort="20.0" velocity="5.0"/>
+  <dynamics damping="0.0" friction="0.0"/>
 </joint>
 
 <joint name="rev_13" type="continuous">
-  <origin xyz="0 0.022117 0" rpy="0 0 0"/>
-  <parent link="Motor_5_1"/>
+  <origin xyz="${(-0.0509408)+(-0.0828865)+(-0.0293571)+(0)+(0)+(0)} ${(0.0161893)+(0.0000000)+(0.0000000)+(0.0000000)+(0.0218551)+(0.0153792)} ${(-0.053192 + bogie_drop)+(-0.086551)+(rk_p74)+(rk_p79)+(rk_p58)+(0)}" rpy="0 0 0"/>
+  <parent link="Acople_Rodamiento_2_1"/>
   <child link="Rueda_3_1"/>
   <axis xyz="-0.0 1.0 -0.0"/>
-  <limit effort="100.0" velocity="5.0"/>
-  <dynamics damping="0.5" friction="0.1"/>
+  <limit effort="20.0" velocity="5.0"/>
+  <dynamics damping="0.0" friction="0.0"/>
 </joint>
 
 <joint name="rev_14" type="continuous">
-  <origin xyz="0 0.022117 0" rpy="0 0 0"/>
-  <parent link="Motor_4_1"/>
+  <origin xyz="${(0)+(0)+(0)} ${(0.0000000)+(0.0218551)+(0.0153792)} ${(rk_p79)+(rk_p58)+(0)}" rpy="0 0 0"/>
+  <parent link="BarraRuedas_6_1"/>
   <child link="Rueda_5_1"/>
   <axis xyz="-0.0 1.0 0.0"/>
-  <limit effort="100.0" velocity="5.0"/>
-  <dynamics damping="0.5" friction="0.1"/>
+  <limit effort="20.0" velocity="5.0"/>
+  <dynamics damping="0.0" friction="0.0"/>
 </joint>
 
 <!-- rev_1 and rev_2 removed: AcopleTuboRB now connects to base_link via differential_joint -->
@@ -1296,8 +1250,8 @@
 <link name="velodyne_base_link">
   <inertial>
     <origin xyz="0 0 0" rpy="0 0 0"/>
-    <mass value="${4.07779*mass_scale}"/>
-    <inertia ixx="${0.007987*mass_scale}" iyy="${0.007987*mass_scale}" izz="${0.007987*mass_scale}" ixy="${0*mass_scale}" iyz="${0*mass_scale}" ixz="${0*mass_scale}"/>
+    <mass value="0.825345"/>
+    <inertia ixx="0.000508103703" iyy="0.000508103703" izz="0.000618055477" ixy="0" iyz="0" ixz="0"/>
   </inertial>
   <visual>
     <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -1317,8 +1271,25 @@
 </link>
 
 <joint name="velodyne_base_mount_joint" type="fixed">
-  <origin xyz="0.283305 0.116408 0.6375" rpy="0 0 0"/>
-  <parent link="base_link"/>
+  <!-- SENSOR STANDARDIZATION.
+         z = 0.6700 + (-0.1232) - 0.0641 = 0.4827
+       0.6700 m is the ray-origin height above the wheel contact plane shared
+       by the three platforms, -0.1232 m is this platform's contact plane in
+       base_link, and 0.0641 m is the Velodyne's own <sensor><pose> over in
+       ensamblajeurdf.gazebo.  See robot_metrics/README.md section 1.5.
+
+       RAISED FROM 0.6375 (= 0.8248 m of height) on 2026-08-26.  At the old
+       height this robot blocked its own lowest ring by 6.8 deg towards the
+       camera, 3.9 deg at the chassis corners and 1.7 deg over the rocker
+       tubes - 3.3% of the sphere returning nothing.  The monolithic gpu_ray
+       never saw any of it: Gazebo does not let a ray sensor see the visual of
+       its own link, and the URDF conversion fuses velodyne_base_link into
+       base_link, so the sensor was ignoring the entire chassis.  The sliced
+       LiDAR's wedge rides on velodyne_rotor_link, a link of its own, so the
+       robot becomes a normal obstacle to it and those rings disappear.  At
+       0.9000 m the -15 deg ring clears everything by 4.2 deg. -->
+  <origin xyz="0.244209 0.100343 ${0.5127 + rocker_drop}" rpy="0 0 3.141592653589793"/>
+  <parent link="chassis_link"/>
   <child link="velodyne_base_link"/>
 </joint>
 
@@ -1326,8 +1297,8 @@
 <link name="imu_link">
   <inertial>
     <origin xyz="0 0 0" rpy="0 0 0"/>
-    <mass value="${0.073695*mass_scale}"/>
-    <inertia ixx="${0.000799*mass_scale}" iyy="${0.000799*mass_scale}" izz="${0.000799*mass_scale}" ixy="${0*mass_scale}" iyz="${0*mass_scale}" ixz="${0*mass_scale}"/>
+    <mass value="0.0149159"/>
+    <inertia ixx="1.73667336e-06" iyy="2.43716141e-06" izz="3.61448852e-06" ixy="0" iyz="0" ixz="0"/>
   </inertial>
   <visual>
     <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -1345,8 +1316,31 @@
 </link>
 
 <joint name="imu_joint" type="fixed">
-  <origin xyz="0.283305 0.116408 0.57375" rpy="0 0 0"/>
-  <parent link="base_link"/>
+  <!-- SENSOR STANDARDIZATION: el IMU va en el CENTRO DE MASAS.  Cambiado
+       2026-09-04; el razonamiento completo esta en
+       differential/model/differential/model.sdf.  Antes: "0.283305 0.116408
+       0.57375", que lo dejaba a 0.6969 m del suelo como los otros dos pero a
+       0.238 m del CM, contra 0.485 m del tracked.
+       CM del rocker sin el IMU, en base_link.  Ojo: este chasis tiene
+       suspension articulada, asi que su CM se mueve con los balancines; este
+       es el de la pose nominal, con las juntas a cero.
+
+       Y SE MUEVE TAMBIEN CON bogie_drop.  Bajar el pivote se lleva abajo los
+       dos soportes Acople_Rodamiento_*_1 (1.39525 kg nativos cada uno), que
+       es la unica masa que cambia de sitio.  El CM sin el IMU baja
+           dz = 2 * 1.39525 * mass_scale * bogie_drop / (45.0 - m_imu)
+              = 0.029419 * bogie_drop
+       o sea 10.3 mm con bogie_drop = 0.351.  Eso es CINCO VECES la tolerancia
+       de imu_lever_arm_tolerance_m (0.002) de sim_config.yaml, asi que si el
+       IMU no baja con el CM, check_sim_parity 13b (check_imu_at_centre_of_mass)
+       FALLA, y con razon: un acelerometro fuera del CM mide
+       a_cm + alpha x r + omega x (omega x r), y ese brazo es justo lo que la
+       estandarizacion de sensores puso a cero el 2026-09-04.
+       x e y no se tocan: la bajada del pivote es puramente vertical. -->
+  <xacro:property name="imu_z_drop"
+                  value="${2*1.39525*mass_scale*bogie_drop / (45.0 - 0.0149159)}"/>
+  <origin xyz="0.248647 0.100343 0.474405" rpy="0 0 3.141592653589793"/>
+  <parent link="chassis_link"/>
   <child link="imu_link"/>
 </joint>
 
@@ -1354,8 +1348,8 @@
 <link name="camera_link">
   <inertial>
     <origin xyz="0 0 0" rpy="0 0 0"/>
-    <mass value="${0.04913*mass_scale}"/>
-    <inertia ixx="${0.000799*mass_scale}" iyy="${0.000799*mass_scale}" izz="${0.000799*mass_scale}" ixy="${0*mass_scale}" iyz="${0*mass_scale}" ixz="${0*mass_scale}"/>
+    <mass value="0.00994392"/>
+    <inertia ixx="2.90619216e-06" iyy="9.37297333e-07" izz="3.00447124e-06" ixy="0" iyz="0" ixz="0"/>
   </inertial>
   <visual>
     <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -1373,8 +1367,8 @@
 </link>
 
 <joint name="camera_joint" type="fixed">
-  <origin xyz="-0.070826 0.116408 0.6375" rpy="0 0 3.14159"/>
-  <parent link="base_link"/>
+  <origin xyz="-0.110091 0.100343 ${0.4375 + rocker_drop}" rpy="0 0 3.141592653589793"/>
+  <parent link="chassis_link"/>
   <child link="camera_link"/>
 </joint>
 
@@ -1382,8 +1376,8 @@
 <link name="camera_optical_frame">
   <inertial>
     <origin xyz="0 0 0" rpy="0 0 0"/>
-    <mass value="${0.004913*mass_scale}"/>
-    <inertia ixx="${0.00008*mass_scale}" iyy="${0.00008*mass_scale}" izz="${0.00008*mass_scale}" ixy="${0*mass_scale}" iyz="${0*mass_scale}" ixz="${0*mass_scale}"/>
+    <mass value="0.000994392"/>
+    <inertia ixx="9.94392e-06" iyy="9.94392e-06" izz="9.94392e-06" ixy="0" iyz="0" ixz="0"/>
   </inertial>
 </link>
 
@@ -1392,5 +1386,199 @@
   <parent link="camera_link"/>
   <child link="camera_optical_frame"/>
 </joint>
+
+<!-- ============== GEOMETRIC ROCKER DIFFERENTIAL ==============
+  The differential as a mechanism rather than as a constraint equation: a beam
+  pivoted on the chassis about the ROLL axis, with a vertical rod from each of
+  its ends down to the corresponding rocker.  Left rocker pitches nose-up ->
+  its rod pushes the beam's left end up -> the beam rolls -> the right end goes
+  down -> right rocker pitches nose-down.  That is phi_left = -phi_right,
+  obtained from geometry instead of from a sign convention, which is the reason
+  for building it: the gearbox version imposes the same relation exactly but
+  leaves the resulting roll freedom unrestrained, and its sign had to be argued
+  rather than seen.  This is also what the Curio / Sawppy rover does.
+
+  GEOMETRY IS SYNTHESISED, NOT FROM CAD - but it is anchored on links that
+  exist.  The first version of this attached the rods 0.20 m forward of each
+  rocker pivot and hung the beam 0.30 m above them, which put the whole linkage
+  at z = 0.877 when the highest point on the robot is z = 0.664: it floated
+  clear of the vehicle, joined to nothing you could see.  It still worked,
+  because a joint frame is defined relative to a link ORIGIN and not to where
+  that link's mesh happens to be - which is exactly how a linkage can be
+  kinematically right and physically nonsense at the same time.
+
+  The attachment points are now measured, not assumed.  BarraBR_2_1 and
+  BarraBR_1_1 are the rocker bars: real, drawn, and DIRECT fixed children of the
+  two rocker links, so they move with the rocker and with nothing else.  Their
+  joint origins in the rocker frame are
+
+      right  BarraBR_2_1   (-0.059096, +0.023282, -0.053192)
+      left   BarraBR_1_1   (-0.059096, -0.023282, -0.053192)
+
+  which in base_link are (0.2242, +0.3085, 0.5235) and (0.2242, -0.0757,
+  0.5235).  Their midpoint in y is 0.11640 - the centreline, where the CoG also
+  sits - so the beam is symmetric about the vehicle with a half-span of 0.19210
+  and its ends land directly over the two attachment points.  The beam sits
+  0.15 m above them at z = 0.6735, just clear of the robot's 0.664 m top, and
+  the rods are 0.15 m and vertical.
+
+  Rods vertical by construction, so rocker vertical travel maps to beam vertical
+  travel one-for-one and the ratio is exactly 1.
+
+  THE LEVER ARM IS SHORT: 0.0591 m from the rocker pivot to the attachment,
+  because that is where the rocker structure actually is.  The forces in the
+  linkage are therefore about 3.4x what the earlier 0.20 m arm would have
+  carried.  That is the real mechanism's geometry, not a modelling choice, but
+  it does mean the rods are lightly loaded bodies carrying large forces - watch
+  for solver noise.
+
+  NO COLLISION GEOMETRY on any of these three links, deliberately: they are
+  stand-ins for a linkage whose real shape is unknown, and giving them collision
+  bodies would invent interference that the real mechanism may not have.  They
+  carry inertia and visuals only.  Their 0.15 kg is taken off base_link above so
+  the 45.000 kg total is unchanged.
+
+  The far ends are joined to the rockers by BALL joints declared in <gazebo>
+  blocks at the bottom of this file - that is the loop closure, and it is what
+  URDF cannot express on its own.
+  =========================================================== -->
+<xacro:if value="$(arg differential_linkage)">
+
+  <link name="differential_beam">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="${0.05*mass_scale}"/>
+      <!-- barra fina a lo largo de y.  OJO: estos ixx/izz son de un
+           largo de 0.384 m y el cilindro mide 0.471546, asi que la inercia
+           esta un 24 % corta.  Se deja porque el cuerpo pesa 0.024 kg
+           -es un sustituto de un varillaje cuya forma real no se conoce- y
+           el efecto es despreciable; anotado para que no engañe. -->
+      <inertia ixx="${0.000615*mass_scale}" iyy="${0.0000025*mass_scale}"
+               izz="${0.000615*mass_scale}" ixy="0" iyz="0" ixz="0"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0"/>
+      <geometry><cylinder radius="0.010" length="0.471546"/></geometry>
+      <material name="silver"/>
+    </visual>
+  </link>
+
+  <joint name="differential_beam_joint" type="revolute">
+    <!-- ENCIMA DEL CHASIS en las dos variantes, en z 0.673472, que son 38.5
+         mm por encima del techo (0.635).  x el del pivote del bogie
+         (0.244209 + 0.163184) y la linea central del vehiculo.
+
+         En la variante longitudinal la viga no baja a buscar el enganche:
+         es el ROCKER el que sube a buscarla, con un brazo vertical de
+         96.808 mm desde su eje (0.576664 + 0.096808 = 0.673472).  Asi la
+         barra sale horizontal SIN meter el varillaje en la panza, que es lo
+         que pasaba cuando la viga bajaba a 0.523472. -->
+    <origin xyz="0.407393 0.100344 0.673472" rpy="0 0 0"/>
+    <parent link="chassis_link"/>
+    <child link="differential_beam"/>
+    <!-- longitudinal: eje VERTICAL, los extremos barren en +-x y empujan las
+         barras.  transversal: eje de BALANCEO, los extremos suben y bajan. -->
+    <axis xyz="${'0 0 1' if dlong else '1 0 0'}"/>
+    <!-- TOPE +-0.7 en las dos, y por la misma cuenta.  Longitudinal: la
+         barra iguala avances, y_off*sin(psi) = brazo*sin(theta), asi que con
+         el rocker en su tope de 1.0 rad la viga gira
+         asin(0.096808*sin(1.0)/0.1335592) = 0.656 rad.
+         Transversal: asin(0.163184*sin(1.0)/0.225773) = 0.653 rad.
+         Las dos se quedan justo por debajo de 0.7, asi que la viga no hace
+         de tope antes que el propio rocker. -->
+    <limit lower="-0.7" upper="0.7" effort="1000" velocity="10.0"/>
+    <dynamics damping="0.1" friction="0.05"/>
+  </joint>
+
+  <!-- LA BARRA.
+       Longitudinal: horizontal y a lo largo del vehiculo, de la viga a la
+       punta del brazo del rocker, que esta 96.808 mm ENCIMA de su eje y en
+       su misma x.  Largo = 0.407393 - 0.244209 = 0.163184, y la junta de
+       lleva pitch pi/2 para tumbar el cilindro sobre x.  La barra trabaja a
+       traccion y compresion: iguala el avance del extremo de la viga con el
+       del enganche, y de esa igualdad sale theta_izq + theta_der = 0.
+       Transversal (la de antes): baja inclinada hasta el soporte de BarraBR
+       (link_r_5/6), 50.9 mm por delante del eje del rocker, con
+         dx = 0.1631835 + 0.0509408
+         dz = 0.673472 - (0.576664 - 0.053192) = 0.150000
+       o sea pitch atan2(dx, dz) = 0.9597 rad (55 deg) y 0.261436 m. -->
+  <xacro:property name="diff_rod_dx" value="${0.1631835 + 0.0509408}"/>
+  <xacro:property name="diff_rod_len"
+                  value="${0.1631835 if dlong else sqrt(diff_rod_dx**2 + 0.15**2)}"/>
+  <xacro:property name="diff_rod_pitch"
+                  value="${1.5707963267948966 if dlong else atan2(diff_rod_dx, 0.15)}"/>
+  <xacro:macro name="diff_rod" params="side y_off">
+    <link name="diff_rod_${side}">
+      <inertial>
+        <origin xyz="0 0 ${-diff_rod_len/2}" rpy="0 0 0"/>
+        <mass value="${0.05*mass_scale}"/>
+        <inertia ixx="${0.0000938*mass_scale}" iyy="${0.0000938*mass_scale}"
+                 izz="${0.0000016*mass_scale}" ixy="0" iyz="0" ixz="0"/>
+      </inertial>
+      <visual>
+        <origin xyz="0 0 ${-diff_rod_len/2}" rpy="0 0 0"/>
+        <geometry><cylinder radius="0.008" length="${diff_rod_len}"/></geometry>
+        <material name="silver"/>
+      </visual>
+    </link>
+    <joint name="diff_rod_${side}_joint" type="revolute">
+      <origin xyz="0 ${y_off} 0" rpy="0 ${diff_rod_pitch} 0"/>
+      <parent link="differential_beam"/>
+      <child link="diff_rod_${side}"/>
+      <!-- EL AXIS VA EN EL MARCO DEL HIJO, y el hijo lleva el pitch de
+           arriba.  Longitudinal: la barra gira con la viga en el plano
+           horizontal, o sea sobre la Z del padre, que con pitch pi/2 es la
+           -X del hijo.  Transversal: bascula en el plano x-z, sobre la Y,
+           que el pitch no mueve. -->
+      <axis xyz="${'-1 0 0' if dlong else '0 1 0'}"/>
+      <limit lower="-1.2" upper="1.2" effort="1000" velocity="10.0"/>
+      <dynamics damping="0.05" friction="0.02"/>
+    </joint>
+  </xacro:macro>
+
+  <xacro:diff_rod side="left"  y_off="-0.1335592"/>
+  <xacro:diff_rod side="right" y_off="0.1335592"/>
+
+  <!-- LOOP CLOSURE.  SDFormat joints inside <gazebo> are added to the model
+       after the URDF is converted, which is how a closed chain is expressed
+       from URDF at all.  Ball joints rather than revolute: the rod already has
+       a revolute at its top, and a second revolute would over-constrain the
+       loop against the 0.2 mm of asymmetry in the synthesised geometry.  The
+       pose is the attachment point in the CHILD (rocker) link frame. -->
+  <!-- DONDE CIERRA, en el marco del tubo del rocker.
+       Longitudinal: (0, -+0.0161893, +0.096808), o sea en la PUNTA DEL
+       BRAZO, justo ENCIMA del eje del rocker y a la altura de la viga.  Con
+       dx = 0 el enganche se mueve solo en x al cabecear el rocker
+       (brazo*theta) y nada en z a primer orden, que es lo que necesita una
+       barra horizontal.  El brazo pasa a ser 96.808 mm: mas que los 73.7 de
+       la transversal, asi que las barras van MENOS cargadas, pero tambien
+       mas cerca de los 163.2 que estrangularon el modo diferencial en drop5.
+       Es lo que hay que vigilar en la primera corrida.
+       Transversal: (-0.0509408, ...), el soporte de BarraBR (link_r_5/6),
+       50.9 mm por delante del eje.  Vuelto ahi el 2026-09-13 desde el pivote
+       del bogie (brazo 163.2 mm), porque en drop5 el brazo largo estrangulo
+       el modo diferencial; es el brazo con el que se midieron drop3 y drop4.
+       Junta de BOLA y no revolute: la barra ya lleva una revolute arriba, y
+       una segunda sobreconstriñe el lazo contra los 0.2 mm de asimetria de
+       la geometria sintetizada. -->
+  <xacro:property name="diff_close_x" value="${0.0 if dlong else -0.0509408}"/>
+  <xacro:property name="diff_close_z"
+                  value="${0.096808 if dlong else -0.053192}"/>
+  <gazebo>
+    <joint name="diff_close_left" type="ball">
+      <pose>${diff_close_x} -0.0161893 ${diff_close_z} 0 0 0</pose>
+      <parent>diff_rod_left</parent>
+      <child>AcopleTuboRB_2_1</child>
+    </joint>
+  </gazebo>
+  <gazebo>
+    <joint name="diff_close_right" type="ball">
+      <pose>${diff_close_x} 0.0161893 ${diff_close_z} 0 0 0</pose>
+      <parent>diff_rod_right</parent>
+      <child>AcopleTuboRB_1_1</child>
+    </joint>
+  </gazebo>
+
+</xacro:if>
 
 </robot>

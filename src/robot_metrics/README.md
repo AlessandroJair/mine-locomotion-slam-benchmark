@@ -99,7 +99,7 @@ rear wheels.
 
 Nothing coupled the two sides. `rocker_differential.py` now enforces
 `φ_left + φ_right = 0` with a stiff torque coupling (see §4). Disable it with
-`differential_enabled:=false` for the ablation.
+`differential_linkage:=false` for the ablation.
 
 ### 1.4 The drive controller was mirrored, and its geometry was wrong
 
@@ -145,7 +145,7 @@ of gravity and every geometric property stay exactly where they were. Measured
 before and after, the CoG heights are unchanged to 4 decimal places — 0.3412 m
 Husky, 0.1795 m Tracked, 0.4555 m Rocker-Bogie. Set `mass_scale` to 1.0 (or
 divide the Husky SDF literals by its factor) to recover the native models;
-`.mass_backup/` holds them.
+`.mass_backup/` holds them locally (git-ignored, not published).
 
 Note the tracked robot's native mass is **46.967 kg**, not the 43.967 kg an
 earlier pass reported: 3.0 kg of track segments live in `<gazebo>` blocks that
@@ -163,8 +163,8 @@ Native LiDAR heights above the contact plane were 0.8248 m (Rocker-Bogie),
 0.5805 m (Husky) and 0.5657 m (Tracked), so a 1° tilt displaced the
 Rocker-Bogie's LiDAR 14.4 mm against the Tracked robot's 9.9 mm.
 
-All three now sit at the Rocker-Bogie's heights: LiDAR 0.8248 m, camera
-0.7607 m, IMU 0.6969 m, each 0.3543 m ahead of the contact-polygon centre.
+All three now sit at a common height: LiDAR **0.9000 m**, camera 0.7607 m, IMU
+0.6969 m, each 0.3543 m ahead of the contact-polygon centre.
 Standardizing **upwards** rather than downwards is forced by geometry — the
 Rocker-Bogie's 0.638 m ground clearance puts the underside of its chassis above
 both native low mounts, so a sensor at 0.57 m would be inside the chassis. The
@@ -182,6 +182,82 @@ as a non-zero spread at the bottom of the table.
 One correction to note if the earlier figures were used anywhere: the Tracked
 robot's native LiDAR height is 0.5657 m, not 0.528 m — the 0.528 figure omitted
 the 0.0377 m offset from the mount link to the Velodyne's own ray origin.
+
+**Raised to 0.9000 m on 2026-08-26, and the tracked platform actually
+standardized.** Two things were wrong with the 0.8248 m figure above.
+
+*It was never applied to the tracked robot.* That platform spawns its
+`model/two_track_robot/model.sdf` (see the note in its world launch), not its
+xacro — and the standardization pass edited the xacro. Its LiDAR therefore sat
+at its native 0.5657 m in Gazebo, 0.26 m below the other two, exactly the
+spread this section says was removed, while `robot_state_publisher` published
+TF for 0.8248 m and every cloud was transformed 0.2591 m too high. The Husky
+had the mirror image of the same split: its SDF was standardized to 0.6443 m
+and its xacro left at the native 0.4, so its clouds went 0.2443 m too low. Both
+files of both platforms now carry the same number, and `check_sim_parity.py`
+check 13 measures the height **on the file each launch actually spawns** and
+cross-checks it against the description that feeds TF, so the split cannot
+reopen silently. `extract_sensor_poses.py` still reads the tracked robot's
+xacro, which is why it reported a 1 mm spread throughout.
+
+*And 0.8248 m is too low for the sliced LiDAR.* At that height the lowest of
+the VLP-16's 16 rings clips the robot's own geometry — 7.5° of the −15° ring
+blocked on the Husky, 6.8° on the Rocker-Bogie, both by `camera_link`, plus the
+chassis corners and the rocker tubes further round; 0.87% and 3.3% of the
+sphere returning nothing. The monolithic `gpu_ray` never showed it, because
+Gazebo does not let a ray sensor see the visual of its own link and the
+Velodyne hangs off exactly that link — on the Rocker-Bogie the URDF conversion
+even fuses `velodyne_base_link` into `base_link`, so the sensor was ignoring
+the whole chassis. The sliced LiDAR's wedge rides on `velodyne_rotor_link`, a
+link of its own, so the robot becomes a normal obstacle to it and those rings
+disappear. At 0.9000 m all three clear every part of their own chassis, with
+3.5° / 5.3° / 4.2° of margin on the lowest ring. The lever arm rises with the
+mount, equally for the three: 14.39 → 15.71 mm of sensor displacement per
+degree of chassis tilt.
+
+**And the tracked platform does not stand on its sprockets.** Correcting the
+two files above still left it 32 mm high, because every height on this
+platform had been referred to the sprocket radius, 0.178 m. It is not what
+touches the ground. `gazebo_continuous_track` runs the belt trajectory 0.2 m
+from the axle and hangs 0.02 m elements on that line, so the contact surface is
+**0.210 m** below the axle and the sprockets never touch anything. Measured, on
+a flat floor at z = 0, letting each robot settle and reading
+`/gazebo/link_states`:
+
+| | axle settles at | LiDAR ray origin | vs. nominal |
+|---|---|---|---|
+| Husky | 0.1743 m (wheel 0.17775) | 0.8964 m | −3.6 mm |
+| Rocker-Bogie | 0.1747 m (wheel 0.178) | 0.8966 m | −3.4 mm |
+| Tracked, before | **0.2100 m** (sprocket 0.178) | 0.9320 m | **+32.0 mm** |
+| Tracked, after | 0.2100 m | 0.9000 m | 0.0 mm |
+
+The residual 3.6 mm spread is contact penetration: the two wheeled platforms
+sink into the ground by that much under load, the belt does not. It is a
+physics artefact, not geometry, and it is well under the LiDAR's own 11.3 mm
+range noise. The 0.210 m figure cannot be read off any file — the belt elements
+only exist once the plugin has run — so it is declared, with the measurement
+behind it, in `sim_config.yaml: sensor_mounting.contact_plane_below_axle_m`,
+and `extract_robot_specs.py` carries the same number as `contact_offset_m`.
+This also corrects the tracked robot's reported ground clearance and CoG
+height, which were both referred to the same wrong plane.
+
+**The same split had hidden two much larger errors, on the camera and the
+IMU.** Extending check 13 from the LiDAR to all three mounts turned them up
+immediately. The tracked robot's `model.sdf` still held the native poses for
+both, and the Husky's xacro did:
+
+| | Gazebo spawned it at | TF said | error |
+|---|---|---|---|
+| Tracked camera | 0.52 m fwd, 0.46 m up | 0.3543 m fwd, 0.7607 m up | 0.166 m fwd, 0.30 m down |
+| Tracked IMU | 0.36 m up | 0.6969 m up | 0.34 m down |
+| Husky camera | 0.3543 m fwd, 0.7607 m up | 0.52 m fwd, 0.4927 m up | 0.166 m fwd, 0.268 m up |
+| Husky IMU | 0.6968 m up | 0.3427 m up | 0.354 m up |
+
+RTAB-Map subscribes to the camera (`subscribe_rgb=true`), so the camera error
+fed straight into the SLAM the study compares; and an IMU's linear
+acceleration depends on where it sits under rotation, so the IMU error is not
+cosmetic either. All four are now standardized in both files of both
+platforms.
 
 ### 1.6 Reproducible runs, and the LiDAR noise figure
 
@@ -203,6 +279,41 @@ roslaunch rocker_bogie lcmine_rocker_bogie_world.launch seed:=2   # replay run 2
 
 The seed is written to each `run_meta.yaml` *before* the run starts, so it
 survives a crash, and to `campaign_meta.yaml`.
+
+**The IMU noise was verified against what it declares, 2026-08-26.** Standing
+the Husky on a flat floor at z = 0 and recording `/imu/data_raw` for 15 s
+(1500 samples, delivered at exactly 100.00 Hz):
+
+| | measured σ | declared | ratio |
+|---|---|---|---|
+| gyro x / y / z [rad/s] | 0.00918 / 0.00891 / 0.00902 | 0.009 | 1.02 / 0.99 / 1.00 |
+| accel x / y / z [m/s²] | 0.02108 / 0.02080 / 0.02133 | 0.021 | 1.00 / 0.99 / 1.02 |
+
+Isolating the white component as `sd(first difference)/√2` — which removes
+anything that is smooth in time and leaves only what is independent
+sample-to-sample, i.e. exactly what the `<noise>` block injects — gives
+0.00934 / 0.00889 / 0.00901 and 0.02087 / 0.02089 / 0.02171. The declared
+biases check out too: the accelerometer's `bias_mean` 0.05 ± 0.0075 m/s² with
+Gazebo's random sign shows up as offsets of −0.039 / +0.044 / −0.046 on the
+three axes, and it is static over the run (τ = 175 s, so the dynamic bias is
+negligible at this length).
+
+**The seed does reach the IMU.** Two runs at seed 1 gave gyro biases of
+(−0.006259, +0.002147, +0.007878) and (−0.006194, +0.001918, +0.007978) rad/s —
+agreeing to 2·10⁻⁴, which is the sampling error of the mean itself
+(σ/√N = 2.3·10⁻⁴). Seed 2 gave (−0.007445, −0.006262, −0.008021): a different
+draw, z flipping sign. The Husky and the tracked robot at the same seed draw
+the *same* bias (gyro z +0.007878 on both, to six decimals), so run N gives
+every platform the same sensor realization — which is what makes run N
+comparable across the three.
+
+**Caveat for anyone reading an IMU trace off the tracked platform.** At rest,
+its accelerometer shows σ ≈ 0.19–0.46 m/s², nine to twenty times the sensor
+noise. That is not the sensor: it is the belt. `gazebo_continuous_track` puts
+40 discrete elements per round under each track and the chassis chatters on
+them, and the chatter is not reproducible run to run even at a fixed seed. Any
+statistic taken from that channel measures the contact model, not the IMU. The
+gyro is clean on all three (σ 0.0088–0.0110).
 
 **The LiDAR noise figure was wrong — report 0.011314 m, not 0.008.** All three
 models declared `<stddev>0.008</stddev>` inside the sensor *and*
@@ -318,7 +429,7 @@ roslaunch rocker_bogie rtabmap_3d_slam.launch
 roslaunch rocker_bogie waypoint_navigation.launch run_id:=2
 
 # ablation: pivots free, no differential coupling
-roslaunch rocker_bogie lcmine_rocker_bogie_world.launch differential_enabled:=false
+roslaunch rocker_bogie lcmine_rocker_bogie_world.launch differential_linkage:=false
 ```
 
 Afterwards, confirm nothing hit the time cap and that all nine runs produced
@@ -543,7 +654,7 @@ report it, and if it is dominated by ringing rather than by steady offset,
 raise the damping rather than the stiffness.
 
 **Ablation:** `roslaunch rocker_bogie lcmine_rocker_bogie_world.launch
-differential_enabled:=false` leaves the pivots at zero effort, i.e. genuinely
+differential_linkage:=false` leaves the pivots at zero effort, i.e. genuinely
 free — the "independent rockers" control condition.
 
 ---
