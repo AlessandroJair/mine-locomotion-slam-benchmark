@@ -1,0 +1,292 @@
+xacro: in-order processing became default in ROS Melodic. You can drop the option.
+[33m[WARN] [1789724495.032407938]: The root link body has an inertia specified in the URDF, but KDL does not support a root link with an inertia.  As a workaround, you can add an extra dummy link to your URDF.[0m
+[INFO] [1789724495.441856, 0.000000]: imu_ahrs: filtro complementario tau=1.00 s, compuerta |a|/g +-15%, sesgo con 200 muestras quieto
+[INFO] [1789724495.423672, 0.000000]: Loading model XML from ros parameter swept_robot_description
+[INFO] [1789724495.429834, 0.000000]: Waiting for service /gazebo/spawn_sdf_model
+[INFO] [1789724497.538471, 0.000000]: Calling service /gazebo/spawn_sdf_model
+[INFO] [1789724501.476681, 0.000500]: Spawn status: SpawnModel: Successfully spawned entity
+[0m[INFO] [1789724495.569971948]: Finished loading Gazebo ROS API Plugin.[0m
+[0m[INFO] [1789724495.570804831]: waitForService: Service [/gazebo/set_physics_properties] has not been advertised, waiting...[0m
+[0m[INFO] [1789724497.553878159]: waitForService: Service [/gazebo/set_physics_properties] is now available.[0m
+[0m[INFO] [1789724501.469378969, 0.000500000]: Camera Plugin: Using the 'robotNamespace' param: '/'[0m
+[0m[INFO] [1789724501.472309209, 0.000500000]: Camera Plugin (ns = /)  <tf_prefix_>, set to ""[0m
+[0m[INFO] [1789724501.482600730, 0.000500000]: Physics dynamic reconfigure ready.[0m
+[0m[INFO] [1789724501.520789150, 0.000500000]: Velodyne laser plugin missing <organize_cloud>, defaults to false[0m
+[0m[INFO] [1789724501.520836021, 0.000500000]: Velodyne laser plugin missing <min_intensity>, defaults to no clipping[0m
+[0m[INFO] [1789724501.521667143, 0.000500000]: Velodyne GPU laser plugin ready, 16 lasers[0m
+[0m[INFO] [1789724501.525668210, 0.000500000]: <robotNamespace> set to: //[0m
+[0m[INFO] [1789724501.525710678, 0.000500000]: <topicName> set to: /imu/data_raw[0m
+[0m[INFO] [1789724501.525721802, 0.000500000]: <frameName> set to: example_two_track/imu_link[0m
+[0m[INFO] [1789724501.525738433, 0.000500000]: <updateRateHZ> set to: 100[0m
+[0m[INFO] [1789724501.525744565, 0.000500000]: <gaussianNoise> set to: 0[0m
+[0m[INFO] [1789724501.525760270, 0.000500000]: <xyzOffset> set to: 0 0 0[0m
+[0m[INFO] [1789724501.525777237, 0.000500000]: <rpyOffset> set to: 0 -0 0[0m
+[left_track]: Start loading plugin
+[left_track]: Created two_track_robot::left_track_variant0::left_track_straight_segment_link0 and two_track_robot::left_track_variant0::left_track_straight_segment_joint0
+[left_track]: Created two_track_robot::left_track_variant0::left_track_arc_segment_link0 and two_track_robot::left_track_variant0::left_track_arc_segment_joint0
+[left_track]: Created two_track_robot::left_track_variant0::left_track_straight_segment_link1 and two_track_robot::left_track_variant0::left_track_straight_segment_joint1
+[left_track]: Created two_track_robot::left_track_variant0::left_track_arc_segment_link1 and two_track_robot::left_track_variant0::left_track_arc_segment_joint1
+[left_track]: Created two_track_robot::left_track_variant1::left_track_straight_segment_link0 and two_track_robot::left_track_variant1::left_track_straight_segment_joint0
+[left_track]: Created two_track_robot::left_track_variant1::left_track_arc_segment_link0 and two_track_robot::left_track_variant1::left_track_arc_segment_joint0
+[left_track]: Created two_track_robot::left_track_variant1::left_track_straight_segment_link1 and two_track_robot::left_track_variant1::left_track_straight_segment_joint1
+[left_track]: Created two_track_robot::left_track_variant1::left_track_arc_segment_link1 and two_track_robot::left_track_variant1::left_track_arc_segment_joint1
+[left_track]: Removed two_track_robot::left_track_straight_segment_joint0 and two_track_robot::left_track_straight_segment_link0
+[left_track]: Removed two_track_robot::left_track_arc_segment_joint0 and two_track_robot::left_track_arc_segment_link0
+[left_track]: Removed two_track_robot::left_track_straight_segment_joint1 and two_track_robot::left_track_straight_segment_link1
+[left_track]: Removed two_track_robot::left_track_arc_segment_joint1 and two_track_robot::left_track_arc_segment_link1
+[left_track]: Loaded plugin
+[right_track]: Start loading plugin
+[right_track]: Created two_track_robot::right_track_variant0::right_track_straight_segment_link0 and two_track_robot::right_track_variant0::right_track_straight_segment_joint0
+[right_track]: Created two_track_robot::right_track_variant0::right_track_arc_segment_link0 and two_track_robot::right_track_variant0::right_track_arc_segment_joint0
+[right_track]: Created two_track_robot::right_track_variant0::right_track_straight_segment_link1 and two_track_robot::right_track_variant0::right_track_straight_segment_joint1
+[right_track]: Created two_track_robot::right_track_variant0::right_track_arc_segment_link1 and two_track_robot::right_track_variant0::right_track_arc_segment_joint1
+[right_track]: Created two_track_robot::right_track_variant1::right_track_straight_segment_link0 and two_track_robot::right_track_variant1::right_track_straight_segment_joint0
+[right_track]: Created two_track_robot::right_track_variant1::right_track_arc_segment_link0 and two_track_robot::right_track_variant1::right_track_arc_segment_joint0
+[right_track]: Created two_track_robot::right_track_variant1::right_track_straight_segment_link1 and two_track_robot::right_track_variant1::right_track_straight_segment_joint1
+[right_track]: Created two_track_robot::right_track_variant1::right_track_arc_segment_link1 and two_track_robot::right_track_variant1::right_track_arc_segment_joint1
+[right_track]: Removed two_track_robot::right_track_straight_segment_joint0 and two_track_robot::right_track_straight_segment_link0
+[right_track]: Removed two_track_robot::right_track_arc_segment_joint0 and two_track_robot::right_track_arc_segment_link0
+[right_track]: Removed two_track_robot::right_track_straight_segment_joint1 and two_track_robot::right_track_straight_segment_link1
+[right_track]: Removed two_track_robot::right_track_arc_segment_joint1 and two_track_robot::right_track_arc_segment_link1
+[right_track]: Loaded plugin
+Loaded 'joint_state_controller'
+Loaded 'sprocket_velocity_controller_left'
+Loaded 'sprocket_velocity_controller_right'
+Started ['joint_state_controller'] successfully
+Started ['sprocket_velocity_controller_left'] successfully
+Started ['sprocket_velocity_controller_right'] successfully
+[INFO] [1789724504.504488, 0.958500]: montaje example_two_track/body <- example_two_track/velodyne_base_link: xyz=(0.0000, 0.0000, 0.4843)
+[INFO] [1789724504.505838, 0.959000]: la nube ya trae canal de tiempo "time"; se reutiliza
+[INFO] [1789724504.623598, 1.005000]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=1 DEFORMADAS=1 sin_deformar=0 tarde=0 cola=0
+[INFO] [1789724508.405485, 2.420500]: imu_ahrs: sesgo del giroscopo [+0.00813 -0.00313 -0.00075] rad/s con 200 muestras; actitud inicial roll=-2.39 pitch=-3.65 deg
+[INFO] [1789724519.037199, 6.051000]: nube: 28099 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=51 DEFORMADAS=50 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789724535.611273, 11.058500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=101 DEFORMADAS=100 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789724551.533003, 16.059500]: nube: 28095 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=151 DEFORMADAS=150 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789724565.945361, 21.062000]: nube: 28103 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=201 DEFORMADAS=200 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789724581.989658, 26.162500]: nube: 28108 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=252 DEFORMADAS=251 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789724597.192808, 31.244000]: nube: 28096 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=303 DEFORMADAS=302 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789724612.531246, 36.260000]: nube: 28095 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=353 DEFORMADAS=352 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789724629.021053, 41.361000]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=404 DEFORMADAS=403 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789724643.835275, 46.370500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=454 DEFORMADAS=453 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789724659.299567, 51.454500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=505 DEFORMADAS=504 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789724677.231040, 56.546500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=556 DEFORMADAS=555 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789724697.437172, 61.548500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=606 DEFORMADAS=605 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789724715.159264, 66.645000]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=657 DEFORMADAS=656 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789724732.490231, 71.656500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=707 DEFORMADAS=706 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789724749.882758, 76.662000]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=757 DEFORMADAS=756 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789724767.320731, 81.757500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=808 DEFORMADAS=807 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789724783.580437, 86.862000]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=859 DEFORMADAS=858 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789724801.498682, 91.866500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=909 DEFORMADAS=908 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789724817.387334, 96.957000]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=960 DEFORMADAS=959 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789724832.481403, 101.965500]: nube: 27387 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=1010 DEFORMADAS=1009 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789724852.116859, 106.973500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=1060 DEFORMADAS=1059 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789724866.787556, 112.064000]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=1111 DEFORMADAS=1110 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789724881.284556, 117.156500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=1162 DEFORMADAS=1161 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789724898.761846, 122.254000]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=1213 DEFORMADAS=1212 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789724919.006156, 127.351000]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=1264 DEFORMADAS=1263 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789724939.962299, 132.357000]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=1314 DEFORMADAS=1313 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789724954.620498, 137.360500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=1364 DEFORMADAS=1363 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789724971.758780, 142.464000]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=1415 DEFORMADAS=1414 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789724987.696974, 147.551500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=1466 DEFORMADAS=1465 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725006.749573, 152.554000]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=1516 DEFORMADAS=1515 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725021.731619, 157.574500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=1566 DEFORMADAS=1565 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725037.728639, 162.653500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=1617 DEFORMADAS=1616 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725053.808802, 167.659000]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=1667 DEFORMADAS=1666 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725071.418051, 172.663000]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=1717 DEFORMADAS=1716 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725088.179560, 177.758000]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=1768 DEFORMADAS=1767 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725102.188659, 182.764500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=1818 DEFORMADAS=1817 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725117.219095, 187.869500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=1869 DEFORMADAS=1868 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725135.054291, 192.945500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=1920 DEFORMADAS=1919 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725155.371417, 198.046000]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=1971 DEFORMADAS=1970 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725175.540046, 203.058500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=2021 DEFORMADAS=2020 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725194.622033, 208.068000]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=2071 DEFORMADAS=2070 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725212.447887, 213.166500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=2122 DEFORMADAS=2121 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725231.230357, 218.252500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=2173 DEFORMADAS=2172 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725250.238965, 223.347500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=2224 DEFORMADAS=2223 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725268.365752, 228.350500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=2274 DEFORMADAS=2273 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725286.828470, 233.453500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=2325 DEFORMADAS=2324 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725303.132589, 238.458000]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=2375 DEFORMADAS=2374 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725323.259114, 243.552500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=2426 DEFORMADAS=2425 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725342.702144, 248.566000]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=2476 DEFORMADAS=2475 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725357.039656, 253.572000]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=2526 DEFORMADAS=2525 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725374.876598, 258.651500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=2577 DEFORMADAS=2576 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725393.126019, 263.652000]: nube: 28108 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=2627 DEFORMADAS=2626 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725408.142211, 268.660500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=2677 DEFORMADAS=2676 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725424.716647, 273.745500]: nube: 28096 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=2728 DEFORMADAS=2727 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725444.907502, 278.758000]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=2778 DEFORMADAS=2777 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725461.997074, 283.852000]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=2829 DEFORMADAS=2828 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725478.377930, 288.863500]: nube: 24251 puntos, 360 sectores (16 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=2879 DEFORMADAS=2878 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725493.776884, 293.970000]: nube: 28096 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=2930 DEFORMADAS=2929 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725510.718833, 299.051500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=2981 DEFORMADAS=2980 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725526.730414, 304.064500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=3031 DEFORMADAS=3030 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725541.948441, 309.072000]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=3081 DEFORMADAS=3080 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725558.947165, 314.167000]: nube: 28103 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=3132 DEFORMADAS=3131 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725576.176701, 319.256500]: nube: 28097 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=3183 DEFORMADAS=3182 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725591.841381, 324.269500]: nube: 28098 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=3233 DEFORMADAS=3232 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725609.712072, 329.369000]: nube: 28100 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=3284 DEFORMADAS=3283 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725625.684723, 334.458500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=3335 DEFORMADAS=3334 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725642.703166, 339.551500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=3386 DEFORMADAS=3385 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725662.182708, 344.644000]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=3437 DEFORMADAS=3436 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725681.925202, 349.665500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=3487 DEFORMADAS=3486 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725701.271259, 354.747500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=3538 DEFORMADAS=3537 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725717.867825, 359.750500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=3588 DEFORMADAS=3587 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725735.454791, 364.757000]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=3638 DEFORMADAS=3637 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725752.993572, 369.762500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=3688 DEFORMADAS=3687 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725769.171629, 374.769500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=3738 DEFORMADAS=3737 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725787.928794, 379.858500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=3789 DEFORMADAS=3788 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725805.021679, 384.957000]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=3840 DEFORMADAS=3839 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725819.301849, 389.975000]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=3890 DEFORMADAS=3889 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725840.023043, 395.077500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=3941 DEFORMADAS=3940 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725854.421600, 400.173500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=3992 DEFORMADAS=3991 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725869.942350, 405.257500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=4043 DEFORMADAS=4042 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725888.576129, 410.354500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=4094 DEFORMADAS=4093 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725909.714197, 415.451000]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=4145 DEFORMADAS=4144 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725930.789369, 420.466500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=4195 DEFORMADAS=4194 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725946.501965, 425.553000]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=4246 DEFORMADAS=4245 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725964.063172, 430.563000]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=4296 DEFORMADAS=4295 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789725981.236380, 435.643500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=4347 DEFORMADAS=4346 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789726000.637732, 440.662500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=4397 DEFORMADAS=4396 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789726016.218706, 445.752500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=4448 DEFORMADAS=4447 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789726033.434013, 450.762500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=4498 DEFORMADAS=4497 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789726050.691750, 455.854000]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=4549 DEFORMADAS=4548 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789726068.818996, 460.864000]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=4599 DEFORMADAS=4598 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789726087.684124, 465.961500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=4650 DEFORMADAS=4649 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789726101.907487, 470.976500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=4700 DEFORMADAS=4699 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789726117.738300, 476.063500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=4751 DEFORMADAS=4750 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789726136.799226, 481.163500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=4802 DEFORMADAS=4801 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789726157.689629, 486.249500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=4853 DEFORMADAS=4852 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789726178.901191, 491.252500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=4903 DEFORMADAS=4902 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789726197.318281, 496.257000]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=4953 DEFORMADAS=4952 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789726215.667804, 501.351500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=5004 DEFORMADAS=5003 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789726234.424203, 506.352000]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=5054 DEFORMADAS=5053 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789726254.160619, 511.451500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=5105 DEFORMADAS=5104 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789726273.853224, 516.455500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=5155 DEFORMADAS=5154 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789726292.729872, 521.552000]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=5206 DEFORMADAS=5205 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789726308.751933, 526.569000]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=5256 DEFORMADAS=5255 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789726330.085275, 531.649500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=5307 DEFORMADAS=5306 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789726349.739614, 536.660500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=5357 DEFORMADAS=5356 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789726364.359198, 541.668000]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=5407 DEFORMADAS=5406 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789726383.023575, 546.757000]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=5458 DEFORMADAS=5457 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789726401.668072, 551.851000]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=5509 DEFORMADAS=5508 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789726416.580538, 556.866000]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=5559 DEFORMADAS=5558 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789726433.760607, 561.948000]: nube: 28096 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=5610 DEFORMADAS=5609 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789726454.298532, 566.959500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=5660 DEFORMADAS=5659 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789726471.555544, 571.964500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=5710 DEFORMADAS=5709 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789726488.506859, 577.056000]: nube: 24134 puntos, 360 sectores (21 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=5761 DEFORMADAS=5760 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789726503.891368, 582.066500]: nube: 28095 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=5811 DEFORMADAS=5810 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789726517.505647, 587.165500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=5862 DEFORMADAS=5861 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789726529.599884, 592.262500]: nube: 28110 puntos, 360 sectores (0 vacios), costura en 0.0 deg, sentido +1, desfases 0.0000..0.0999 s | entradas=5913 DEFORMADAS=5912 sin_deformar=0 tarde=0 cola=1
+[INFO] [1789726533.479779, 593.964500]: imu_ahrs: 59389 muestras, 15455 sin gravedad utilizable (26.0%), sesgo=[+0.00813 -0.00313 -0.00075] rad/s
+[INFO] [1789726533.483620, 593.964500]: sweep_distortion: entradas=5930 deformadas=5929 sin_deformar=0 tarde=0 sin_montaje=0
+Error in XmlRpcClient::writeRequest: write error (Connection refused).
+Error in XmlRpcDispatch::work: couldn't find source iterator
+Error in XmlRpcClient::writeRequest: write error (Connection refused).
+Error in XmlRpcDispatch::work: couldn't find source iterator
+Error in XmlRpcClient::writeRequest: write error (Connection refused).
+Error in XmlRpcDispatch::work: couldn't find source iterator
+Error in XmlRpcClient::writeRequest: write error (Connection refused).
+Error in XmlRpcDispatch::work: couldn't find source iterator
+Error in XmlRpcClient::writeRequest: write error (Connection refused).
+Error in XmlRpcDispatch::work: couldn't find source iterator
+Error in XmlRpcClient::writeRequest: write error (Connection refused).
+Error in XmlRpcDispatch::work: couldn't find source iterator
+Error in XmlRpcClient::writeRequest: write error (Connection refused).
+Error in XmlRpcDispatch::work: couldn't find source iterator
+Error in XmlRpcClient::writeRequest: write error (Connection refused).
+Error in XmlRpcDispatch::work: couldn't find source iterator
+[INFO] [1789724495.314243, 0.000000]: twist_to_tracks iniciado
+[INFO] [1789724495.314741, 0.000000]:   track_separation: 0.5709m
+[INFO] [1789724495.315219, 0.000000]:   sprocket_radius: 0.138m
+... logging to /home/alessandro/.ros/log/22bb054a-b345-11f1-8ba6-4d711d8e6fc4/roslaunch-LAPTOP-EU6F9FQD-83213.log
+Checking log directory for disk usage. This may take a while.
+Press Ctrl-C to interrupt
+Done checking log file disk usage. Usage is <1GB.
+]2;/home/alessandro/journal_comparison/src/tracked/gazebo_continuous_track_example/launch/lcmine_two_track_world.launch
+[1mstarted roslaunch server http://LAPTOP-EU6F9FQD:45359/[0m
+
+SUMMARY
+========
+
+PARAMETERS
+ * /example_two_track/gazebo_ros_control/pid_gains/left_sprocket_axle/d: 0.0
+ * /example_two_track/gazebo_ros_control/pid_gains/left_sprocket_axle/i: 25.641
+ * /example_two_track/gazebo_ros_control/pid_gains/left_sprocket_axle/i_clamp: 55.946
+ * /example_two_track/gazebo_ros_control/pid_gains/left_sprocket_axle/p: 26.669
+ * /example_two_track/gazebo_ros_control/pid_gains/right_sprocket_axle/d: 0.0
+ * /example_two_track/gazebo_ros_control/pid_gains/right_sprocket_axle/i: 25.641
+ * /example_two_track/gazebo_ros_control/pid_gains/right_sprocket_axle/i_clamp: 55.946
+ * /example_two_track/gazebo_ros_control/pid_gains/right_sprocket_axle/p: 26.669
+ * /example_two_track/joint_state_controller/publish_rate: 50
+ * /example_two_track/joint_state_controller/type: joint_state_contr...
+ * /example_two_track/robot_description: <?xml version="1....
+ * /example_two_track/robot_state_publisher/tf_prefix: example_two_track
+ * /example_two_track/sprocket_velocity_controller_left/joint: left_sprocket_axle
+ * /example_two_track/sprocket_velocity_controller_left/type: velocity_controll...
+ * /example_two_track/sprocket_velocity_controller_right/joint: right_sprocket_axle
+ * /example_two_track/sprocket_velocity_controller_right/type: velocity_controll...
+ * /example_two_track/twist_to_tracks/min_angular: 0.0
+ * /example_two_track/twist_to_tracks/sprocket_radius: 0.138
+ * /example_two_track/twist_to_tracks/track_separation: 0.5709
+ * /gazebo/enable_ros_network: True
+ * /imu_ahrs/accel_gate: 0.15
+ * /imu_ahrs/angular_velocity_stddev: 0.009
+ * /imu_ahrs/bias_samples: 200
+ * /imu_ahrs/linear_acceleration_stddev: 0.021
+ * /imu_ahrs/orientation_stddev: 0.02
+ * /imu_ahrs/tau: 1.0
+ * /rosdistro: noetic
+ * /rosversion: 1.17.4
+ * /sweep_distortion/base_frame: example_two_track...
+ * /sweep_distortion/cut_angle_deg: 0.0
+ * /sweep_distortion/frame_id: example_two_track...
+ * /sweep_distortion/input: /velodyne_points_raw
+ * /sweep_distortion/model_name: two_track_robot
+ * /sweep_distortion/output: /velodyne_points
+ * /sweep_distortion/rotor_dir: 1
+ * /sweep_distortion/rotor_hz: 10.0
+ * /sweep_distortion/sectors: 360
+ * /swept_robot_description: <sdf version="1.7...
+ * /use_sim_time: True
+
+NODES
+  /
+    gazebo (gazebo_ros/gzserver)
+    gazebo_gui (gazebo_ros/gzclient)
+    imu_ahrs (robot_metrics/imu_ahrs.py)
+    spawn_two_track (gazebo_ros/spawn_model)
+    sweep_distortion (robot_metrics/sweep_distortion.py)
+  /example_two_track/
+    controller_starter (controller_manager/controller_manager)
+    robot_state_publisher (robot_state_publisher/robot_state_publisher)
+    twist_to_tracks (gazebo_continuous_track_example/twist_to_tracks.py)
+
+auto-starting new master
+[1mprocess[master]: started with pid [83255][0m
+[1mROS_MASTER_URI=http://localhost:11311[0m
+]2;/home/alessandro/journal_comparison/src/tracked/gazebo_continuous_track_example/launch/lcmine_two_track_world.launch http://localhost:11311
+[1msetting /run_id to 22bb054a-b345-11f1-8ba6-4d711d8e6fc4[0m
+[1mprocess[rosout-1]: started with pid [83280][0m
+started core service [/rosout]
+[1mprocess[gazebo-2]: started with pid [83287][0m
+[1mprocess[gazebo_gui-3]: started with pid [83290][0m
+[1mprocess[spawn_two_track-4]: started with pid [83296][0m
+[1mprocess[sweep_distortion-5]: started with pid [83298][0m
+[1mprocess[example_two_track/controller_starter-6]: started with pid [83299][0m
+[1mprocess[example_two_track/robot_state_publisher-7]: started with pid [83300][0m
+[1mprocess[example_two_track/twist_to_tracks-8]: started with pid [83301][0m
+[1mprocess[imu_ahrs-9]: started with pid [83302][0m
+[1m[spawn_two_track-4] process has finished cleanly
+log file: /home/alessandro/.ros/log/22bb054a-b345-11f1-8ba6-4d711d8e6fc4/spawn_two_track-4*.log[0m
+[1m[example_two_track/controller_starter-6] process has finished cleanly
+log file: /home/alessandro/.ros/log/22bb054a-b345-11f1-8ba6-4d711d8e6fc4/example_two_track-controller_starter-6*.log[0m
+[imu_ahrs-9] killing on exit
+[example_two_track/twist_to_tracks-8] killing on exit
+[example_two_track/robot_state_publisher-7] killing on exit
+[sweep_distortion-5] killing on exit
+[gazebo_gui-3] killing on exit
+[gazebo-2] killing on exit
+[rosout-1] killing on exit
+[master] killing on exit
+shutting down processing monitor...
+... shutting down processing monitor complete
+[1mdone[0m

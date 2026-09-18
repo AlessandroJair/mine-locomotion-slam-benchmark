@@ -1,0 +1,88 @@
+robot,metric,unit,mean,std,n_runs
+Husky (differential),ATE translational RMSE,m,2.8744772695065905,0.38526316014325634,5
+Tracked,ATE translational RMSE,m,4.106903681450627,0.6947273027411134,5
+Rocker-bogie,ATE translational RMSE,m,2.0045551539324085,0.48551654179880704,5
+Husky (differential),ATE translational max,m,5.411273930503972,0.8459079466494902,5
+Tracked,ATE translational max,m,7.2012091770834585,0.8821659991292389,5
+Rocker-bogie,ATE translational max,m,4.780436648640054,1.7830208931538043,5
+Husky (differential),ATE rotational RMSE,deg,9.401487174103774,1.393371876213217,5
+Tracked,ATE rotational RMSE,deg,11.370068556357957,0.8777547151907537,5
+Rocker-bogie,ATE rotational RMSE,deg,6.861138751655742,1.3609758843825623,5
+Husky (differential),ATE rotational max,deg,21.764854470699866,3.0219439764000393,5
+Tracked,ATE rotational max,deg,27.794815327925498,1.705952320406741,5
+Rocker-bogie,ATE rotational max,deg,13.94024130061129,2.2265436723084666,5
+Husky (differential),ATE trans. RMSE (aligned),m,1.2190417658576371,0.3380641916528626,5
+Tracked,ATE trans. RMSE (aligned),m,0.7094853318552818,0.2919159874648096,5
+Rocker-bogie,ATE trans. RMSE (aligned),m,0.9713727701305054,0.2376394786610694,5
+Husky (differential),ATE optimised graph RMSE,m,0.1413421849606784,0.0070471542840078805,5
+Tracked,ATE optimised graph RMSE,m,0.17006903021310218,0.0066545689102690524,5
+Rocker-bogie,ATE optimised graph RMSE,m,0.16625034482478976,0.002144001959300716,5
+Husky (differential),ATE optimised graph mean,m,0.13156250813550993,0.007060314539230838,5
+Tracked,ATE optimised graph mean,m,0.16358365220631094,0.007035124962612744,5
+Rocker-bogie,ATE optimised graph mean,m,0.15574341760414626,0.001902307599543822,5
+Husky (differential),ATE optimised graph max,m,0.38908574930866074,0.07899796123251991,5
+Tracked,ATE optimised graph max,m,0.3288279899671527,0.02804651273178951,5
+Rocker-bogie,ATE optimised graph max,m,0.29707542258362885,0.007985602670708714,5
+Husky (differential),Optimised graph poses,count,752.0,9.695359714832659,5
+Tracked,Optimised graph poses,count,565.6,0.8944271909999159,5
+Rocker-bogie,Optimised graph poses,count,564.4,0.8944271909999159,5
+Husky (differential),RPE translational RMSE,m/m,0.07957760875646037,0.0036914330765434504,5
+Tracked,RPE translational RMSE,m/m,0.07723712196146207,0.0008897208493785398,5
+Rocker-bogie,RPE translational RMSE,m/m,0.06596499244412232,0.00035858492042035973,5
+Husky (differential),RPE rotational RMSE,deg/m,2.407637174479044,0.0875321677428528,5
+Tracked,RPE rotational RMSE,deg/m,1.9203674253709093,0.014760040677302579,5
+Rocker-bogie,RPE rotational RMSE,deg/m,1.9923338211424866,0.021140587844451532,5
+Husky (differential),Final drift,m,1.9380140726288908,0.7093950593800711,5
+Tracked,Final drift,m,2.0357589220655274,1.4108145561469352,5
+Rocker-bogie,Final drift,m,3.8671778925156763,1.4591111541478792,5
+Husky (differential),Drift / distance,%,0.712695670881897,0.2591686992247108,5
+Tracked,Drift / distance,%,0.7620273608071778,0.5282145775380599,5
+Rocker-bogie,Drift / distance,%,1.4530311742875544,0.5481540460933205,5
+Husky (differential),Distance travelled (GT),m,271.787787158,0.9239319680182018,5
+Tracked,Distance travelled (GT),m,267.1658199263685,0.06013073619013446,5
+Rocker-bogie,Distance travelled (GT),m,266.13865926396136,0.04281471116843639,5
+Husky (differential),Run duration,s,772.492,13.41137278581125,5
+Tracked,Run duration,s,568.596,1.1495564361961648,5
+Rocker-bogie,Run duration,s,574.3643999999999,0.9083563039908736,5
+Husky (differential),Tracking losses,count,0.0,0.0,5
+Tracked,Tracking losses,count,0.0,0.0,5
+Rocker-bogie,Tracking losses,count,0.0,0.0,5
+Husky (differential),Relocalizations,count,0.0,0.0,5
+Tracked,Relocalizations,count,0.0,0.0,5
+Rocker-bogie,Relocalizations,count,0.0,0.0,5
+Husky (differential),Loop closures reported,count,0.0,0.0,5
+Tracked,Loop closures reported,count,0.0,0.0,5
+Rocker-bogie,Loop closures reported,count,0.0,0.0,5
+Husky (differential),Loop closures true pos.,count,0.0,0.0,5
+Tracked,Loop closures true pos.,count,0.0,0.0,5
+Rocker-bogie,Loop closures true pos.,count,0.0,0.0,5
+Husky (differential),Loop closures false pos.,count,0.0,0.0,5
+Tracked,Loop closures false pos.,count,0.0,0.0,5
+Rocker-bogie,Loop closures false pos.,count,0.0,0.0,5
+Husky (differential),Proximity detections,count,673.2,9.57601169589929,5
+Tracked,Proximity detections,count,447.0,2.5495097567963922,5
+Rocker-bogie,Proximity detections,count,451.0,1.7320508075688772,5
+Husky (differential),Proximity true pos.,count,621.6,9.262828941527529,5
+Tracked,Proximity true pos.,count,403.4,4.159326868617084,5
+Rocker-bogie,Proximity true pos.,count,404.8,1.3038404810405297,5
+Husky (differential),Proximity false pos.,count,0.0,0.0,5
+Tracked,Proximity false pos.,count,0.0,0.0,5
+Rocker-bogie,Proximity false pos.,count,0.0,0.0,5
+Husky (differential),Pitch std,deg,8.864608490626495,0.061553293366785056,5
+Tracked,Pitch std,deg,9.038697518371668,0.010632902519682384,5
+Rocker-bogie,Pitch std,deg,8.543362483354505,0.00942636049321564,5
+Husky (differential),Roll std,deg,6.001017168607219,0.11836369080510631,5
+Tracked,Roll std,deg,6.140472169096711,0.0032609872214052925,5
+Rocker-bogie,Roll std,deg,6.092986140049903,0.007814224317748978,5
+Husky (differential),Pitch max abs,deg,33.581319550864585,0.6498306727676159,5
+Tracked,Pitch max abs,deg,35.59893965997877,0.7863295846559749,5
+Rocker-bogie,Pitch max abs,deg,30.135067166101955,0.07691142787587071,5
+Husky (differential),Vibration RMS,m/s^2,2.057184447047797,0.188644070245933,5
+Tracked,Vibration RMS,m/s^2,4.361831345159486,0.060144834311789894,5
+Rocker-bogie,Vibration RMS,m/s^2,0.7670790676279304,0.021511030772624198,5
+Husky (differential),GT yaw offset removed,deg,0.7069477134430426,0.1261551604058912,5
+Tracked,GT yaw offset removed,deg,0.06651417845815077,0.01840698742730865,5
+Rocker-bogie,GT yaw offset removed,deg,0.15352756144872362,0.01018948205729602,5
+Husky (differential),Peak |a_z - g|,m/s^2,54.851966483983006,6.198520193714041,5
+Tracked,Peak |a_z - g|,m/s^2,78.13712242830874,12.027618000817062,5
+Rocker-bogie,Peak |a_z - g|,m/s^2,15.491069350936552,9.647969179802871,5

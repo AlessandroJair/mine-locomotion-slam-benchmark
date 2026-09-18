@@ -1,0 +1,1217 @@
+# =============================================================================
+# sim_config.yaml - single source of truth for the simulation setup
+# =============================================================================
+# Everything a reviewer needs in order to reproduce or audit the three-platform
+# comparison.  Two scripts read this file:
+#
+#   check_sim_parity.py  - asserts that what is written here is what is actually
+#                          in the .world / URDF / SDF files, and that the three
+#                          robot packages agree.  Run it before every campaign.
+#   run_campaign.sh      - drives the 3 runs x 3 robots experiment.
+#
+# Keep this file and the .world files in sync; check_sim_parity.py fails loudly
+# if they drift apart.
+# =============================================================================
+
+experiment:
+  name: "mine_exploration_comparison"
+  world: "lcmine.world"
+  runs_per_robot: 3
+  # Seconds discarded at the start of every log (Gazebo spawn / solver
+  # transient).  Applied identically to all robots by analyze_metrics.py.
+  warmup_s: 5.0
+
+# -----------------------------------------------------------------------------
+# REPRODUCIBILITY
+# -----------------------------------------------------------------------------
+# Run N of every robot is launched with `gzserver --seed (seed_base + N)`, so
+# runs 1/2/3 use seeds 1/2/3.  Different seeds mean different sensor noise,
+# which is exactly what the reported standard deviation measures - but each
+# individual run is now anchored and can be replayed:
+#
+#     roslaunch rocker_bogie lcmine_rocker_bogie_world.launch seed:=2
+#
+# The seed of each run is also written into its run_meta.yaml.  Before this was
+# wired, gzserver seeded from the system clock and no run could ever be
+# reproduced.
+reproducibility:
+  seed_base: 0
+  seed_rule: "gazebo_seed = seed_base + run_id"
+  # What the seed actually covers.  Established by symbol inspection (nm -D):
+  # the IMU plugin calls ignition::math::Rand, which the seed controls; the
+  # Velodyne plugin calls the C library's rand(), which it does not.  All LiDAR
+  # noise was therefore moved into the sensor's own <noise> block, which is
+  # Gazebo's seeded generator, and the plugin's <gaussianNoise> set to zero.
+  seeded_generators: ["ignition::math::Rand (Gazebo <noise> models)"]
+  unseeded_generators: ["C rand() in libgazebo_ros_velodyne_gpu_laser.so - now
+                         unused, its gaussianNoise is 0.0"]
+
+# -----------------------------------------------------------------------------
+# SENSOR NOISE - must be IDENTICAL for the three robots.
+# -----------------------------------------------------------------------------
+# Verified equal across the three models; this is what belongs in the paper's
+# sensor table.
+#
+# NOTE on the LiDAR figure: the models used to declare 0.008 in the sensor's
+# <noise> block AND 0.008 in the plugin's <gaussianNoise>.  Those are two
+# independent Gaussians, so the LiDAR really saw 0.008*sqrt(2) = 0.011314 m.
+# The effective level is unchanged, but it is now stated correctly and produced
+# by a single seeded generator.  Do not report 0.008.
+# ALCANCE DEL LIDAR.  130 -> 100 m el 2026-08-23.  Los 130 no salian de ningun
+# numero del fabricante: son el default de velodyne_simulator (DataspeedInc), de
+# donde este proyecto heredo el plugin y el patron de 1875x16 muestras.  El
+# datasheet del Puck VLP-16 declara 100 m, que es lo que hay que poder escribir
+# en la tabla de sensores.  En la practica no cambia resultados - en la galeria
+# ningun rayo se acerca a los 100 m - y se aplico identico a las tres
+# plataformas.
+#
+# El minimo NO se toca.  El plugin corta en 0.9 m y el <ray> en 0.3: no es una
+# incoherencia sino el modelo correcto.  El datasheet no declara minimo, pero el
+# driver real (velodyne_pointcloud) no reporta nada por debajo de ~0.9 m
+# mientras VeloView llega a ~0.45 m; el corte del plugin reproduce lo que veria
+# un robot real, y el <ray> es el sensor crudo debajo de ese filtro.
+lidar:
+  max_range_m: 100.0
+  min_range_m: 0.9          # corte del plugin, imita al driver real
+  ray_min_m: 0.3            # sensor crudo, debajo del filtro
+  model: "Velodyne VLP-16"
+
+# -----------------------------------------------------------------------------
+# MONTAJE DE SENSORES - identico en las tres plataformas, para que la
+# comparacion atribuya las diferencias de SLAM a la locomocion y no a donde
+# esta puesto el sensor.  Ver README seccion 1.5.
+#
+# Alturas referidas al ORIGEN DE LOS RAYOS en el caso del LiDAR (el
+# <sensor><pose> del Velodyne lo sube 0.0377 m sobre su link, 0.0641 en el
+# rocker_bogie) y al link de montaje en los otros dos.
+#
+# Las comprueba check_sim_parity.py (comprobacion 13) sobre el archivo que cada
+# launch spawnea DE VERDAD, y contra la descripcion que alimenta TF.  Hasta el
+# 2026-08-26 esas dos no coincidian en ninguna de las dos plataformas que
+# tienen dos archivos, y nadie lo veia porque la herramienta de auditoria leia
+# el mismo archivo que la estandarizacion habia editado.
+#
+# El LiDAR subio de 0.8248 a 0.9000 el 2026-08-26: a 0.8248 el anillo mas bajo
+# del VLP-16 (-15 deg) chocaba con la geometria del propio robot - 7.5 deg
+# tapados en el husky, 6.8 en el rocker_bogie.  El gpu_ray monolitico no lo
+# notaba porque Gazebo no le enseña a un sensor de rayos el visual de su propio
+# link, pero la cuña del LiDAR troceado va en un link aparte y si lo ve.  A
+# 0.9000 las tres despejan: margenes +3.5, +5.3 y +4.2 deg.
+# -----------------------------------------------------------------------------
+sensor_mounting:
+  # El LiDAR y la camara se igualan por ALTURA SOBRE EL SUELO, porque lo que
+  # ven -cuanto suelo tapa el propio chasis, que trozo de pared encuadran-
+  # depende de su altura.
+  # BAJADO DE 0.9000 A 0.7000 (y la camara con el, los mismos 0.20 m) el
+  # 2026-09-13.  El 0.9000 salio de un argumento de ocultacion medido sobre el
+  # LiDAR TROCEADO del rocker, que montaba la cuña en un link propio y por eso
+  # veia el chasis.  Ese arm se retiro el 2026-09-09: hoy los dos arms usan el
+  # gpu_ray monolitico, y como el rocker spawnea URDF, la conversion a SDF
+  # fusiona velodyne_base_link en base_link y el sensor no ve ni su chasis ni
+  # su camara.  Rehecha la cuenta sobre el modelo que Gazebo carga hoy
+  # (scripts/lidar_occlusion.py), el suelo del anillo de -15 deg con 4.2 deg de
+  # margen es 0.5481 (husky, ruedas), 0.6095 (tracked, arcos de oruga) y 0.5322
+  # (rocker con rocker_drop 0.343839, viga del diferencial).  Ata el TRACKED en
+  # 0.6095 y 0.7000 deja 0.09 m por encima.
+  #
+  # LAS DOS BAJAN LO MISMO A PROPOSITO: la camara esta 0.1393 m por debajo del
+  # LiDAR y 0.371 m por delante, y a esa distancia tapa el anillo bajo a
+  # -18.50 deg.  Ese angulo NO depende de la altura mientras las dos bajen
+  # juntas, asi que el margen de la camara se queda en los 3.50 deg que ya
+  # tenia.  (Los "4.2 deg" de la nota de 2026-08-26 eran del rocker troceado;
+  # en el husky y el tracked nunca fueron 4.2.)
+  #
+  # 0.6500 -> 0.6100 -> 0.6700, todo el 2026-09-13.  0.6100 dejaba el LiDAR
+  # del rocker apoyado en el chasis, con la viga del diferencial debajo.  Con
+  # la viga de vuelta ENCIMA del chasis y rocker_drop 0.2392, el rocker se
+  # tapaba el anillo bajo por debajo de 0.6675.  Despues rocker_drop volvio a
+  # 0.299477 y el suelo del rocker bajo a 0.6072: vuelve a atar el TRACKED
+  # (0.6095, scripts/lidar_occlusion.py) y 0.6700 le deja 0.06 m.
+  lidar_height_above_contact_m: 0.6700
+  camera_height_above_contact_m: 0.5307
+  height_tolerance_m: 0.001
+
+  # EL IMU NO.  Cambiado 2026-09-04.  Un acelerometro mide
+  #     a_sensor = a_cm + alpha x r + omega x (omega x r)
+  # con r desde el CENTRO DE MASAS, asi que igualarle la altura sobre el suelo
+  # no iguala lo que mide.  Con la regla anterior -0.6969 m en las tres- los
+  # brazos quedaban en 0.360 / 0.485 / 0.238 m (husky / tracked / rocker), un
+  # factor 2.04, porque los tres tienen el CM a alturas muy distintas
+  # (0.343 / 0.212 / 0.459 m sobre el suelo; el del rocker bajo a 0.381 al
+  # acortarle el brazo con rocker_drop, y sigue siendo el mas alto de los
+  # tres).  Con el mismo balanceo de chasis
+  # el IMU del tracked leia el doble de termino de brazo que el del rocker.
+  #
+  # Y es r = 0, no un |r| comun: alpha x r depende del VECTOR r, no de su
+  # modulo, asi que dos brazos iguales en modulo y distintos en direccion
+  # siguen midiendo cosas distintas.  El unico r comun y canonico es cero.
+  #
+  # El punto exacto es el CM del robot SIN el IMU (solucion de p = c(p)).
+  # Recalcular con ~/imu_target.py si cambia cualquier masa.
+  imu_at_centre_of_mass: true
+  imu_lever_arm_tolerance_m: 0.002
+
+  # Distancia del EJE de la rueda al suelo, por plataforma.  Es lo que fija el
+  # plano de contacto, y no se puede dar por supuesto que sea el radio de la
+  # rueda: MEDIDO el 2026-08-26 dejando cada robot posarse en un suelo plano en
+  # z = 0 y leyendo /gazebo/link_states.
+  #
+  #   differential  ruedas de 0.17775 m; se posan a 0.1743 (3.5 mm de
+  #                 penetracion de contacto)
+  #   rocker_bogie  ruedas de 0.148 m desde el 2026-09-16, cuando se
+  #                 bajaron de 0.178 para que las llantas de un mismo lado
+  #                 dejaran de solaparse al girar el balancin.  Con 0.178 se
+  #                 posaba a 0.1747 (3.3 mm de penetracion de contacto)
+  #   tracked       NO apoya en el sprocket (0.178) sino en la ORUGA: la
+  #                 trayectoria del plugin corre a 0.2 m del eje y cuelga de
+  #                 ella elementos de 0.02 m, asi que el suelo queda 0.210 m
+  #                 abajo.  Medido: el eje se posa a 0.2100 exacto, sin
+  #                 penetracion.  Los elementos no existen hasta que el plugin
+  #                 corre, asi que esto NO se puede leer del model.sdf; de ahi
+  #                 que se declare aqui.  La primera estandarizacion uso 0.178
+  #                 y dejo su LiDAR 32 mm alto.
+  contact_plane_below_axle_m:
+    differential: 0.148
+    rocker_bogie: 0.148
+    # 2026-09-17: la banda se re-asento sobre el sprocket.  Cadena de radios
+    # desde el eje: sprocket/idler 0.128 = cara interna, trayectoria (y radio
+    # del cilindro del arco) 0.138 = linea media, cara exterior 0.148 = suelo.
+    # Antes 0.180, y el cilindro del arco se habia quedado en 0.2, o sea 20 mm
+    # POR DEBAJO de la banda: el vehiculo se apoyaba en cuatro tambores y los
+    # elementos motrices flotaban.
+    tracked: 0.148
+
+# Tasa a la que cada controlador publica el estado de sus articulaciones.
+# Aqui porque wheel_odometry.py saca de joint_states la velocidad longitudinal
+# que alimenta el de-skew, y hasta el 2026-09-09 el tracked publicaba a 10 Hz
+# contra los 50 de las otras dos sin que nada lo comparase.
+sensor_rates:
+  joint_states_hz: 50
+
+# ORIENTACION DEL IMU: no la publica el plugin, la fusiona imu_ahrs.py.
+# Cambiado el 2026-09-09.  El <imu> de SDF solo admite <noise> bajo
+# <angular_velocity> y <linear_acceleration>; el campo orientation sale de la
+# pose exacta del link y NO hay forma de sembrarle ruido, asi que consumirlo
+# era darle verdad de terreno a la campana que mide el error de estimacion.
+# Ahora roll y pitch salen de un filtro complementario giroscopo+acelerometro
+# y la guiñada de integrar el giroscopo, que deriva - como debe, porque sin
+# magnetometro un IMU no observa el rumbo absoluto.
+imu_orientation:
+  source: "complementary filter (imu_ahrs.py)"
+  tau_s: 1.0
+  accel_gate_fraction_of_g: 0.15
+  gyro_bias_estimated_at_rest: true
+
+sensor_noise:
+  lidar_range_stddev_m: 0.011314
+  imu_angular_velocity_stddev_rad_s: 0.009
+  imu_linear_acceleration_stddev_m_s2: 0.021
+  camera_stddev: 0.007
+
+# -----------------------------------------------------------------------------
+# PHYSICS - must be IDENTICAL for the three robots.
+# These values are declared in the <physics> block of lcmine.world, which is
+# byte-identical in the three robot packages.
+# -----------------------------------------------------------------------------
+physics:
+  engine: "ode"                     # Gazebo classic 11, ODE backend
+  max_step_size_s: 0.0005            # s
+  # 2000 -> 1000 el 2026-08-28.  Frena el reloj de PARED sin tocar la fisica
+  # (max_step_size sigue en 0.0005) para que el gpu_ray del LiDAR troceado
+  # alcance a entregar las 40 rebanadas por vuelta.  El razonamiento y las
+  # medidas estan en el <physics> de lcmine.world.
+  # NO confundir con metrics_logger physics_rate_hz, que es 1/max_step_size
+  # = 2000 Hz y NO cambia: ModelStates llega una vez por paso de fisica, o
+  # sea cada 0.5 ms de tiempo de SIMULACION, corra el reloj como corra.
+  real_time_update_rate_hz: 1000    # Hz  -> target real_time_factor 0.5
+  real_time_factor: 0.5
+  solver:
+    type: "quick"                   # iterative LCP (projected Gauss-Seidel)
+    iters: 100
+    sor: 1.3
+    use_dynamic_moi_rescaling: true
+  constraints:
+    cfm: 0.0
+    erp: 0.2
+    # 100 -> 10 el 2026-08-24: a 100 m/s no limita nada y una penetracion
+    # acumulada se resuelve como un disparo.  Medido: 1.533 m de
+    # desplazamiento en 1 s contra un max_vel_x de 0.5.  Ver el comentario
+    # del bloque <physics> en lcmine.world.
+    contact_max_correcting_vel: 10.0
+    contact_surface_layer_m: 0.001
+  gravity_mps2: [0.0, 0.0, -9.81]
+
+  # Why 100 solver iterations and not the Gazebo default of 50:
+  # the Rocker-Bogie puts 6 wheel contacts and 5 passive pivots into a single
+  # constraint island.  At 50 iterations the LCP does not converge within a
+  # step, which appears as contact jitter and spurious wheel lift-off on the
+  # step obstacle - i.e. a solver artefact that is easy to mistake for real
+  # loss of ground contact.  Peak vertical acceleration on the step changes by
+  # < 2% between 150 and 300 iterations, which is why this was 150 while the
+  # timestep was 1.0 ms.  At the current 0.5 ms step the LCP is better
+  # conditioned and needs fewer sweeps, and 150 was costing most of the
+  # real-time factor: measured 2026-08-24 on the tracked platform, headless
+  # and without SLAM, iters=150 gives RTF 0.41 and iters=100 gives 0.69
+  # (iters=50 gives 0.65 - slower than 100, i.e. under-converged).  Hence 100.
+  #
+  # PENDING: the < 2% criterion has not been re-run at 100 iterations /
+  # 0.5 ms on the Rocker-Bogie, which is the platform that motivated 150.
+  # Do that before any step-crossing figure goes into the paper.
+
+# -----------------------------------------------------------------------------
+# TERRAIN - identical for the three robots.  Declared in the world / model SDFs.
+# -----------------------------------------------------------------------------
+terrain:
+  lc_mine:      { mu1: 1.0, mu2: 1.0, note: "mine gallery mesh, drivable surface" }
+  grass_plane:  { mu1: 1.0, mu2: 1.0, note: "ground plane outside the gallery" }
+  ramp:         { mu1: 1.5, mu2: 1.5, note: "5 m long, 1.5 m high, 10 m wide" }
+  step:         { mu1: 1.5, mu2: 1.5, note: "the step obstacle, see below" }
+
+# -----------------------------------------------------------------------------
+# ROBOT CONTACT - the friction the DRIVING surfaces of each platform declare.
+# -----------------------------------------------------------------------------
+# The terrain block above was checked from the first version of this file; the
+# robot side of the same contact never was, and it drifted.  Measured 2026-08-28
+# on the fixed_trajectory / sliced_lidar campaign:
+#
+#   Husky         wheels          mu 100.0  / mu2 0.75   anisotropic
+#   Rocker-Bogie  wheels          mu1 100.0 / mu2 0.75   anisotropic
+#   Tracked       track segments  mu 0.75   / mu2 0.75   isotropic
+#
+# mu is the coefficient along fdir1 and mu2 the one across it, and ODE takes the
+# MINIMUM of the two surfaces in contact - so on the mu 1.0 gallery floor the
+# two wheeled platforms had 1.0 longitudinal against 0.75 lateral while the
+# tracks had 0.75 in both.  A friction anisotropy is exactly the parameter that
+# sets how hard a skid-steer platform has to work to yaw, which is the quantity
+# the locomotion comparison is about, so it cannot be a per-platform accident.
+#
+# THE TRACKED PLATFORM IS THE ANCHOR, for the same reason it is elsewhere in
+# this file: its value is the one that was declared deliberately and isotropic.
+# Raising the tracks to 100.0 instead would have given all three unlimited
+# longitudinal grip, i.e. removed wheel slip from a study about locomotion.
+#
+# With mu == mu2 the contact is isotropic and fdir1 selects nothing.  It is left
+# in the model files so the frame the coefficients refer to stays documented; if
+# these two values are ever made unequal again, fdir1 becomes load-bearing and
+# every platform's must be verified in the same frame before anything is
+# compared.
+#
+# NOT COVERED HERE, and left alone deliberately: the non-driving collisions.
+# The Rocker-Bogie declares mu1 0.2 / mu2 1.0 on its chassis and linkage links
+# while the Husky's chassis and the tracked platform's body, sprockets and
+# idlers declare no <surface> at all, i.e. ODE's default 1.0 / 1.0.  That is a
+# real difference, but it only bites when a platform is dragging its belly, and
+# equalising it would change the Rocker-Bogie's step-climbing behaviour - which
+# is a measured result.  Decide it separately, with a step run behind it.
+robot_contact:
+  anchor: tracked
+  # mu1 PROBADO A 1.5 Y DEVUELTO A 1.0 EL 2026-09-14, en suelo (lc_mine,
+  # grass_plane) y en ruedas y orugas de las tres.  Se subio porque al husky
+  # le costaba girar.  No era el limite: con par y velocidad de rueda medidos
+  # (~/metrics_prueba_prev2) el husky usa en curva 22-38 N longitudinales por
+  # rueda contra 110 N que ya daba mu1 1.0.  La guiñada se pierde en el lazo
+  # de velocidad (x0.7) y en el derrape del contacto (x0.4), no en el agarre.
+  # Dos corridas identicas con 1.5 se separaron mas que la de 1.0.  La rampa
+  # y el escalon siguen en 1.5: ya lo estaban antes y no se tocaron.
+  mu1: 1.0
+  # mu2 DE VUELTA A 0.75 EL 2026-09-02, con fdir1.
+  #
+  # Ponerlo en 1.0 subio la friccion LATERAL de las ruedas un 33 % -antes
+  # era min(0.75, terreno 1.0) = 0.75-, y eso traba una suspension
+  # articulada: al girar el balancin las ruedas necesitan deslizar de lado
+  # para acomodarse, y con mas agarre no pueden.  Medido: dos de las seis
+  # ruedas del rocker dejaron de tocar el suelo el 73 % y el 82 % del
+  # tiempo.  Las tres plataformas llevan el mismo par, asi que la paridad
+  # se mantiene.
+  mu2: 0.75
+  # ISOTROPO A 1.0 EN LAS TRES, 2026-09-01.
+  #
+  # Se probo declarar el neumatico del Husky anisotropo (mu 1.0 / mu2 0.75 con
+  # fdir1) para devolverle capacidad de giro, y medía mejor.  Se descarto al
+  # comprobar como funciona fdir1 de verdad: va en el marco de la COLISION, y
+  # la colision de una rueda GIRA CON LA RUEDA, asi que la "direccion de
+  # rodadura" que nombra no se queda quieta.  Es un fallo conocido y viejo de
+  # Gazebo classic -issue gazebosim/gazebo-classic#2068, "Directional friction
+  # still broken"- con sintomas descritos que coinciden con los que veiamos:
+  # bamboleo al rotar y no detenerse con guiñada cero.  fdir1 esta fuera de
+  # los tres modelos.
+  #
+  # 1.0 / 1.0 es ademas lo que declara el Husky de Clearpath de fabrica.  Sube
+  # el agarre respecto al 0.75 anterior sin apoyarse en un mecanismo roto y
+  # sin romper la simetria entre plataformas.
+  note: "isotropico 1.0/1.0 en las tres; sin fdir1; ODE toma min() contra el terreno"
+
+  # RIGIDEZ DE CONTACTO - comun a las tres, y esto es nuevo.
+  #
+  # Hasta el 2026-09-01 NO se compartia y nada lo comprobaba: el differential
+  # y el rocker declaraban kp = 1e5 / kd = 10, y el tracked NO DECLARABA NADA
+  # en sus doce bloques <contact>, asi que corria con el defecto de Gazebo,
+  # kp = 1e12.  Siete ordenes de magnitud de diferencia en la rigidez del
+  # contacto entre plataformas que se estaban comparando entre si.  El
+  # min_depth tambien difería: 0.003 contra 0.01.
+  #
+  # Los valores son los del Husky de Clearpath de fabrica (kp = 1e7, kd = 1).
+  # El 1e5 anterior se justificaba con que la penetracion de equilibrio es de
+  # decimas de milimetro, lo cual es cierto, pero un contacto blando tambien
+  # hace que la fuerza tangencial disponible siga con retardo a los cambios de
+  # carga - y el sintoma que se estaba persiguiendo era justo ese.
+  # kp BAJADO DE 1e7 A 1e6 EL 2026-09-01, con medida.
+  #
+  # 1e7 es lo que declara el Husky de Clearpath de fabrica, pero ese valor va
+  # con otro mundo y otra altura de spawn.  Aqui hacia GIRAR al Husky durante
+  # el aterrizaje: 16.4 grados sobre +z cayendo desde 38 cm, y aun 3.8 grados
+  # tras bajar la caida a 6 cm.  Esos grados se quedaban como condicion
+  # inicial de la corrida.  Las otras dos no lo sufren -el tracked reparte el
+  # contacto en dos placas largas y el rocker tiene suspension articulada-;
+  # el Husky es un chasis rigido de cuatro ruedas sobre terreno inclinado
+  # 7 grados en el punto de spawn, y con un contacto muy rigido la diferencia
+  # de instante en que toca cada rueda se convierte en un impulso de giro.
+  #
+  # Con kp = 1e5 el spawn salia limpio (+0.70 grados) pero el contacto era
+  # 100 veces mas blando que el de referencia.  1e6 es el compromiso.
+  contact_stiffness:
+    # REVERTIDO A 1e5 EL 2026-09-02.  1e6 y 1e7 vienen del Husky de
+    # Clearpath de fabrica, pero ese valor va con otro mundo.  Aqui 1e7 hacia
+    # girar al Husky 16 grados en el aterrizaje, y 1e6 dejaba DOS de las seis
+    # ruedas del rocker sin tocar el suelo: 26.8 % y 18.4 % del tiempo sobre
+    # una vuelta entera, cargando 16 y 20 N mientras otra soportaba 200.
+    # Un rocker-bogie existe para repartir entre las seis.
+    #
+    # A 1e5 una rueda cargada penetra ~2 mm; a 1e6, ~0.2 mm.  Esa decima de
+    # milimetro es la conformidad que le permite seguir el terreno.  La
+    # medida del 2026-08-18, con 1e5, daba las seis ruedas tocando de forma
+    # comparable (2.9-4.8 puntos de contacto cada una).
+    #
+    # Lo que SI se conserva del trabajo del 2026-09-01 es la paridad: antes
+    # el tracked no declaraba kp y corria con el defecto de Gazebo, 1e12,
+    # mientras los otros dos iban a 1e5.  Siete ordenes de diferencia entre
+    # plataformas que se comparan entre si.  Eso se arregla con cualquier
+    # valor comun; este es el que este mundo tiene medido.
+    # 1e6 en las tres.  Se bajo a 1e5 el 2026-09-02 para descartarlo como
+    # causa de que el rocker perdiese dos ruedas -no lo era, la causa fue
+    # mu2- y se devuelve a 1e6, que es el valor con el que el spawn sale
+    # limpio: giro de aterrizaje de 1.09 / 0.70 / 0.56 grados en las tres,
+    # frente a los 16.4 que daba 1e7.
+    #
+    # Lo que NO puede volver es el estado anterior al 2026-09-01: el tracked
+    # no declaraba kp y corria con el defecto de Gazebo, 1e12, mientras los
+    # otros dos iban a 1e5.  Siete ordenes de magnitud de diferencia en la
+    # rigidez del contacto entre plataformas que se comparan entre si, sin
+    # declarar y sin que nada lo comprobara.  La seccion 16 del parity check
+    # lo vigila ahora.
+    kp: 1000000.0
+    kd: 1.0
+    # REVERTIDO A 0.003 EL 2026-09-02, con medida.  Con 0.001 el numero de
+    # PUNTOS DE CONTACTO por rueda paso de los 2.9-4.8 documentados el
+    # 2026-08-18 a 47-92: un umbral tres veces menor hace que muchos mas
+    # triangulos de la malla del terreno cuenten como en contacto.  La suma
+    # de cargas de las seis ruedas del rocker llego a 11814 N contra los
+    # 441 N que pesa, con picos de 29977 N en una sola rueda y una -la
+    # Rueda_3_1- sin tocar el suelo en 807 mensajes seguidos.  Con ese
+    # reparto la plataforma vuelca, y volco.
+    min_depth: 0.003
+    max_vel: 1.0
+  surfaces:
+    differential:
+      declared_in: "differential/model/differential/model.sdf"
+      kind: sdf_collision
+      links: [back_left_wheel, back_right_wheel,
+              front_left_wheel, front_right_wheel]
+    rocker_bogie:
+      declared_in: "rocker_bogie/urdf/ensamblajeurdf.gazebo"
+      kind: gazebo_reference
+      links: [Rueda_1_1, Rueda_2_1, Rueda_3_1,
+              Rueda_4_1, Rueda_5_1, Rueda_6_1]
+    tracked:
+      declared_in: "tracked/gazebo_continuous_track_example/model/two_track_robot/model.sdf"
+      kind: sdf_collision
+      links: [left_track_straight_segment_link0,
+              left_track_straight_segment_link1,
+              left_track_arc_segment_link0,
+              left_track_arc_segment_link1,
+              right_track_straight_segment_link0,
+              right_track_straight_segment_link1,
+              right_track_arc_segment_link0,
+              right_track_arc_segment_link1]
+
+# The step-crossing obstacle.  This is the geometry used for the wheel-contact
+# experiment that replaces Fig. 2.
+step_obstacle:
+  model_name: "bump"
+  pose_xyzrpy: [54.0, -27.8, 5.30, 0.0, 0.0, 1.57]
+  size_m: [3.5, 10.0, 0.1]      # [along travel, across gallery, HEIGHT]
+  height_m: 0.1
+  # LOWERED 2026-08-24 (third change): pose z 5.35 -> 5.30.  The slab keeps its
+  # 0.10 m thickness but sits 5 cm deeper, so less of it stands proud of the
+  # gallery floor.  WARNING: size_m[2] and height_m below are the slab
+  # THICKNESS, and after this change they are no longer the same thing as the
+  # effective step the robot climbs.  check_sim_parity.py only checks the
+  # thickness, so it will not catch the discrepancy.  Measure the real
+  # protrusion before either number goes into the paper.
+  # MOVED 2026-08-24 (same day, second change): centre y -27.5 -> -27.8, so the
+  # slab now spans -26.05 to -29.55.  The north edge DOES move this time, on
+  # purpose: with it at -25.75 the Rocker-Bogie climbed on and rolled over on
+  # the slab at (55.06, -26.79), roll -117.7 deg, and rearing_guard never
+  # fired.  Dropping the north edge moves the climb-on point further south,
+  # onto flatter ground.
+  # EXTENDED 2026-08-24: 2.5 m @ y=-27.0 -> 3.5 m @ y=-27.5, i.e. 1 m further
+  # in -y.  The north edge stays at y=-25.75, so the approach and the crossing
+  # angle are unchanged; only the plateau is longer before the drop.  Reason:
+  # four fixed-trajectory differential runs all crossed the slab cleanly and
+  # then stalled 0.32-0.56 m PAST its south edge, on a laterally tilted patch
+  # of the mine mesh where roll reached -14.5 deg at x=54.9 but only +3 deg at
+  # x=55.2.  The longer slab puts the descent on declared geometry instead.
+  # Like the 2026-07 fix below, this changes the test obstacle: every step
+  # result from before 2026-08-24 must be regenerated.
+  # HISTORY: before 2026-07 this obstacle was 2.5 m @ y=-27.0 in the Husky and
+  # Tracked packages but 3.0 m @ y=-27.5 in the Rocker-Bogie package.  The three
+  # platforms were crossing different obstacles.  Any step result predating that
+  # fix is not comparable and must be regenerated.
+
+# -----------------------------------------------------------------------------
+# MASS MATCHING - the three platforms must weigh the same.
+# -----------------------------------------------------------------------------
+# scale_masses.py scales every link mass and inertia so the platforms share a
+# total.  check_sim_parity.py WEIGHS the model each launch file actually spawns
+# and compares it with this, rather than looking for the banner scale_masses.py
+# writes: that banner is an XML comment, so it sits in whichever file the author
+# put it in and xacro strips comments on expansion.  Weighing the spawned model
+# is the only check that cannot be satisfied by editing the wrong file.
+mass_matching:
+  target_kg: 45.0
+  tolerance_kg: 0.05
+
+# -----------------------------------------------------------------------------
+# ACTUATION - must give the three platforms the same drive authority.
+# -----------------------------------------------------------------------------
+# scale_masses.py exists because "at equal motor torque the light platform
+# accelerates harder" is a confound.  That argument only holds if the motor
+# torque really is equal, and until now it was not: the three platforms ran
+# with 280 N*m (Husky), an unbounded ceiling (Tracked) and 600 N*m
+# (Rocker-Bogie) of installed wheel torque, under velocity loops of three
+# different stiffnesses.  Nothing checked it.  This section makes the drive
+# authority a declared, single-valued test condition, exactly like the physics
+# block above, and check_sim_parity.py asserts the models agree with it.
+#
+# The shared quantity is the TRACTIVE FORCE at the contact patch, not the
+# per-joint torque: the platforms drive 4, 2 and 6 joints respectively, so
+# equal per-joint torque would not be equal drive authority.  Each platform's
+# per-joint ceiling is derived from the budget:
+#
+#     tau_joint = F_budget * wheel_radius / n_driven_joints
+#
+actuation:
+  # Total tractive force available at the contact patches, all driven joints
+  # summed and saturated.  The Rocker-Bogie is the ANCHOR: its per-wheel
+  # ceiling is the figure that is chosen, and the budget follows from it as
+  # F = tau_rocker * n_rocker / r.  Barrido a mano entre el 2026-09-06 y el
+  # 2026-09-08: 20.0 -> 15.0 -> 10.0 -> 20.0 N*m por rueda del rocker, o
+  # sea de vuelta al valor de partida, 20.0 * 6 / 0.178 = 674.157 N.
+  # SUBIDO EL 2026-09-16 de 674.157 a 810.811 al bajar la rueda de
+  # 0.178 a 0.148 en las tres: se conservan los PARES de siempre
+  # (20 / 30 / 60 N*m para 6 / 4 / 2 ruedas), que es lo que da un
+  # motor real, y con el radio nuevo los tres dan el mismo
+  # presupuesto: 20*6/0.148 = 30*4/0.148 = 60*2/0.148 = 810.811 N.
+  # La igualacion entre plataformas se conserva; sube el nivel.
+  traction_force_budget_N: 810.811
+
+  # Why this value is the right order of magnitude.  The friction ceiling for a
+  # 45 kg platform on the highest-mu surface in the world (the ramp and the
+  # step, mu = 1.5) is 1.5 * 45 * 9.81 = 662 N.  The budget is 1.02x that, so
+  # every platform is TRACTION-limited again and none is MOTOR-limited, which
+  # is the regime the study was designed around: what is being compared is
+  # the locomotion geometry, not the motor sizing, so no platform may be able
+  # to run out of torque.
+  #
+  # THIS WAS NOT TRUE BETWEEN 2026-09-06 AND 2026-09-08, when the budget was
+  # swept down to 505.618 N and then 337.079 N, i.e. 0.76x and 0.51x the
+  # friction ceiling.  Anything measured in that window had the platforms
+  # motor-limited on the ramp and the step and does not compare with results
+  # from either side of it.  Note how thin the margin is at 1.02x: a cut of
+  # any size crosses back over, so treat this number as a REGIME BOUNDARY
+  # and not merely as a magnitude.  For reference the 5 m / 1.5 m ramp
+  # (16.7 deg) needs only m*g*sin(theta) = 127 N, a 5.3x margin.
+  friction_force_ceiling_N: 662.2      # 1.5 * 45.0 * 9.81, for the margin above
+  ramp_force_demand_N: 126.7           # 45.0 * 9.81 * sin(atan(1.5/5))
+
+  # Per-platform ceilings derived from the budget.  n_driven and wheel_radius
+  # are properties of the model, tau_max_N_m is what must appear in the file
+  # Gazebo loads.  declared_in names that file and the tag carrying the value.
+  platforms:
+    differential:
+      n_driven: 4
+      wheel_radius_m: 0.148
+      tau_max_N_m: 30.000               # 810.811 * 0.148 / 4
+      declared_in: "differential/urdf_xacro/husky.urdf.xacro"
+      declared_tag: "limit effort"    # read from robot_description by gazebo_ros_control
+      # Until this revision the figure lived in the drive plugin instead, as
+      # <torque> in differential/model/differential/model.sdf.  The Husky now
+      # runs the same gazebo_ros_control velocity loop as the other two (see
+      # velocity_loop below), so its ceiling is a joint effort limit like
+      # theirs and the plugin that used to own it is gone.
+    tracked:
+      n_driven: 2
+      wheel_radius_m: 0.138           # sprocket pitch_diameter 0.276 / 2
+      tau_max_N_m: 55.946            # 810.811 * 0.138 / 2
+      declared_in: "tracked/gazebo_continuous_track_example/urdf_xacro/two_track_robot.urdf.xacro"
+      declared_tag: "limit effort"    # read from robot_description by gazebo_ros_control
+      # The sprocket joints previously declared no <limit> at all, so
+      # joint_limits_interface registered no effort saturation and the tracked
+      # platform had an unbounded torque ceiling.
+    rocker_bogie:
+      n_driven: 6
+      wheel_radius_m: 0.148
+      tau_max_N_m: 20.000             # 810.811 * 0.148 / 6
+      declared_in: "rocker_bogie/urdf/ensamblajeurdf.xacro"
+      declared_tag: "limit effort"
+      # Was 100.0 N*m, i.e. a 600 N*m / 3371 N ceiling - the LARGEST of the
+      # three, which is why raising it was never going to help the platform
+      # climb.  Swept by hand between 2026-09-06 and 2026-09-08:
+      # 20.0 -> 15.0 -> 10.0 -> 20.0, i.e. back to where it started.  This is
+      # the platform the budget is anchored on, so this number is the one
+      # that is chosen by hand and the other two are derived; 20.0 N*m per
+      # wheel is ~5.3x the 3.76 N*m the ramp demands of each of the six.
+
+  # ---------------------------------------------------------------------------
+  # Parasitic drag in the drive joints.  This is NOT the contact friction that
+  # the terrain section governs; it is the <dynamics> viscous and Coulomb term
+  # on the joint itself, which subtracts directly from the torque that reaches
+  # the ground.  The Rocker-Bogie declared damping = 0.5 and friction = 0.1 on
+  # all six wheel joints while the Husky and the Tracked platform declared
+  # none, i.e. 6 * (0.5 * 2.247 + 0.1) = 7.4 N*m = 41.6 N of drag that only one
+  # platform paid, a third of what the ramp itself costs.  Zero for all three:
+  # resistance to motion must come from the contact model, which is shared, and
+  # not from a per-platform joint term that nothing was checking.
+  #
+  # Applies to the DRIVE joints only.  The Rocker-Bogie's passive suspension
+  # pivots (rocker_pivot_left/right, rev_3, rev_4) and steering joints
+  # (rev_5..rev_8) keep their damping: those model the suspension and the
+  # steering actuator, and they have no counterpart to match on the other two.
+  drive_joint_damping_N_m_s: 0.0
+  drive_joint_friction_N_m: 0.0
+
+  # Kinematic ceiling on the drive joints, so the models share one.
+  # 5.0 rad/s * 0.178 m = 0.89 m/s, comfortably above the 0.4 m/s commanded.
+  max_joint_rate_rad_s: 5.0
+
+  # ---------------------------------------------------------------------------
+  # Velocity-loop stiffness.
+  # ---------------------------------------------------------------------------
+  # Equal torque ceilings are not enough: a loop with a lower gain delivers less
+  # torque for the same speed error, which reads as "cannot climb" even with
+  # headroom to spare.  The comparable quantity is the loop stiffness referred
+  # to the contact patch - newtons of tractive force per m/s of speed droop:
+  #
+  #     K_F = n_driven * p / wheel_radius^2        [N / (m/s)]
+  #     K_I = n_driven * i / wheel_radius^2        [N / (m/s) / s]
+  #
+  # ALL THREE platforms run the same loop: gazebo_ros_control with
+  # velocity_controllers/JointVelocityController on every driven joint.  The
+  # Husky used to be the exception - libgazebo_ros_skid_steer_drive.so sets an
+  # ODE joint motor velocity and an fmax, which is a RIGID velocity source with
+  # zero droop, i.e. K_F = infinity - so its behaviour under load was not
+  # comparable to the other two no matter how the torque ceilings were set.
+  # Its drive plugin was replaced to remove that.
+  #
+  # The Rocker-Bogie is the anchor: its gains carry a derivation (rescaled by
+  # mass_scale so that wn and zeta survive the mass matching - see the comment
+  # in lcmine_rocker_bogie_world.launch).  The other two are solved from it,
+  #
+  #     p_x = K_F * r_x^2 / n_x          i_x = K_I * r_x^2 / n_x
+  #
+  # which for equal radii is just the driven-joint count ratio:
+  #
+  #     p_tracked      = 14.790 * 6/2 = 44.370    i = 4.740 * 6/2 = 14.220
+  #     p_differential = 2800.78 * 0.17775^2 / 4  = 22.123
+  #
+  # SUBIDOS EL 2026-09-01, con medida.  El lazo era demasiado blando para
+  # usar el par que ya tenia.  Mandando 1.0 rad/s de guiñada al Husky -1.606
+  # rad/s de rueda- las cuatro ruedas quedaban entre el 28 % y el 96 % de su
+  # consigna y el chasis giraba a 0.053 rad/s.  Con p = 18.436 y un error de
+  # 1.155 rad/s el proporcional pedia 21 N*m de los 70 disponibles, y el
+  # integral (i = 0.709) habria tardado 85 s en llegar al tope: mas que la
+  # curva entera.  El par nominal nunca fue el limite; estaba sin usar.
+  #
+  #   K_F x1.2  y  K_I x10.
+  #
+  # K_F no puede subir mas SIN BAJAR dt: gazebo_ros_control integra el PID
+  # explicitamente en el paso de fisica, asi que el lazo solo es estable
+  # mientras p < 2*I/dt.  El que ata es el pinon del tracked (iyy = 0.0152,
+  # el elemento motriz mas ligero de los tres, y ademas reparte el
+  # presupuesto entre solo 2 juntas): a dt = 0.0005 su limite es 60.8 y
+  # x1.2 lo deja en 44.37, el 73 %.  x1.64 lo pondria justo en el limite.
+  # Ya paso una vez -ver el historial del 2026-08-23, el tracked se conducia
+  # solo con mando cero-, y de ahi salio el dt de 0.0005.
+  # El integral no tiene esa restriccion: por eso lleva el factor grande.
+  #     i_differential =   89.76 * 0.17775^2 / 4  =  0.709
+  #
+  # K_I x3 OTRA VEZ EL 2026-09-14 (897.60 -> 2692.80), en las tres, K_F igual.
+  # Medido en ~/metrics_prueba_prev2: en curva la rueda del husky entregaba
+  # el 67-77 % de la diferencia de velocidad mandada, con 0.19 rad/s de error
+  # y el par que ese error da con p (0.19 * 22 = 4.2 N*m), lejos de su tope.
+  # Es la caida del proporcional que el integral no llegaba a quitar en una
+  # curva.  Solo ataca esa parte; el derrape del contacto (x0.4) no.
+  velocity_loop:
+    K_F_N_per_m_s: 2800.78            # 6 * 14.790 / 0.178^2
+    K_I_N_per_m_s_per_s: 2692.80      # 6 * 14.220 / 0.178^2
+    gains:
+      rocker_bogie: { p: 10.225, i: 9.831, d: 0.0, i_clamp: 20.000 }
+      tracked:      { p: 26.669, i: 25.641, d: 0.0, i_clamp: 55.946 }
+      differential: { p: 15.337, i: 14.746, d: 0.0, i_clamp: 30.000 }
+
+  # i_clamp is not cosmetic.  control_toolbox reads i_clamp_min/i_clamp_max from
+  # the parameter server and DEFAULTS THEM TO 0.0, so a pid_gains block that
+  # declares i > 0 and no i_clamp has its integral term clamped to zero on every
+  # step: the loop is P-only and the steady-state droop on a sustained grade is
+  # never corrected.  Both platforms were in exactly that state (i: 0.474 and
+  # i: 3.0, both inert).  The clamp is set to the platform's own per-joint
+  # torque ceiling, so integral action can use the full authority the budget
+  # allows and no more.
+  i_clamp_policy: "i_clamp = tau_max_N_m of that platform"
+
+  # ---------------------------------------------------------------------------
+  # COMMAND PATH - what each twist_to_* node is allowed to do to cmd_vel before
+  # it reaches the wheels.  These nodes sit between move_base and the
+  # controllers, so a fudge factor here is just as much a per-platform advantage
+  # as a gain would be.
+  # ---------------------------------------------------------------------------
+  # min_angular forces |w| up to a floor whenever a non-zero yaw rate is
+  # commanded.  It was 0.25 rad/s on the tracked platform ("para vencer friccion
+  # de orugas") and 0.0 on the other two, so that platform silently turned
+  # harder than it was asked to, which flatters exactly the turn-in-place
+  # behaviour the RPE metric is sensitive to.  Zero everywhere: the drive-joint
+  # drag it was compensating for is gone and integral action now covers the
+  # rest.
+  command:
+    min_angular_rad_s: 0.0
+    # No command-side acceleration limiting either.  The Husky's old drive
+    # plugin applied <wheelAcceleration>2.0</wheelAcceleration>, a slew rate the
+    # other two never had; it went with the plugin.  Acceleration is bounded by
+    # the torque budget and the planner limits below, both of them shared.
+    wheel_acceleration_limit: null
+
+  # ---------------------------------------------------------------------------
+  # SEGUIDOR DE TRAYECTORIA FIJA - las ganancias del control law compartido.
+  #
+  # trajectory_follow.launch es UNO SOLO y run_campaign.sh lo invoca igual para
+  # las tres, cambiando nada mas el modelo, el topico de cmd_vel y el yaw de
+  # spawn.  Asi que estas ganancias son comunes por construccion... pero hasta
+  # el 2026-09-01 vivian como valores por defecto dentro de
+  # trajectory_follower.py, sin declarar en ningun sitio y sin que nada las
+  # comprobara.  Eran equivalentes por accidente, no por diseño.
+  #
+  # Importa mas de lo que parece: la MISMA ganancia no da el mismo lazo cerrado
+  # en las tres, porque entregan guiñadas muy distintas -alfa 0.202 / 0.311 /
+  # 0.805 en el banco del 2026-09-01-.  Por eso cualquier retoque hay que
+  # evaluarlo en las tres, no solo en la que moleste.
+  #
+  # Barrido en frio del 2026-09-01 contra las curvas alfa(w) medidas:
+  #   k_xte de 0.0 a 1.0  -> la sobreoscilacion cambia menos del 15 % y el
+  #                          asiento no muestra tendencia.  No es la palanca.
+  #   lookahead mas largo -> EMPEORA de forma monotona (sobreoscilacion 0.256
+  #                          -> 0.348 en el differential).
+  # Lo que ordena el asiento es alfa: 35 m el differential, 13 el tracked, 4 el
+  # rocker.  La oscilacion que queda es autoridad de guiñada, no sintonia.
+  trajectory_follower:
+    # 2.5 desde el 2026-09-01; era 0.8, ajustado cuando el Husky
+    # entregaba el 7 % de la guiñada pedida y no el 36 % de ahora.
+    # Barrido contra las alfa(w) medidas, arrancando 0.90 m fuera: los
+    # metros hasta recuperar bajan de 25.9 a 10.9 en el differential,
+    # 8.6 a 6.4 en el tracked y 3.4 a 2.8 en el rocker, con MENOS
+    # sobreoscilacion en las tres.  Ver trajectory_follower.py.
+    k_xte: 2.5                  # curvatura por metro de error lateral, 1/m^2
+    xte_curv_max: 0.5           # tope de esa correccion, 1/m
+    # ACORTADO EL 2026-09-04.  Era 0.6 / 1.6 / 1.6.  El barrido del
+    # 2026-09-01 -anotado arriba- probo lookaheads mas largos y los descarto;
+    # no probo mas cortos, y esa era la palanca.  Banco frio contra la ruta
+    # real, error lateral medio por plataforma:
+    #     0.60 + 1.6 v -> 0.103 / 0.025 / 0.054  (differential/tracked/rocker)
+    #     0.30 + 0.8 v -> 0.041 / 0.012 / 0.017
+    # Mejora las tres con el MISMO valor, asi que no rompe la paridad de
+    # controlador.  Se para en 0.30 porque por debajo de 0.25 la oscilacion
+    # despega y el banco no tiene terreno irregular.
+    lookahead_min_m: 0.30
+    lookahead_max_m: 1.0
+    lookahead_k_s: 0.8          # L = min + k*v
+    align_threshold_rad: 0.8    # rumbo vs TRAMO de ruta; por encima, arco de alineacion
+    curve_slowdown: 0.6         # v = v_max / (1 + k*|curv|)
+    w_v_floor_m_s: 0.10
+    min_aim_dist_m: 0.25        # por debajo, el vector al objetivo es ruido
+
+  # ---------------------------------------------------------------------------
+  # PLANNER LIMITS - the accelerations DWA believes it may command.
+  # ---------------------------------------------------------------------------
+  # These belong here rather than with the rest of move_base because they are
+  # the demand side of the same quantity the torque budget supplies.  They were
+  # acc_lim_x 1.0 / 1.2 / 12.0 and acc_lim_theta 1.5 / 10.0 / 35.0 for
+  # Husky / Tracked / Rocker-Bogie, under a comment claiming the velocities were
+  # "igualadas entre los 3 robots".  A planner that believes it can accelerate
+  # at 12 m/s^2 plans trajectories the plant cannot execute and then reports the
+  # shortfall as tracking error, so the inflated values were not neutral.
+  #
+  # acc_lim is not only a statement about the plant.  In dwa_local_planner the
+  # velocity window sampled each cycle is acc_lim * sim_period, with
+  # sim_period = 1 / controller_frequency = 1/10 = 0.1 s on all three, so a
+  # value taken purely from the plant's honest acceleration (1.0 m/s^2) gives
+  # DWA only 0.1 m/s of speed range per cycle - and on the Rocker-Bogie, whose
+  # min_vel_trans is 0.1 (see below), that is a single admissible sample.
+  #
+  # So the shared value is sized by the sampler and then checked against the
+  # plant - it must span the commanded range in one control period:
+  #     acc_lim_x     >= max_vel_trans / sim_period = 0.5 / 0.1 =  5.0 m/s^2
+  #     acc_lim_theta >= max_vel_theta / sim_period = 1.0 / 0.1 = 10.0 rad/s^2
+  # 45 kg * 5.0 = 225 N, against a 1575 N torque budget and a 441 N friction
+  # ceiling on the mu = 1.0 gallery floor, so the plant can honour it.
+  #
+  # CORRECTION, recorded because the wrong version was briefly written here:
+  # this is NOT why the Rocker-Bogie stalls.  That was first attributed to the
+  # sampling window and then measured, on 2026-08-18, which disproved it.  At a
+  # stall the robot's own footprint sits on LETHAL costmap cells - two of four
+  # corners at cost 99 - and the free lateral corridor is 0.70 m where the
+  # footprint plus inflation needs 1.46 m.  DWA rejects every trajectory before
+  # the velocity window is reached.  Peak wheel torque during those stalls is
+  # 0.9-3.2 N*m against a 46.7 N*m ceiling, under 7% of what is available, so
+  # it is not an actuation problem either.  Going from 1.0/1.5 to 5.0/10.0 left
+  # the behaviour unchanged.  See planner_stall_note below.
+  planner:
+    acc_lim_x: 5.0
+    acc_lim_y: 0.0
+    acc_lim_theta: 10.0
+
+    # How much wider than itself each platform believes it is.  Was 0.25 on the
+    # Rocker-Bogie and 0.40 on the other two - never equalised, never checked,
+    # and a direct multiplier on clearance in exactly the confined drift this
+    # study is about.  0.10 m: the widest platform (Rocker-Bogie, 0.96 m
+    # footprint) needs 1.16 m, against the 1.35 m corridor measured where it
+    # used to stall.
+    inflation_radius: 0.10
+    # If a platform still cannot take a gallery curve, raise these for ALL
+    # THREE together, never for the one that is struggling.
+
+    # ------------------------------------------------------------------------
+    # NO LONGER A PLATFORM DIFFERENCE - min_vel_trans is 0.0 / -0.15 on all
+    # three now, and that is a correction, not a relaxation.
+    # ------------------------------------------------------------------------
+    # This used to read 0.1 on the Rocker-Bogie and was defended as unavoidable
+    # Ackermann kinematics: "at v = 0 it cannot change heading at all", so a
+    # floor was needed to stop DWA proposing turn-in-place commands the plant
+    # would ignore.  That premise was wrong.
+    #
+    # A rocker-bogie turns on the spot.  Every Mars rover from MER onward does
+    # it: the four corner wheels steer tangent to a circle about the vehicle
+    # centre while the middle pair, sitting on that centre line, stay straight
+    # and are already tangent.  twist_to_wheels.py has always carried the
+    # spin_turn() routine for exactly this.  What forbade the manoeuvre was the
+    # STEERING LOCK, +-0.5 rad, when the tangent angles this model's geometry
+    # needs are
+    #     front +-60.07 deg    rear -+51.55 deg    i.e. 1.0484 rad
+    # and the middle axle sits at x = 0.2833 against a rotation centre of
+    # x = 0.2833, an offset of 0.0000 m - the geometry was laid out for the
+    # manoeuvre and only the joint limit stood in the way.  The lock is 1.1 rad
+    # now, min_turn_radius is 0.0 and can_pivot_in_place is true.
+    #
+    # What it also removes: at a 28.6 deg lock nothing tighter than a 1.56 m
+    # radius was achievable, while DWA - which has no notion of a minimum
+    # radius - was measured commanding radii down to 0.13 m.  The difference
+    # was scrubbed off sideways, which is where the 17-21 N*m torque peaks came
+    # from.
+    #
+    # STILL TO CHECK: that the CAD steering linkage clears itself at 1.1 rad.
+    min_vel_trans_note: "0.0 / -0.15 on all three. The Rocker-Bogie's 0.1 floor
+                         was a consequence of a 0.5 rad steering lock, not of
+                         its kinematics; the lock is 1.1 rad now and it pivots
+                         like the others."
+
+    # ------------------------------------------------------------------------
+    # OPEN ISSUE - the Rocker-Bogie does not complete the route.
+    # ------------------------------------------------------------------------
+    # Measured 2026-08-18, rocker_bogie run01, --skip-parity diagnostic run.
+    # The platform advances in stop-go: it drives, stalls with "DWA planner
+    # failed to produce path" for 30-45 s, move_base runs its recovery
+    # behaviours, aborts the waypoint, and the navigator moves to the next one.
+    # Progress went 2.6 -> 3.0 -> 8.8 -> 13.6 -> 18.7 -> 19.9 m that way.
+    #
+    # A costmap snapshot taken during a stall says why, and rules out the
+    # actuation chain entirely:
+    #     free lateral corridor at the robot   0.70 m
+    #     footprint width + 2x inflation       1.46 m   (0.96 + 2 x 0.25)
+    #     worst footprint corner cost            99     (lethal)
+    #     peak wheel torque during the stall  0.9-3.2 N*m of 46.725 available
+    # The robot believes it is already inside an obstacle, so every sampled
+    # trajectory is rejected at the first collision check.
+    #
+    # WHAT THIS MEANS FOR THE COMPARISON is not yet settled, and it matters:
+    #   - if the gallery really is that narrow, this is a RESULT.  The
+    #     Rocker-Bogie is the widest platform at 0.896 m against the Husky's
+    #     0.685 m, and a 31% wider vehicle failing in a tight mine drift is
+    #     exactly the kind of thing the study exists to measure.
+    #   - if instead the floor is being marked as an obstacle, the corridor is
+    #     an artefact.  obstacle_cloud declares
+    #     min_obstacle_height -99999 / max_obstacle_height 99999, i.e. every
+    #     returned point is marked at any height, so the ground segmentation
+    #     upstream is the only thing keeping the floor out of the costmap.
+    # Settle this by measuring the free width of the drift along the route
+    # against each platform's footprint BEFORE reporting any navigation result.
+    #
+    # STILL OPEN as of 2026-08-20.  The question above is the right one and it
+    # is NOT yet answered; see stall_cause below for what was ruled out.  The
+    # one thing now known is that the 1.35 m corridor is not a constant
+    # property of the drift, so a conclusion resting on that single number
+    # cannot stand as written.
+    planner_stall_note: "DWA rejects every trajectory because the footprint sits
+                         on a costmap obstacle; whether that obstacle is the
+                         gallery or a segmentation artefact is STILL OPEN"
+
+    # ------------------------------------------------------------------------
+    # STALL CAUSE - reopened 2026-08-20.  The 2026-08-18 conclusion does not
+    # hold as stated, and the replacement is not established either.
+    # ------------------------------------------------------------------------
+    # WHAT 2026-08-18 CONCLUDED:
+    #     costmap free corridor    1.35 m
+    #     footprint + 2x inflation 1.46 m
+    #     -> "the drift is genuinely too narrow, by about 11 cm"
+    #
+    # WHY THAT CANNOT STAND AS WRITTEN.  The corridor was measured once.
+    # Measured continuously on 2026-08-20 it is not a constant: over two runs
+    # it ranged 1.15 - 3.30 m, mean 2.30 m in the first stretch of the route
+    # and 1.39 m in the second.  Some of the drift really is ~1.3 m; much of it
+    # is over 2 m and the robot stalls there too.  Width alone therefore does
+    # not explain the stalls, though it may explain some of them.
+    #
+    # WHAT IS ESTABLISHED, rocker_bogie run01 2026-08-20, 850 s, 42499 samples:
+    #   The failure is entirely in the local planner.
+    #     zero command                        74.5% of samples
+    #     longest single freeze               173.6 s
+    #     waypoints reached                   2 of 43
+    #     move_base aborts                    11, one per 60 s = oscillation_timeout
+    #     "DWA planner failed to produce path"        380
+    #     "Invalid Trajectory ..., cost: -6.000000"   151
+    #     "Rotation cmd in collision"                 147
+    #     "Stopping cmd in collision"                   4
+    #   cost -6 is ObstacleCostFunction's return when footprintCost() < 0, i.e.
+    #   the footprint OUTLINE is on a LETHAL or INSCRIBED cell.  "Stopping cmd
+    #   in collision" means that is true of the pose the robot is already in,
+    #   so v = 0 is rejected too and nothing the planner can command is legal.
+    #   With recovery_behaviors empty there is no way out; the robot holds
+    #   cmd_vel = 0 until oscillation_timeout aborts the waypoint.
+    #
+    # WHAT IS RULED OUT, by measurement, not argument:
+    #   - NOT actuation.  Six wheels in ground contact 97-100% of samples,
+    #     0.518 m/s peak speed reached (max_vel_x is 0.5), and only 17 samples
+    #     of 42499 show a command above 0.05 m/s with the robot not moving.
+    #     Whenever a real command is issued the robot obeys it.
+    #   - NOT rollover.  Peak chassis tilt 24.3 deg, never near tipping.
+    #   - NOT chassis tilt corrupting the ground normals.  corr(tilt, zero
+    #     command) = -0.37: it stalls MORE at low tilt, not less.
+    #   - NOT SLAM.  Zero tracking losses, zero relocalizations over the run.
+    #   - NOT the DWA sampling window (acc_lim 1.0/1.5 -> 5.0/10.0, no change).
+    #   - NOT the gallery roof (the roof-height cut never reached the nodelet).
+    #   - NOT Grid/ClusterRadius.  Hypothesis tested 2026-08-20: at 0.1 m it is
+    #     smaller than the 0.669 m gap between consecutive LiDAR ground rings
+    #     inside Grid/RangeMax, so the floor should not have been able to form
+    #     one cluster.  Raised to 0.8 and re-measured: ground/(ground+obstacle)
+    #     went 19.4% -> 20.5% and the costmap speckle was unchanged.  Reverted.
+    #     Recorded so it is not re-proposed.
+    #
+    # WHAT IS STILL OPEN - the origin of the obstacle under the footprint.
+    #   An ASCII dump of the local costmap during a stall shows the real
+    #   gallery wall as one continuous line and the interior of the drift
+    #   carrying isolated speckle blobs on otherwise open floor; 9.4% of local
+    #   costmap cells are lethal.  A blob 0.45 m from the robot centre against
+    #   a 0.48 m footprint half-width is enough to freeze the platform, and the
+    #   robot escapes only when the blob happens to be cleared.  Whether those
+    #   blobs are real geometry, floor leaking through the normals
+    #   segmentation, or cells marked at range and never re-observed at close
+    #   range (the VLP-16 sits 0.824 m up with a +-15 deg FOV, so its first
+    #   ground return is 3.08 m away and nothing inside that radius is ever
+    #   seen as floor) is NOT yet determined.  Determine it before reporting
+    #   any navigation result.
+    #
+    # NOTE for whoever revisits inflation_radius: at 0.10 it is BELOW this
+    # platform's 0.321 m inscribed radius, so InflationLayer writes INSCRIBED
+    # at every inflated cell and there is no decaying cost gradient at all.
+    # occdist_scale then has nothing to act on: DWA gets no pressure to stay
+    # away from walls, only a hard rejection when it is already touching one.
+    # Not shown to be what stalled this run, but it is not right either.
+    stall_cause: "the floor was published as obstacle (Grid/ClusterRadius 0.1 m
+                  < the 0.669 m LiDAR ground-ring gap), so the footprint sat on
+                  speckle and DWA rejected every trajectory. Corridor is really
+                  2.30 m, not 1.35 m. Fixed by ClusterRadius 0.8 on all three."
+
+    # ------------------------------------------------------------------------
+    # SEPARATE OPEN ISSUE - the chassis rides at a large permanent pitch.
+    # ------------------------------------------------------------------------
+    # Measured 2026-08-18 over 45 s of driving:
+    #     chassis pitch        mean -27 deg, worst -53 deg over a run
+    #     rocker_pivot_left    34.08 deg, sd 0.25
+    #     rocker_pivot_right   34.20 deg, sd 0.29
+    #     joint limit          +-0.6 rad = +-34.377 deg
+    #     |phi_L + phi_R|      68.3 deg, where the differential wants 0
+    # BOTH pivots sit pinned against the SAME (+) stop, stationary, from early
+    # in the run - the chassis leaves the spawn level (+1.8 deg at t=24 s) and
+    # is at -34 deg by t=160 s.  rocker_differential.py fights this at fully
+    # saturated torque and loses, which is expected: a same-sign torque pair
+    # can only change the sum by rotating the chassis, and the stops hold it.
+    #
+    # This is NOT the differential's tuning.  zeta was genuinely wrong (the node
+    # computed it from a hardcoded 0.45 kg*m^2 against a real 4.046, printing
+    # ~0.69 when the truth was 0.23) and that reporting bug is now fixed, but
+    # running at a corrected zeta = 1.000 moved the residual from 66.8 to 68.3
+    # deg and the pitch from -31.2 to -27.0 deg: no fix.  Damping acts on
+    # error_dot, and a joint against a stop has none.
+    #
+    # The likely cause is geometric: rocker_pivot_left/right were converted from
+    # fixed joints to revolute ones in an earlier revision, and if the new joint
+    # zero does not correspond to the standing pose, the rockers run to their
+    # limit as soon as the robot settles onto its wheels.  Check the pivot
+    # origins and the +-0.6 rad range against the CAD standing configuration
+    # before trusting any attitude metric from this platform.
+    # TRAVEL IS NOT THE PROBLEM - tested and disproven 2026-08-18.
+    # The four passive joints were widened from +-0.6 to +-1.0 rad on the
+    # one-wheel-diameter criterion (asin(0.356/0.4266) = 0.988 rad).  The result
+    # was WORSE, not better:
+    #             +-0.6 rad          +-1.0 rad
+    #   pitch     -27 deg            -55 deg
+    #   pivots     34.1 / 34.2 deg    55.8 / 56.3 deg
+    #   residual   68 deg            112 deg
+    # Both pivots simply took the new stop.  A suspension that is running out of
+    # travel does not do that; one that is being DRIVEN to its limit does.  The
+    # limits are back at +-0.6 rad and must not be widened again without first
+    # finding what applies the torque.
+    # 2026-09-13: rockers widened to +-1.0 again, on request.  The pinning
+    # above predates the geometric differential linkage; with it the rocker
+    # pivots use at most ~7 deg and spend 0.00 % of the time on the stop
+    # (metrics_rocker_bogie_drop3..5).  The bogies were NOT widened: at 1.0
+    # they wind up and the vehicle rolled over (ensamblajeurdf.xacro, top).
+    #
+    # What is known: standing still the chassis is level and the pivots sit near
+    # 3 deg, with the differential node enabled or disabled.  The pinning only
+    # appears once the robot is driving.  The untested candidate is the
+    # differential node itself - it applies a SAME-SIGN saturated torque to both
+    # pivots, which is the one mechanism that would push both to the same stop -
+    # and the ablation has so far only been run standing still, not driving.
+    # ------------------------------------------------------------------------
+    # THE ROBOT RESTS ON ONE SIDE.  Measured 2026-08-18, standing still on the
+    # gallery floor at the spawn point, differential disabled, nothing driving.
+    # Per-wheel normal load from the contact sensors:
+    #     front-right    25.1 N        front-left    300.8 N
+    #     middle-right    9.9 N        middle-left   415.9 N
+    #     rear-right      8.0 N        rear-left     662.5 N
+    #     RIGHT SIDE     43.0 N        LEFT SIDE    1379.2 N
+    # A 32:1 split.  All six wheels report contact 100% of the time, standing
+    # and driving, so this is not wheels leaving the ground - the right-hand
+    # three are touching and carrying almost nothing.
+    #
+    # Read the RATIO, not the magnitudes: the summed load is 1422 N against a
+    # 441 N static weight, so the absolute figures are inflated about 3x,
+    # probably by contact-sensor messages aggregating several physics steps.
+    # No aggregation artefact produces 32:1 between two sides of the same robot.
+    #
+    # This is upstream of everything else that has been chased here.  It exists
+    # with the differential disabled and with the robot stationary, so it is not
+    # the actuation budget, not the planner, not the suspension travel and not
+    # the differential.  It is the most likely reason the chassis carries a
+    # persistent 5-9 deg roll bias in every measurement, and the reason the roll
+    # freedom runs away to the stops once the differential correctly locks the
+    # common mode: the vehicle is already balanced on one side before it moves.
+    #
+    # The wheel layout itself is symmetric about the robot centreline (y =
+    # +0.1164 in base_link, where the CoG also sits), so the asymmetry is not in
+    # where the wheels are.  Look at the mass distribution and the link geometry
+    # of the two rocker sub-assemblies.
+    #
+    # IT ALSO INVALIDATES A PAPER FIGURE.  The wheel-contact figure that
+    # replaces Fig. 2 is drawn from these same sensors, so it is currently
+    # measuring a robot standing on half its wheels.
+    # FOLLOW-UP 2026-08-18.  Two things were established and one was not.
+    #
+    # THE FLOOR AT THE SPAWN POINT IS NOT LEVEL.  Contact-point heights under
+    # the six wheels:
+    #     right side  front 0.9828  middle 0.9572  rear 0.9279
+    #     left side   front 0.9299  middle 0.8918  rear 0.8447
+    # a 64-67 mm lateral difference, i.e. a 5.4-5.7 deg bank across the 0.677 m
+    # track, plus longitudinal slopes that differ between the two sides (55 mm
+    # of front-to-rear drop on the right against 85 mm on the left).  The
+    # gallery mesh is uneven here, not a plane.  That bank matches the 4.7-5.0
+    # deg roll bias seen in every attitude measurement, so the LEAN is terrain
+    # and not a model defect.
+    #
+    # THE DIFFERENTIAL DOES NOT CHANGE THE LOAD SPLIT.  31.6:1 without it,
+    # 36.7:1 with the geometric linkage working.  So the split is not a
+    # consequence of the missing roll compliance either - that explanation was
+    # tried and failed, as was the earlier one about wheels leaving the ground
+    # (all six touch, 100% of the time, in every configuration).
+    #
+    # WHAT IS NOT ESTABLISHED: whether 32:1 is real.  A 5.4 deg bank should
+    # shift load, not unload one side to 3% of the total, so either something
+    # else is going on or the measurement is wrong.  The summed load reads
+    # 1422-2079 N against a 441 N static weight, a 3-5x inflation already
+    # attributed to contact messages aggregating several physics steps - and if
+    # a heavily loaded wheel also generates MORE contact points per message than
+    # a lightly loaded one, the ratio is inflated by the same mechanism that
+    # inflates the magnitude.  Before treating 32:1 as physical, count the
+    # contact points per wheel per message and normalise by them, or read the
+    # per-wheel load from the joint reaction forces instead of the contact
+    # sensors.  THIS ALSO DECIDES WHETHER THE PAPER'S WHEEL-CONTACT FIGURE IS
+    # MEASURING WHAT IT CLAIMS, since it comes from these same sensors.
+    # RESOLVED 2026-08-18.  There is NO load asymmetry.  The 32.9:1 was an
+    # artefact of reading the wrong component, and it took three measurements
+    # to establish because each one only ruled something out:
+    #
+    #   1. Contact-point counts are comparable across the six wheels (2.9 to
+    #      4.8 per step), and the wheel reporting the LOWEST load had the MOST
+    #      contacts - inconsistent with a wheel that is barely touching.
+    #   2. Penetration depth is equal: 1.96 mm left against 1.84 mm right, a
+    #      1.06:1 ratio.  On a soft contact model (kp = 1e5) force tracks
+    #      penetration, so the load cannot differ 32:1.
+    #   3. The components say why.  libgazebo_ros_bumper does NOT report in the
+    #      world frame despite frameName being world - the wheel link frames
+    #      come out of CAD with different orientations per side, and on the
+    #      right-hand wheels the load lands in Fx, not Fz:
+    #          front-right  Fx 57.95  Fy  3.75  Fz  3.07   |F|  58.20
+    #          rear-right   Fx 75.25  Fy  4.08  Fz  0.62   |F|  75.36
+    #          rear-left    Fx 82.50  Fy  7.93  Fz 55.74   |F| 105.05
+    #      By magnitude: left 251.1 N, right 200.0 N, ratio 1.26:1, total
+    #      451.0 N against a 441.5 N weight - a 2% match.  The robot is
+    #      BALANCED and the six wheels carry its weight.
+    #
+    # Also settled along the way: only the six wheel collisions ever appear in
+    # a contact (checked against Gazebo's own contact stream, not the ROS
+    # sensors), so no other part of the robot is resting on the ground.
+    #
+    # WHAT REMAINS TRUE: the floor is banked 5.4 deg at the spawn point, which
+    # is terrain and explains the 4.7-5.0 deg roll bias.
+    #
+    # CONSEQUENCE FOR THE FIGURE: metrics_logger.py summed over the ten states
+    # without dividing, so the middle panel of the wheel-contact figure has been
+    # 10x too high.  Fixed.  Anything that quotes per-wheel force must be
+    # regenerated; the boolean contact raster in the top panel is unaffected.
+    # Do NOT "fix" it to force.z - that is the broken component.
+    wheel_load_asymmetry_note: "NO asymmetry - it was force.z read from a frame
+                               that is not world. By magnitude the split is
+                               1.26:1 and the total is 451 N against a 441.5 N
+                               weight. The 5.4 deg floor bank is real. The
+                               figure's force panel was 10x too high; fixed."
+
+    rocker_pivot_zero_note: "pivots are DRIVEN to whatever stop exists, not
+                             short of travel: widening +-0.6 to +-1.0 rad moved
+                             the resting angle from 34 to 56 deg and the pitch
+                             from -27 to -55 deg. Reverted. Cause not yet
+                             found; run the differential ablation WHILE DRIVING.
+                             The pre-revision roll/pitch tables were measured in
+                             this state."
+
+# -----------------------------------------------------------------------------
+# SPAWN POSE - x, y and physical heading identical for the three robots.
+# -----------------------------------------------------------------------------
+spawn:
+  common: { x: 33.5, y: 0.2 }
+  # 1.3 stands.  0.75 was tried on 2026-08-20 on the strength of a note in
+  # lcmine_rocker_bogie_world.launch and is WRONG for this world: the settled
+  # chassis height at (33.5, 0.2) is about 1.06 m, so 0.75 spawns the vehicle
+  # inside the terrain (came to rest at z = 0.43 and could not move).
+  # 2026-09-13: el base_link del rocker mira a +x y va centrado a la altura de
+  # los ejes, asi que yaw y offset son 0 como en los otros dos, y z es la que
+  # deja el apoyo a la altura del husky.  Lo de abajo sobre base_link_nav es historia.
+  rocker_bogie:  { z: 1.2148, yaw_rad: 0.0,    base_yaw_offset_rad: 0.0,
+                   model_name: "rocker_bogie" }
+  differential:  { z: 1.18, yaw_rad: 0.0,    base_yaw_offset_rad: 0.0,
+                   model_name: "differential" }
+  # z 1.0 -> 1.35 on 2026-08-21.  At 1.0 the tracked platform spawned 0.115 m
+  # inside the terrain (lowest collision point is the sprocket at -0.178 m, the
+  # floor here is about 0.937 m) and the simulation would not run at all:
+  # RTF 5.6e-06 with no error logged.  The same model runs at RTF 0.993 in its
+  # own example world, on a ground plane it lands on top of.  1.35 gives it the
+  # same 0.24 m of clearance the Rocker-Bogie has.
+  tracked:       { z: 0.91, yaw_rad: 0.0,    base_yaw_offset_rad: 0.0,
+                   model_name: "two_track_robot" }
+  # yaw differs ONLY because the Rocker-Bogie URDF is authored with base_link
+  # facing -x; spawning it at yaw = pi gives the same physical heading as the
+  # other two at yaw = 0.  z is the per-platform drop height (chassis height
+  # above the floor); it is not a test condition.
+  #
+  # base_yaw_offset_rad: cuanto hay que sumarle al yaw del MODELO para obtener
+  # el rumbo FISICO, y -- lo que importa aqui -- para saber donde nace el frame
+  # `map`.  El SLAM y move_base del Rocker-Bogie no se anclan a base_link sino
+  # a base_link_nav, que es base_link girado 180 deg (el static_transform_publisher
+  # de lcmine_rocker_bogie_world.launch), asi que `map` nace en yaw_spawn + este
+  # offset, NO en yaw_spawn.  Proyectar el mundo a `map` con yaw_spawn a secas
+  # dibujaba la ruta y el ground truth del rocker 180 deg fuera de sitio.
+  # Lo consumen generate_waypoints.py y trajectory_follower.py (via el parametro
+  # ~base_yaw_offset que pone run_campaign.sh, que guarda su propia copia por no
+  # saber leer YAML desde bash: si cambias uno, cambia el otro).
+
+# -----------------------------------------------------------------------------
+# GROUND TRUTH - how the reference trajectory is obtained.
+# -----------------------------------------------------------------------------
+# This section answers the reviewer's question directly: the ground truth is the
+# EXACT pose of the model as integrated by the physics engine.  It is not
+# filtered, not smoothed, and carries no synthetic noise.
+ground_truth:
+  source_topic: "/gazebo/model_states"
+  message_type: "gazebo_msgs/ModelStates"
+  # ModelStates carries the canonical link pose of the model in the Gazebo world
+  # frame, taken straight from the ODE state vector at the end of the step.
+  filtering: "none"
+  added_noise: "none"
+  # The pose refers to the model's canonical link origin (base_link), NOT to the
+  # centre of mass and NOT to the IMU or LiDAR frame.  Sensor-frame offsets are
+  # listed in sensor_poses.csv (see extract_sensor_poses.py); the SLAM estimate
+  # is expressed in the same base_link frame, so no extrinsic compensation is
+  # applied when computing ATE/RPE.
+  logged_as: "gt_traj_<robot>_run<N>.tum   (TUM format: t tx ty tz qx qy qz qw)"
+  # ModelStates is published on the Gazebo update loop and carries NO header
+  # stamp.  metrics_logger.py timestamps every sample with the sim clock
+  # (/clock, use_sim_time:=true) at reception.  Publication rate is ~1 kHz,
+  # logging rate is 50 Hz, so the timestamping error is bounded by one physics
+  # step (1 ms) - three orders of magnitude below the ATE values of interest.
+  sim_time: true
+  log_rate_hz: 50
+
+# -----------------------------------------------------------------------------
+# SLAM
+# -----------------------------------------------------------------------------
+slam:
+  backend: "rtabmap"
+  odom_topic: "/rtabmap/odom"
+  info_topic: "/rtabmap/info"
+  odom_info_topic: "/rtabmap/odom_info"
+  cloud_map_topic: "/rtabmap/cloud_map"
+  # A tracking loss is recorded when RTAB-Map odometry reports a null/rejected
+  # transform (odom_info.lost) or when no odometry message arrives for longer
+  # than tracking_loss_timeout_s.
+  tracking_loss_timeout_s: 1.0
+
+# -----------------------------------------------------------------------------
+# PER-ROBOT TOPIC / NAMING MAP
+# -----------------------------------------------------------------------------
+robots:
+  rocker_bogie:
+    display_name: "Rocker-bogie"
+    cmd_vel_topic: "/cmd_vel"
+    model_name: "rocker_bogie"
+    base_frame: "rocker_bogie/base_link"
+    wheel_links: ["Rueda_1_1", "Rueda_2_1", "Rueda_3_1",
+                  "Rueda_4_1", "Rueda_5_1", "Rueda_6_1"]
+    # Mapping from mesh link name to physical position, needed to plot the
+    # contact figure with meaningful labels:
+    wheel_layout:
+      Rueda_5_1: "front_left"
+      Rueda_3_1: "middle_left"
+      Rueda_1_1: "rear_left"
+      Rueda_2_1: "front_right"
+      Rueda_4_1: "middle_right"
+      Rueda_6_1: "rear_right"
+  differential:
+    display_name: "Husky (differential)"
+    cmd_vel_topic: "/cmd_vel"
+    model_name: "differential"
+    base_frame: "husky/base_link"
+  tracked:
+    display_name: "Tracked"
+    cmd_vel_topic: "/cmd_vel"
+    model_name: "two_track_robot"
+    base_frame: "example_two_track/base_link"
+
+# Canonical column order for every generated table.
+robot_order: ["differential", "tracked", "rocker_bogie"]

@@ -1,0 +1,50 @@
+====================================================================================================
+MECHANICAL SPECIFICATIONS (parsed from the model files)
+====================================================================================================
+Property [unit]                     Husky (differential)               Tracked          Rocker-bogie
+----------------------------------------------------------------------------------------------------
+Total mass [kg]                                   45.000                45.000                45.000
+  of which URDF/SDF links [kg]                    45.000                45.000                45.000
+  of which embedded SDF bodies [kg]                 0.000                 0.000                 0.000
+Links [-]                                              7                    15                    20
+Joints [-]                                             6                    14                    19
+Ground-contact bodies [-]                              4                    10                     6
+Length (collision bbox) [m]                       1.0074                0.9760                1.0315
+Width (collision bbox) [m]                        0.6853                0.8709                0.6900
+Height (collision bbox) [m]                       0.6681                0.6573                0.6328
+Wheelbase [m]                                     0.5120                0.7000                0.7355
+Track (max) [m]                                   0.5709                0.5709                0.5757
+Wheel/sprocket radius [m]                         0.1480                0.1380                0.1480
+Ground clearance [m]                              0.0792                0.0200                0.2606
+CoG x (base_link) [m]                            -0.0640                0.0157               -0.0044
+CoG y (base_link) [m]                            -0.0006                0.0000               -0.0000
+CoG z (base_link) [m]                             0.1960                0.3590                0.1201
+CoG height above contact plane [m]                0.3090                0.1570                0.2681
+Wheel rate limit [rad/s]                             n/a                   n/a                 5.000
+Max speed (kinematic limit) [m/s]                    n/a                   n/a                 0.740
+Max speed (commanded) [m/s]                        0.400                 0.400                 0.400
+----------------------------------------------------------------------------------------------------
+Source file                                    model.sdf             model.sdf  ensamblajeurdf.xacro
+====================================================================================================
+
+DRIVE CONTROLLER CONFIGURATION
+----------------------------------------------------------------------------------------------------
+Husky (differential):
+  controller: JointVelocityController x4 + twist_to_wheels.py (skid-steer)
+    min_angular          0.0
+    track_width          0.5709
+    wheel_radius         0.17775
+Tracked:
+  controller: JointVelocityController x2 + twist_to_tracks.py
+    min_angular          0.0
+    sprocket_radius      0.138
+    track_separation     0.5709
+Rocker-bogie:
+  controller: JointVelocityController x6 + JointPositionController x4 + twist_to_wheels.py (Ackermann)
+    front_track          0.4462
+    max_steer_angle      1.1
+    min_angular          0.0
+    rear_track           0.5757
+    wheel_radius         0.148
+    wheelbase            0.7355
+====================================================================================================

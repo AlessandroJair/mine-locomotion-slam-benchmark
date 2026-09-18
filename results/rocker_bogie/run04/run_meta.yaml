@@ -1,0 +1,67 @@
+robot: rocker_bogie
+run_id: 4
+gazebo_model: rocker_bogie
+samples: 28960
+duration_s: 579.163
+gt_distance_m: 265.527
+log_rate_hz: 50.0
+ground_truth:
+  topic: /gazebo/model_states
+  type: gazebo_msgs/ModelStates
+  filtering: none
+  added_noise: none
+  frame: gazebo world frame, model canonical link
+  timestamping: ROS sim clock at reception (no header stamp on ModelStates); error
+    bounded by one 0.5 ms physics step
+gt_highrate:
+  enabled: true
+  file: gt_highrate.csv
+  requested_hz: 800.0
+  nominal_hz: 1000.0
+  measured_hz: 1000.0026
+  physics_hz: 2000.0
+  decimation: 2
+  samples: 580921
+  messages_seen: 1161843
+  messages_expected: 1161837
+  rows_dropped_queue_full: 0
+  span_s: 580.9185
+  note: 'decimated by RECEIVED message count, so an interval is `decimation` physics
+    steps only while nothing is lost. Compare messages_seen against messages_expected:
+    a shortfall means ModelStates was dropped before the callback, and measured_hz
+    falls below nominal_hz.'
+slam:
+  loop_closures: 0
+  proximity_detections: 451
+  tracking_losses: 0
+  relocalizations: 0
+wheel_links:
+- Rueda_6_1
+- Rueda_4_1
+- Rueda_2_1
+- Rueda_1_1
+- Rueda_3_1
+- Rueda_5_1
+suspension_joints:
+- rocker_pivot_left
+- rocker_pivot_right
+- rev_3
+- rev_4
+suspension_topic: /rocker_bogie/joint_states
+suspension_messages: 144250
+effort_joints:
+- rev_9
+- rev_10
+- rev_11
+- rev_12
+- rev_13
+- rev_14
+velocity_joints:
+- rev_9
+- rev_10
+- rev_11
+- rev_12
+- rev_13
+- rev_14
+ros_time_is_sim_time: true
+git_commit: 4cacede

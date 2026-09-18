@@ -1,3 +1,16 @@
+# catkin build products
 build/
 devel/
+
+# python
+__pycache__/
+*.pyc
+
+# local scratch: timestamped route backups, pre-edit copies, model backups
+*.bak
+*_orig
+.mass_backup/
+
+# runtime logs, except the ones shipped with the published results
 *.log
+!results/**/*.log

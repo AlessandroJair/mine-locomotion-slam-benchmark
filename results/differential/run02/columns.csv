@@ -1,0 +1,55 @@
+column,unit,description
+timestamp,s,ROS sim time (use_sim_time:=true)
+pitch,rad,Chassis pitch from IMU orientation
+roll,rad,Chassis roll from IMU orientation
+yaw,rad,Chassis yaw from IMU orientation
+accel_x,m/s^2,"IMU linear acceleration, body x"
+accel_y,m/s^2,"IMU linear acceleration, body y"
+accel_z,m/s^2,"IMU linear acceleration, body z (includes g)"
+angular_vel_x,rad/s,"IMU angular velocity, body x"
+angular_vel_y,rad/s,"IMU angular velocity, body y"
+angular_vel_z,rad/s,"IMU angular velocity, body z"
+angular_accel_x,rad/s^2,"d(angular_vel_x)/dt, numerical"
+angular_accel_z,rad/s^2,"d(angular_vel_z)/dt, numerical"
+odom_x,m,"SLAM position estimate, x"
+odom_y,m,"SLAM position estimate, y"
+odom_z,m,"SLAM position estimate, z"
+odom_roll,rad,"SLAM orientation estimate, roll"
+odom_pitch,rad,"SLAM orientation estimate, pitch"
+odom_yaw,rad,"SLAM orientation estimate, yaw"
+odom_vx,m/s,"SLAM linear velocity estimate, body x"
+odom_vyaw,rad/s,SLAM yaw rate estimate
+cmd_vx,m/s,Commanded linear velocity
+cmd_vyaw,rad/s,Commanded yaw rate
+gt_x,m,"Gazebo ground-truth position, x (world frame)"
+gt_y,m,"Gazebo ground-truth position, y (world frame)"
+gt_z,m,"Gazebo ground-truth position, z (world frame)"
+gt_roll,rad,Gazebo ground-truth roll
+gt_pitch,rad,Gazebo ground-truth pitch
+gt_yaw,rad,Gazebo ground-truth yaw
+gt_vx,m/s,"Gazebo ground-truth linear velocity, world x"
+gt_vy,m/s,"Gazebo ground-truth linear velocity, world y"
+gt_ax,m/s^2,"Ground-truth proper acceleration, body x (no gravity)"
+gt_ay,m/s^2,"Ground-truth proper acceleration, body y (no gravity)"
+gt_az,m/s^2,"Ground-truth proper acceleration, body z (no gravity)"
+gt_distance,m,Cumulative ground-truth path length
+loop_closure_count,-,Cumulative loop closures accepted
+proximity_detection_count,-,Cumulative proximity detections
+slam_inliers,-,Visual/ICP inliers of the last odometry update
+slam_matches,-,Feature matches of the last odometry update
+slam_icp_inliers_ratio,-,ICP inlier ratio
+slam_icp_correspondences,-,ICP correspondences
+slam_processing_time,s,Odometry estimation time
+tracking_lost,-,"1 while odometry tracking is lost, else 0"
+tracking_loss_count,-,Cumulative tracking-loss events
+relocalization_count,-,Cumulative recoveries after a loss
+tf_correction_magnitude,m,Per-sample |delta| of the map->odom TF
+tf_correction_yaw,rad,Per-sample yaw delta of the map->odom TF
+effort_front_left_joint,N.m,Applied torque at driven joint front_left_joint
+effort_front_right_joint,N.m,Applied torque at driven joint front_right_joint
+effort_back_left_joint,N.m,Applied torque at driven joint back_left_joint
+effort_back_right_joint,N.m,Applied torque at driven joint back_right_joint
+velocity_front_left_joint,rad/s,Measured joint velocity at driven joint front_left_joint
+velocity_front_right_joint,rad/s,Measured joint velocity at driven joint front_right_joint
+velocity_back_left_joint,rad/s,Measured joint velocity at driven joint back_left_joint
+velocity_back_right_joint,rad/s,Measured joint velocity at driven joint back_right_joint

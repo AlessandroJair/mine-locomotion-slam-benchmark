@@ -1,0 +1,56 @@
+The PostScript backend does not support transparency; partially transparent artists will be rendered opaque.
+The PostScript backend does not support transparency; partially transparent artists will be rendered opaque.
+evaluating /home/alessandro/metrics_VF/fixed_trajectory/swept_lidar/differential/run01
+evaluating /home/alessandro/metrics_VF/fixed_trajectory/swept_lidar/differential/run02
+evaluating /home/alessandro/metrics_VF/fixed_trajectory/swept_lidar/differential/run03
+evaluating /home/alessandro/metrics_VF/fixed_trajectory/swept_lidar/differential/run04
+evaluating /home/alessandro/metrics_VF/fixed_trajectory/swept_lidar/differential/run05
+evaluating /home/alessandro/metrics_VF/fixed_trajectory/swept_lidar/tracked/run01
+evaluating /home/alessandro/metrics_VF/fixed_trajectory/swept_lidar/tracked/run02
+evaluating /home/alessandro/metrics_VF/fixed_trajectory/swept_lidar/tracked/run03
+evaluating /home/alessandro/metrics_VF/fixed_trajectory/swept_lidar/tracked/run04
+evaluating /home/alessandro/metrics_VF/fixed_trajectory/swept_lidar/tracked/run05
+evaluating /home/alessandro/metrics_VF/fixed_trajectory/swept_lidar/rocker_bogie/run01
+evaluating /home/alessandro/metrics_VF/fixed_trajectory/swept_lidar/rocker_bogie/run02
+evaluating /home/alessandro/metrics_VF/fixed_trajectory/swept_lidar/rocker_bogie/run03
+evaluating /home/alessandro/metrics_VF/fixed_trajectory/swept_lidar/rocker_bogie/run04
+evaluating /home/alessandro/metrics_VF/fixed_trajectory/swept_lidar/rocker_bogie/run05
+
+=== STEP CROSSING (run01, first pass) ===
+Husky          |a_z|max 372.57  |a_x|max 584.06  pitch [-21.50,  12.39]  roll [ -5.61,  12.14]  |th_dot|max   182.3  |ph_dot|max   127.4  slab 3.94 m  window 33.6 s
+Tracked        |a_z|max 495.30  |a_x|max 145.23  pitch [-22.53,  19.16]  roll [ -3.46,   9.20]  |th_dot|max   256.1  |ph_dot|max   107.7  slab 3.53 m  window 20.7 s
+Rocker-bogie   |a_z|max  27.62  |a_x|max  21.40  pitch [-21.52,  12.46]  roll [ -5.69,   8.58]  |th_dot|max   121.5  |ph_dot|max    65.8  slab 3.52 m  window 22.6 s
+
+=== ATTITUDE DISTRIBUTION (all runs, gt_highrate) ===
+robot          signal       median      p25      p75       p1      p99      std
+Husky          pitch         -3.81    -7.04     6.95   -18.10    16.70     8.86
+Husky          roll           0.73    -3.03     5.36   -11.39    13.69     6.00
+Husky          pitch_rate     0.00    -1.43     1.26   -12.38    14.21     4.86
+Husky          roll_rate      0.00    -0.86     0.92    -7.85     7.73     2.98
+Tracked        pitch         -3.34    -6.63     7.91   -16.85    17.22     9.04
+Tracked        roll           1.01    -2.85     5.36   -12.17    13.70     6.14
+Tracked        pitch_rate     0.00    -1.72     1.43   -19.60    24.69     7.80
+Tracked        roll_rate      0.00    -0.92     0.97   -16.44    15.93     5.07
+Rocker-bogie   pitch         -2.90    -6.27     7.29   -15.44    16.75     8.54
+Rocker-bogie   roll           0.82    -3.07     5.23   -11.92    13.66     6.09
+Rocker-bogie   pitch_rate     0.00    -1.38     1.20   -13.01    14.67     4.72
+Rocker-bogie   roll_rate      0.00    -0.92     0.97    -7.22     6.99     2.49
+
+=== WINDOW SWEEP: mean over runs of r and r|velocity ===
+Husky             50 ms  vib->rot 0.247|0.206  vib->trans 0.148|0.086  agit->rot 0.446|0.467  agit->trans 0.268|0.291
+Husky            100 ms  vib->rot 0.267|0.228  vib->trans 0.160|0.095  agit->rot 0.452|0.473  agit->trans 0.275|0.298
+Husky            200 ms  vib->rot 0.286|0.244  vib->trans 0.169|0.102  agit->rot 0.471|0.493  agit->trans 0.290|0.312
+Husky            500 ms  vib->rot 0.311|0.255  vib->trans 0.188|0.109  agit->rot 0.507|0.530  agit->trans 0.321|0.341
+Husky           1000 ms  vib->rot 0.332|0.254  vib->trans 0.209|0.117  agit->rot 0.522|0.539  agit->trans 0.358|0.369
+Tracked           50 ms  vib->rot 0.136|0.128  vib->trans 0.234|0.217  agit->rot 0.586|0.599  agit->trans 0.457|0.486
+Tracked          100 ms  vib->rot 0.152|0.143  vib->trans 0.263|0.245  agit->rot 0.614|0.631  agit->trans 0.467|0.502
+Tracked          200 ms  vib->rot 0.170|0.158  vib->trans 0.282|0.261  agit->rot 0.648|0.670  agit->trans 0.480|0.520
+Tracked          500 ms  vib->rot 0.189|0.170  vib->trans 0.306|0.282  agit->rot 0.678|0.705  agit->trans 0.513|0.552
+Tracked         1000 ms  vib->rot 0.229|0.195  vib->trans 0.337|0.307  agit->rot 0.697|0.720  agit->trans 0.571|0.592
+Rocker-bogie      50 ms  vib->rot 0.221|0.218  vib->trans 0.186|0.183  agit->rot 0.535|0.546  agit->trans 0.430|0.432
+Rocker-bogie     100 ms  vib->rot 0.264|0.262  vib->trans 0.224|0.221  agit->rot 0.543|0.555  agit->trans 0.444|0.447
+Rocker-bogie     200 ms  vib->rot 0.313|0.311  vib->trans 0.268|0.265  agit->rot 0.559|0.571  agit->trans 0.457|0.460
+Rocker-bogie     500 ms  vib->rot 0.388|0.383  vib->trans 0.327|0.321  agit->rot 0.594|0.610  agit->trans 0.486|0.489
+Rocker-bogie    1000 ms  vib->rot 0.446|0.440  vib->trans 0.376|0.368  agit->rot 0.624|0.644  agit->trans 0.522|0.525
+
+written to /home/alessandro/metrics_VF/fixed_trajectory/swept_lidar/paper_tables

@@ -1,0 +1,571 @@
+[INFO] [1789726580.527674, 10.003500]: MetricsLogger: robot=tracked run=4
+[INFO] [1789726580.529869, 10.003500]:   output    : /home/alessandro/metrics_VF/fixed_trajectory/swept_lidar/tracked/run04
+[INFO] [1789726580.531418, 10.004000]:   odom      : /rtabmap/odom
+[INFO] [1789726580.533074, 10.004000]:   cmd_vel   : /example_two_track/cmd_vel
+[INFO] [1789726580.535257, 10.004500]:   gt model  : two_track_robot (via /gazebo/model_states, unfiltered)
+[INFO] [1789726580.537992, 10.005000]:   metrics   : 50.0 Hz
+[INFO] [1789726580.542562, 10.006000]:   gt hi-rate: 1000.0 Hz (asked 800.0; every 2-th ModelStates at 2000 Hz physics) -> gt_highrate.csv
+[INFO] [1789726676.894181, 41.278500]: [event] proximity_detection id=5 verdict=true gt_gap=14.064m  at gt=(48.02, -0.93) s=14.7m
+[INFO] [1789726680.365384, 42.315500]: [event] proximity_detection id=6 verdict=true gt_gap=14.062m  at gt=(48.47, -1.14) s=15.2m
+[INFO] [1789726683.172207, 43.352000]: [event] proximity_detection id=7 verdict=true gt_gap=14.033m  at gt=(48.91, -1.35) s=15.7m
+[INFO] [1789726685.880556, 44.342500]: [event] proximity_detection id=8 verdict=true gt_gap=13.984m  at gt=(49.31, -1.58) s=16.2m
+[INFO] [1789726688.837506, 45.303000]: [event] proximity_detection id=9 verdict=true gt_gap=13.893m  at gt=(49.69, -1.79) s=16.6m
+[INFO] [1789726692.167841, 46.368000]: [event] proximity_detection id=10 verdict=true gt_gap=13.824m  at gt=(50.10, -2.06) s=17.1m
+[INFO] [1789726694.818489, 47.359000]: [event] proximity_detection id=11 verdict=true gt_gap=13.748m  at gt=(50.46, -2.30) s=17.5m
+[INFO] [1789726697.982781, 48.318000]: [event] proximity_detection id=12 verdict=true gt_gap=13.654m  at gt=(50.80, -2.56) s=18.0m
+[INFO] [1789726701.032197, 49.392500]: [event] proximity_detection id=13 verdict=true gt_gap=13.642m  at gt=(51.19, -2.90) s=18.5m
+[INFO] [1789726703.739258, 50.383500]: [event] proximity_detection id=14 verdict=true gt_gap=13.593m  at gt=(51.55, -3.20) s=18.9m
+[INFO] [1789726787.512573, 73.932000]: [event] proximity_detection id=37 verdict=true gt_gap=13.171m  at gt=(55.42, -12.80) s=29.7m
+[INFO] [1789726790.498362, 74.936000]: [event] proximity_detection id=38 verdict=true gt_gap=13.188m  at gt=(55.39, -13.28) s=30.1m
+[INFO] [1789726793.683142, 75.892000]: [event] proximity_detection id=39 verdict=true gt_gap=13.231m  at gt=(55.36, -13.75) s=30.6m
+[INFO] [1789726797.378296, 76.905500]: [event] proximity_detection id=40 verdict=true gt_gap=13.258m  at gt=(55.32, -14.24) s=31.1m
+[INFO] [1789726800.783189, 77.902500]: [event] proximity_detection id=41 verdict=true gt_gap=13.332m  at gt=(55.29, -14.73) s=31.6m
+[INFO] [1789726804.315613, 78.929000]: [event] proximity_detection id=42 verdict=true gt_gap=13.419m  at gt=(55.25, -15.22) s=32.1m
+[INFO] [1789726807.552439, 79.960500]: [event] proximity_detection id=43 verdict=true gt_gap=13.443m  at gt=(55.22, -15.73) s=32.6m
+[INFO] [1789726810.688610, 80.914000]: [event] proximity_detection id=44 verdict=true gt_gap=13.494m  at gt=(55.18, -16.19) s=33.1m
+[INFO] [1789726814.302596, 81.926500]: [event] proximity_detection id=45 verdict=true gt_gap=13.620m  at gt=(55.15, -16.69) s=33.5m
+[INFO] [1789726817.626381, 82.933000]: [event] proximity_detection id=46 verdict=true gt_gap=13.742m  at gt=(55.13, -17.17) s=34.0m
+[INFO] [1789726820.985108, 83.950500]: [event] proximity_detection id=47 verdict=true gt_gap=13.797m  at gt=(55.09, -17.67) s=34.5m
+[INFO] [1789726824.053894, 84.980000]: [event] proximity_detection id=48 verdict=true gt_gap=13.883m  at gt=(55.05, -18.17) s=35.0m
+[INFO] [1789726827.324242, 86.027500]: [event] proximity_detection id=49 verdict=true gt_gap=13.950m  at gt=(55.01, -18.68) s=35.6m
+[INFO] [1789726830.736974, 87.050000]: [event] proximity_detection id=50 verdict=true gt_gap=14.061m  at gt=(54.98, -19.19) s=36.1m
+[INFO] [1789726833.537174, 88.079500]: [event] proximity_detection id=51 verdict=true gt_gap=14.183m  at gt=(54.95, -19.70) s=36.6m
+[INFO] [1789726836.767594, 88.998000]: [event] proximity_detection id=52 verdict=true gt_gap=14.166m  at gt=(54.92, -20.16) s=37.0m
+[INFO] [1789726840.643345, 90.021000]: [event] proximity_detection id=53 verdict=true gt_gap=14.232m  at gt=(54.89, -20.66) s=37.5m
+[INFO] [1789726844.472581, 90.984000]: [event] proximity_detection id=54 verdict=true gt_gap=14.257m  at gt=(54.86, -21.13) s=38.0m
+[INFO] [1789726848.119750, 92.076000]: [event] proximity_detection id=55 verdict=true gt_gap=14.290m  at gt=(54.82, -21.65) s=38.5m
+[INFO] [1789726850.821399, 93.038000]: [event] proximity_detection id=56 verdict=true gt_gap=14.312m  at gt=(54.80, -22.09) s=39.0m
+[INFO] [1789726854.020653, 94.185500]: [event] proximity_detection id=57 verdict=true gt_gap=14.398m  at gt=(54.80, -22.61) s=39.5m
+[INFO] [1789726856.855184, 95.104000]: [event] proximity_detection id=58 verdict=true gt_gap=14.463m  at gt=(54.82, -23.05) s=39.9m
+[INFO] [1789726860.455162, 96.114500]: [event] proximity_detection id=59 verdict=true gt_gap=14.485m  at gt=(54.84, -23.54) s=40.4m
+[INFO] [1789726863.849928, 97.118500]: [event] proximity_detection id=60 verdict=true gt_gap=14.492m  at gt=(54.86, -24.02) s=40.9m
+[INFO] [1789726867.275898, 98.169000]: [event] proximity_detection id=61 verdict=true gt_gap=14.556m  at gt=(54.87, -24.53) s=41.4m
+[INFO] [1789726870.038565, 99.177000]: [event] proximity_detection id=62 verdict=true gt_gap=14.534m  at gt=(54.87, -25.03) s=41.9m
+[INFO] [1789726872.701153, 100.196000]: [event] proximity_detection id=63 verdict=true gt_gap=14.549m  at gt=(54.87, -25.53) s=42.4m
+[INFO] [1789726875.616602, 101.257000]: [event] proximity_detection id=64 verdict=true gt_gap=14.562m  at gt=(54.91, -26.01) s=42.9m
+[INFO] [1789726878.535473, 102.271500]: [event] proximity_detection id=65 verdict=true gt_gap=14.631m  at gt=(54.91, -26.50) s=43.4m
+[INFO] [1789726884.366219, 104.165500]: [event] proximity_detection id=67 verdict=true gt_gap=14.589m  at gt=(54.93, -27.38) s=44.3m
+[INFO] [1789726889.737144, 105.362000]: [event] proximity_detection id=68 verdict=true gt_gap=14.653m  at gt=(54.94, -27.93) s=44.8m
+[INFO] [1789726894.056118, 106.274000]: [event] proximity_detection id=69 verdict=true gt_gap=14.608m  at gt=(54.92, -28.35) s=45.2m
+[INFO] [1789726898.363679, 107.467000]: [event] proximity_detection id=70 verdict=true gt_gap=14.672m  at gt=(54.88, -28.90) s=45.8m
+[INFO] [1789726900.959124, 108.470500]: [event] proximity_detection id=71 verdict=true gt_gap=14.645m  at gt=(54.83, -29.37) s=46.3m
+[INFO] [1789726903.671359, 109.484500]: [event] proximity_detection id=72 verdict=true gt_gap=14.609m  at gt=(54.73, -29.82) s=46.7m
+[INFO] [1789726906.391738, 110.446000]: [event] proximity_detection id=73 verdict=true gt_gap=14.520m  at gt=(54.65, -30.24) s=47.2m
+[INFO] [1789726909.437747, 111.505500]: [event] proximity_detection id=74 verdict=true gt_gap=14.468m  at gt=(54.55, -30.65) s=47.6m
+[INFO] [1789726911.909807, 112.474500]: [event] proximity_detection id=75 verdict=true gt_gap=14.361m  at gt=(54.44, -31.03) s=48.0m
+[INFO] [1789726914.527515, 113.490500]: [event] proximity_detection id=76 verdict=true gt_gap=14.390m  at gt=(54.24, -31.53) s=48.5m
+[INFO] [1789726917.189391, 114.495000]: [event] proximity_detection id=77 verdict=true gt_gap=14.376m  at gt=(54.07, -32.01) s=49.0m
+[INFO] [1789726923.021001, 116.452000]: [event] proximity_detection id=79 verdict=true gt_gap=14.179m  at gt=(53.75, -32.81) s=49.9m
+[INFO] [1789726926.327485, 117.450500]: [event] proximity_detection id=80 verdict=true gt_gap=14.073m  at gt=(53.56, -33.19) s=50.3m
+[INFO] [1789726929.607363, 118.421500]: [event] proximity_detection id=81 verdict=true gt_gap=13.953m  at gt=(53.36, -33.56) s=50.8m
+[INFO] [1789726933.592210, 119.495000]: [event] proximity_detection id=82 verdict=true gt_gap=13.942m  at gt=(53.10, -33.98) s=51.2m
+[INFO] [1789726937.569969, 120.569500]: [event] proximity_detection id=83 verdict=true gt_gap=13.874m  at gt=(52.84, -34.38) s=51.7m
+[INFO] [1789726940.499198, 121.572500]: [event] proximity_detection id=84 verdict=true gt_gap=13.793m  at gt=(52.60, -34.73) s=52.2m
+[INFO] [1789726948.041408, 123.656000]: [event] proximity_detection id=86 verdict=true gt_gap=13.655m  at gt=(52.00, -35.45) s=53.1m
+[INFO] [1789726950.884338, 124.708000]: [event] proximity_detection id=87 verdict=true gt_gap=13.552m  at gt=(51.70, -35.81) s=53.6m
+[INFO] [1789727058.508383, 155.000500]: [event] proximity_detection id=117 verdict=true gt_gap=13.599m  at gt=(38.58, -39.38) s=67.7m
+[INFO] [1789727061.536957, 155.940500]: [event] proximity_detection id=118 verdict=true gt_gap=13.705m  at gt=(38.12, -39.36) s=68.2m
+[INFO] [1789727065.013146, 156.996500]: [event] proximity_detection id=119 verdict=true gt_gap=13.839m  at gt=(37.60, -39.34) s=68.7m
+[INFO] [1789727067.749048, 158.019500]: [event] proximity_detection id=120 verdict=true gt_gap=13.932m  at gt=(37.07, -39.31) s=69.2m
+[INFO] [1789727070.809184, 159.049500]: [event] proximity_detection id=121 verdict=true gt_gap=13.972m  at gt=(36.59, -39.27) s=69.7m
+[INFO] [1789727074.354059, 160.060000]: [event] proximity_detection id=122 verdict=true gt_gap=14.041m  at gt=(36.10, -39.25) s=70.2m
+[INFO] [1789727077.547010, 161.113500]: [event] proximity_detection id=123 verdict=true gt_gap=14.081m  at gt=(35.58, -39.23) s=70.7m
+[INFO] [1789727080.304502, 162.100000]: [event] proximity_detection id=124 verdict=true gt_gap=14.117m  at gt=(35.12, -39.22) s=71.2m
+[INFO] [1789727083.797935, 163.134000]: [event] proximity_detection id=125 verdict=true gt_gap=14.157m  at gt=(34.64, -39.19) s=71.7m
+[INFO] [1789727087.490767, 164.189000]: [event] proximity_detection id=126 verdict=true gt_gap=14.226m  at gt=(34.12, -39.15) s=72.2m
+[INFO] [1789727090.334224, 165.200000]: [event] proximity_detection id=127 verdict=true gt_gap=14.261m  at gt=(33.64, -39.10) s=72.7m
+[INFO] [1789727093.377827, 166.160500]: [event] proximity_detection id=128 verdict=true gt_gap=14.261m  at gt=(33.20, -39.07) s=73.1m
+[INFO] [1789727096.835790, 167.160000]: [event] proximity_detection id=129 verdict=true gt_gap=14.343m  at gt=(32.72, -39.05) s=73.6m
+[INFO] [1789727099.987815, 168.162000]: [event] proximity_detection id=130 verdict=true gt_gap=14.350m  at gt=(32.26, -39.02) s=74.1m
+[INFO] [1789727103.287177, 169.145500]: [event] proximity_detection id=131 verdict=true gt_gap=14.409m  at gt=(31.79, -38.98) s=74.5m
+[INFO] [1789727107.007209, 170.156000]: [event] proximity_detection id=132 verdict=true gt_gap=14.456m  at gt=(31.32, -38.93) s=75.0m
+[INFO] [1789727110.250331, 171.135500]: [event] proximity_detection id=133 verdict=true gt_gap=14.464m  at gt=(30.86, -38.87) s=75.5m
+[INFO] [1789727113.819584, 172.116000]: [event] proximity_detection id=134 verdict=true gt_gap=14.467m  at gt=(30.39, -38.81) s=76.0m
+[INFO] [1789727117.579529, 173.210500]: [event] proximity_detection id=135 verdict=true gt_gap=14.560m  at gt=(29.85, -38.72) s=76.5m
+[INFO] [1789727120.384609, 174.159000]: [event] proximity_detection id=136 verdict=true gt_gap=14.557m  at gt=(29.39, -38.64) s=77.0m
+[INFO] [1789727123.652122, 175.106000]: [event] proximity_detection id=137 verdict=true gt_gap=14.568m  at gt=(28.94, -38.56) s=77.4m
+[INFO] [1789727127.607456, 176.204500]: [event] proximity_detection id=138 verdict=true gt_gap=14.617m  at gt=(28.41, -38.46) s=78.0m
+[INFO] [1789727130.341238, 177.176000]: [event] proximity_detection id=139 verdict=true gt_gap=14.673m  at gt=(27.94, -38.35) s=78.5m
+[INFO] [1789727134.406440, 178.234000]: [event] proximity_detection id=140 verdict=true gt_gap=14.735m  at gt=(27.43, -38.24) s=79.0m
+[INFO] [1789727137.705159, 179.315500]: [event] proximity_detection id=141 verdict=true gt_gap=14.776m  at gt=(26.94, -38.12) s=79.5m
+[INFO] [1789727140.342783, 180.328500]: [event] proximity_detection id=142 verdict=true gt_gap=14.723m  at gt=(26.49, -37.99) s=79.9m
+[INFO] [1789727143.027892, 181.313500]: [event] proximity_detection id=143 verdict=true gt_gap=14.676m  at gt=(26.07, -37.84) s=80.4m
+[INFO] [1789727145.854331, 182.307500]: [event] proximity_detection id=144 verdict=true gt_gap=14.609m  at gt=(25.65, -37.67) s=80.8m
+[INFO] [1789727148.589345, 183.324500]: [event] proximity_detection id=145 verdict=true gt_gap=14.578m  at gt=(25.21, -37.48) s=81.3m
+[INFO] [1789727163.723685, 188.501500]: [event] proximity_detection id=150 verdict=true gt_gap=14.187m  at gt=(23.20, -36.32) s=83.7m
+[INFO] [1789727169.862468, 190.466000]: [event] proximity_detection id=152 verdict=true gt_gap=14.116m  at gt=(22.44, -35.68) s=84.7m
+[INFO] [1789727276.010056, 218.862000]: [event] proximity_detection id=180 verdict=true gt_gap=13.456m  at gt=(18.27, -23.80) s=97.8m
+[INFO] [1789727279.797820, 219.830500]: [event] proximity_detection id=181 verdict=true gt_gap=13.457m  at gt=(18.27, -23.33) s=98.3m
+[INFO] [1789727283.629111, 220.850500]: [event] proximity_detection id=182 verdict=true gt_gap=13.489m  at gt=(18.28, -22.85) s=98.7m
+[INFO] [1789727287.084533, 221.844000]: [event] proximity_detection id=183 verdict=true gt_gap=13.517m  at gt=(18.28, -22.37) s=99.2m
+[INFO] [1789727290.909424, 222.853500]: [event] proximity_detection id=184 verdict=true gt_gap=13.602m  at gt=(18.29, -21.89) s=99.7m
+[INFO] [1789727294.617574, 223.850500]: [event] proximity_detection id=185 verdict=true gt_gap=13.705m  at gt=(18.29, -21.42) s=100.2m
+[INFO] [1789727298.510680, 224.832000]: [event] proximity_detection id=186 verdict=true gt_gap=13.726m  at gt=(18.30, -20.94) s=100.6m
+[INFO] [1789727302.320920, 225.901500]: [event] proximity_detection id=187 verdict=true gt_gap=13.831m  at gt=(18.31, -20.42) s=101.2m
+[INFO] [1789727305.389431, 226.871000]: [event] proximity_detection id=188 verdict=true gt_gap=13.883m  at gt=(18.31, -19.95) s=101.6m
+[INFO] [1789727308.820918, 227.831500]: [event] proximity_detection id=189 verdict=true gt_gap=13.945m  at gt=(18.32, -19.50) s=102.1m
+[INFO] [1789727312.786959, 228.813500]: [event] proximity_detection id=190 verdict=true gt_gap=14.012m  at gt=(18.31, -19.03) s=102.6m
+[INFO] [1789727316.952540, 229.837000]: [event] proximity_detection id=191 verdict=true gt_gap=14.059m  at gt=(18.31, -18.55) s=103.0m
+[INFO] [1789727320.726253, 230.855500]: [event] proximity_detection id=192 verdict=true gt_gap=14.024m  at gt=(18.32, -18.08) s=103.5m
+[INFO] [1789727324.365263, 231.826000]: [event] proximity_detection id=193 verdict=true gt_gap=14.116m  at gt=(18.32, -17.60) s=104.0m
+[INFO] [1789727327.691853, 232.891000]: [event] proximity_detection id=194 verdict=true gt_gap=14.186m  at gt=(18.33, -17.08) s=104.5m
+[INFO] [1789727331.276982, 233.832000]: [event] proximity_detection id=195 verdict=true gt_gap=14.170m  at gt=(18.34, -16.64) s=105.0m
+[INFO] [1789727335.175214, 234.871000]: [event] proximity_detection id=196 verdict=true gt_gap=14.271m  at gt=(18.34, -16.14) s=105.4m
+[INFO] [1789727339.086015, 235.852500]: [event] proximity_detection id=197 verdict=true gt_gap=14.277m  at gt=(18.33, -15.68) s=105.9m
+[INFO] [1789727342.815654, 236.914000]: [event] proximity_detection id=198 verdict=true gt_gap=14.376m  at gt=(18.34, -15.15) s=106.4m
+[INFO] [1789727345.660446, 237.920500]: [event] proximity_detection id=199 verdict=true gt_gap=14.384m  at gt=(18.36, -14.66) s=106.9m
+[INFO] [1789727348.830277, 238.986000]: [event] proximity_detection id=200 verdict=true gt_gap=14.388m  at gt=(18.35, -14.19) s=107.4m
+[INFO] [1789727352.206635, 240.027000]: [event] proximity_detection id=201 verdict=true gt_gap=14.444m  at gt=(18.35, -13.70) s=107.9m
+[INFO] [1789727356.402068, 241.016500]: [event] proximity_detection id=202 verdict=true gt_gap=14.476m  at gt=(18.34, -13.24) s=108.3m
+[INFO] [1789727360.566092, 242.028000]: [event] proximity_detection id=203 verdict=true gt_gap=14.486m  at gt=(18.34, -12.78) s=108.8m
+[INFO] [1789727364.541425, 242.998000]: [event] proximity_detection id=204 verdict=true gt_gap=14.492m  at gt=(18.34, -12.34) s=109.2m
+[INFO] [1789727368.821400, 244.049000]: [event] proximity_detection id=205 verdict=true gt_gap=14.437m  at gt=(18.35, -11.87) s=109.7m
+[INFO] [1789727372.674553, 245.010000]: [event] proximity_detection id=206 verdict=true gt_gap=14.345m  at gt=(18.37, -11.47) s=110.1m
+[INFO] [1789727376.916729, 246.044500]: [event] proximity_detection id=207 verdict=true gt_gap=14.172m  at gt=(18.39, -11.06) s=110.5m
+[INFO] [1789727381.038242, 247.040500]: [event] proximity_detection id=208 verdict=true gt_gap=14.100m  at gt=(18.42, -10.68) s=110.9m
+[INFO] [1789727385.113428, 248.052000]: [event] proximity_detection id=209 verdict=true gt_gap=13.980m  at gt=(18.45, -10.32) s=111.3m
+[INFO] [1789727388.106645, 249.105000]: [event] proximity_detection id=210 verdict=true gt_gap=13.809m  at gt=(18.45, -9.99) s=111.6m
+[INFO] [1789727391.048720, 250.157000]: [event] proximity_detection id=211 verdict=true gt_gap=13.721m  at gt=(18.59, -9.62) s=112.0m
+[INFO] [1789727393.952724, 251.171500]: [event] proximity_detection id=212 verdict=true gt_gap=13.567m  at gt=(18.73, -9.29) s=112.4m
+[INFO] [1789727396.707869, 252.120000]: [event] proximity_detection id=213 verdict=true gt_gap=13.445m  at gt=(18.88, -8.94) s=112.8m
+[INFO] [1789727399.636287, 253.160500]: [event] proximity_detection id=214 verdict=true gt_gap=13.444m  at gt=(19.00, -8.46) s=113.2m
+[INFO] [1789727402.479358, 254.188000]: [event] proximity_detection id=215 verdict=true gt_gap=13.427m  at gt=(19.11, -8.02) s=113.7m
+[INFO] [1789727405.560699, 255.276500]: [event] proximity_detection id=216 verdict=true gt_gap=13.467m  at gt=(19.19, -7.51) s=114.2m
+[INFO] [1789727408.333495, 256.208500]: [event] proximity_detection id=217 verdict=true gt_gap=13.380m  at gt=(19.26, -7.07) s=114.7m
+[INFO] [1789727412.322623, 257.304500]: [event] proximity_detection id=218 verdict=true gt_gap=13.409m  at gt=(19.35, -6.58) s=115.2m
+[INFO] [1789727415.953232, 258.267500]: [event] proximity_detection id=219 verdict=true gt_gap=13.419m  at gt=(19.45, -6.13) s=115.6m
+[INFO] [1789727420.635359, 259.423500]: [event] proximity_detection id=220 verdict=true gt_gap=13.517m  at gt=(19.57, -5.58) s=116.2m
+[INFO] [1789727423.771521, 260.463000]: [event] proximity_detection id=221 verdict=true gt_gap=13.543m  at gt=(19.68, -5.08) s=116.7m
+[INFO] [1789727427.219845, 261.410000]: [event] proximity_detection id=222 verdict=true gt_gap=13.519m  at gt=(19.77, -4.64) s=117.2m
+[INFO] [1789727430.893337, 262.494500]: [event] proximity_detection id=223 verdict=true gt_gap=13.583m  at gt=(19.87, -4.11) s=117.7m
+[INFO] [1789727434.336181, 263.379500]: [event] proximity_detection id=224 verdict=true gt_gap=13.495m  at gt=(19.96, -3.68) s=118.1m
+[INFO] [1789727438.404484, 264.394000]: [event] proximity_detection id=225 verdict=true gt_gap=13.536m  at gt=(20.06, -3.21) s=118.6m
+[INFO] [1789727442.049803, 265.541000]: [event] proximity_detection id=226 verdict=true gt_gap=13.526m  at gt=(20.16, -2.74) s=119.1m
+[INFO] [1789727444.772532, 266.570500]: [event] proximity_detection id=1 verdict=unknown gt_gap=nanm  at gt=(20.25, -2.39) s=119.5m
+[INFO] [1789727447.606726, 267.536000]: [event] proximity_detection id=228 verdict=true gt_gap=13.185m  at gt=(20.31, -2.12) s=119.7m
+[INFO] [1789727454.120585, 269.547500]: [event] proximity_detection id=1 verdict=unknown gt_gap=nanm  at gt=(20.76, -1.79) s=120.3m
+[INFO] [1789727456.883542, 270.558500]: [event] proximity_detection id=1 verdict=unknown gt_gap=nanm  at gt=(21.17, -1.58) s=120.8m
+[INFO] [1789727459.688823, 271.518500]: [event] proximity_detection id=1 verdict=unknown gt_gap=nanm  at gt=(21.59, -1.33) s=121.3m
+[INFO] [1789727462.780294, 272.383000]: [event] proximity_detection id=1 verdict=unknown gt_gap=nanm  at gt=(21.92, -1.14) s=121.7m
+[INFO] [1789727466.389821, 273.457500]: [event] proximity_detection id=1 verdict=unknown gt_gap=nanm  at gt=(22.34, -0.94) s=122.2m
+[INFO] [1789727469.606431, 274.364500]: [event] proximity_detection id=1 verdict=unknown gt_gap=nanm  at gt=(22.71, -0.79) s=122.6m
+[INFO] [1789727474.170279, 275.347500]: [event] proximity_detection id=236 verdict=true gt_gap=11.839m  at gt=(23.16, -0.64) s=123.0m
+[INFO] [1789727478.692446, 276.336000]: [event] proximity_detection id=1 verdict=unknown gt_gap=nanm  at gt=(23.62, -0.49) s=123.5m
+[INFO] [1789727483.174936, 277.418500]: [event] proximity_detection id=238 verdict=true gt_gap=11.823m  at gt=(24.12, -0.32) s=124.0m
+[INFO] [1789727486.763102, 278.442000]: [event] proximity_detection id=239 verdict=true gt_gap=11.839m  at gt=(24.57, -0.18) s=124.5m
+[INFO] [1789727489.684964, 279.422000]: [event] proximity_detection id=1 verdict=unknown gt_gap=nanm  at gt=(24.99, -0.06) s=125.0m
+[INFO] [1789727493.077362, 280.369500]: [event] proximity_detection id=1 verdict=unknown gt_gap=nanm  at gt=(25.40, 0.04) s=125.4m
+[INFO] [1789727496.879730, 281.358500]: [event] proximity_detection id=1 verdict=unknown gt_gap=nanm  at gt=(25.86, 0.11) s=125.8m
+[INFO] [1789727500.145494, 282.449000]: [event] proximity_detection id=1 verdict=unknown gt_gap=nanm  at gt=(26.40, 0.19) s=126.4m
+[INFO] [1789727503.074223, 283.474000]: [event] proximity_detection id=1 verdict=unknown gt_gap=nanm  at gt=(26.88, 0.26) s=126.9m
+[INFO] [1789727506.120889, 284.363500]: [event] proximity_detection id=1 verdict=unknown gt_gap=nanm  at gt=(27.28, 0.30) s=127.3m
+[INFO] [1789727509.667311, 285.505000]: [event] proximity_detection id=1 verdict=unknown gt_gap=nanm  at gt=(27.83, 0.32) s=127.8m
+[INFO] [1789727512.306324, 286.363000]: [event] proximity_detection id=1 verdict=unknown gt_gap=nanm  at gt=(28.24, 0.34) s=128.2m
+[INFO] [1789727516.053526, 287.377500]: [event] proximity_detection id=1 verdict=unknown gt_gap=nanm  at gt=(28.71, 0.34) s=128.7m
+[INFO] [1789727519.802586, 288.419000]: [event] proximity_detection id=1 verdict=unknown gt_gap=nanm  at gt=(29.22, 0.33) s=129.2m
+[INFO] [1789727522.820951, 289.476500]: [event] proximity_detection id=1 verdict=unknown gt_gap=nanm  at gt=(29.75, 0.31) s=129.7m
+[INFO] [1789727526.122120, 290.501000]: [event] proximity_detection id=251 verdict=true gt_gap=11.863m  at gt=(30.26, 0.29) s=130.2m
+[INFO] [1789727529.229670, 291.439500]: [event] proximity_detection id=1 verdict=unknown gt_gap=nanm  at gt=(30.73, 0.27) s=130.7m
+[INFO] [1789727532.337656, 292.471000]: [event] proximity_detection id=253 verdict=true gt_gap=12.161m  at gt=(31.22, 0.26) s=131.2m
+[INFO] [1789727535.190689, 293.533000]: [event] proximity_detection id=1 verdict=unknown gt_gap=nanm  at gt=(31.75, 0.24) s=131.7m
+[INFO] [1789727538.282008, 294.461000]: [event] proximity_detection id=255 verdict=true gt_gap=12.634m  at gt=(32.21, 0.22) s=132.2m
+[INFO] [1789727541.360622, 295.516000]: [event] proximity_detection id=256 verdict=true gt_gap=12.880m  at gt=(32.70, 0.19) s=132.7m
+[INFO] [1789727544.670819, 296.485000]: [event] proximity_detection id=257 verdict=true gt_gap=13.096m  at gt=(33.09, 0.19) s=133.1m
+[INFO] [1789727548.119146, 297.517000]: [event] proximity_detection id=258 verdict=true gt_gap=13.425m  at gt=(33.52, 0.24) s=133.5m
+[INFO] [1789727551.531213, 298.612000]: [event] proximity_detection id=259 verdict=true gt_gap=13.783m  at gt=(34.00, 0.25) s=134.0m
+[INFO] [1789727554.801815, 299.505000]: [event] proximity_detection id=260 verdict=true gt_gap=13.802m  at gt=(34.41, 0.24) s=134.4m
+[INFO] [1789727558.518273, 300.617500]: [event] proximity_detection id=261 verdict=true gt_gap=13.888m  at gt=(34.95, 0.22) s=134.9m
+[INFO] [1789727561.593681, 301.590500]: [event] proximity_detection id=262 verdict=true gt_gap=13.903m  at gt=(35.40, 0.21) s=135.4m
+[INFO] [1789727564.985031, 302.525500]: [event] proximity_detection id=263 verdict=true gt_gap=14.005m  at gt=(35.86, 0.21) s=135.9m
+[INFO] [1789727568.501822, 303.680000]: [event] proximity_detection id=264 verdict=true gt_gap=14.146m  at gt=(36.44, 0.22) s=136.4m
+[INFO] [1789727571.241128, 304.557500]: [event] proximity_detection id=265 verdict=true gt_gap=14.183m  at gt=(36.86, 0.22) s=136.9m
+[INFO] [1789727574.382189, 305.649500]: [event] proximity_detection id=266 verdict=true gt_gap=14.254m  at gt=(37.38, 0.23) s=137.4m
+[INFO] [1789727577.145625, 306.623500]: [event] proximity_detection id=267 verdict=true gt_gap=14.245m  at gt=(37.85, 0.23) s=137.8m
+[INFO] [1789727580.360414, 307.576500]: [event] proximity_detection id=268 verdict=true gt_gap=14.212m  at gt=(38.32, 0.22) s=138.3m
+[INFO] [1789727583.719430, 308.577500]: [event] proximity_detection id=269 verdict=true gt_gap=14.244m  at gt=(38.81, 0.22) s=138.8m
+[INFO] [1789727587.171269, 309.816000]: [event] proximity_detection id=270 verdict=true gt_gap=14.445m  at gt=(39.43, 0.23) s=139.4m
+[INFO] [1789727590.095031, 310.723000]: [event] proximity_detection id=271 verdict=true gt_gap=14.463m  at gt=(39.87, 0.24) s=139.9m
+[INFO] [1789727593.324933, 311.591000]: [event] proximity_detection id=272 verdict=true gt_gap=14.422m  at gt=(40.28, 0.23) s=140.3m
+[INFO] [1789727597.536396, 312.667000]: [event] proximity_detection id=273 verdict=true gt_gap=14.388m  at gt=(40.79, 0.22) s=140.8m
+[INFO] [1789727600.986487, 313.768000]: [event] proximity_detection id=274 verdict=true gt_gap=14.450m  at gt=(41.33, 0.21) s=141.3m
+[INFO] [1789727604.193769, 314.811000]: [event] proximity_detection id=275 verdict=true gt_gap=14.568m  at gt=(41.85, 0.21) s=141.9m
+[INFO] [1789727607.285372, 315.834000]: [event] proximity_detection id=276 verdict=true gt_gap=14.508m  at gt=(42.34, 0.23) s=142.3m
+[INFO] [1789727610.282231, 316.844000]: [event] proximity_detection id=277 verdict=true gt_gap=14.569m  at gt=(42.81, 0.20) s=142.8m
+[INFO] [1789727613.138131, 317.777500]: [event] proximity_detection id=278 verdict=true gt_gap=14.559m  at gt=(43.27, 0.20) s=143.3m
+[INFO] [1789727616.408517, 318.759000]: [event] proximity_detection id=279 verdict=true gt_gap=14.506m  at gt=(43.72, 0.21) s=143.7m
+[INFO] [1789727620.610165, 319.681000]: [event] proximity_detection id=280 verdict=true gt_gap=14.333m  at gt=(44.08, 0.21) s=144.1m
+[INFO] [1789727624.723608, 320.989000]: [event] proximity_detection id=281 verdict=true gt_gap=14.337m  at gt=(44.59, 0.15) s=144.6m
+[INFO] [1789727627.308748, 321.896500]: [event] proximity_detection id=282 verdict=true gt_gap=14.204m  at gt=(44.93, 0.11) s=144.9m
+[INFO] [1789727630.996321, 323.017000]: [event] proximity_detection id=283 verdict=true gt_gap=14.172m  at gt=(45.39, 0.01) s=145.4m
+[INFO] [1789727633.979813, 324.010500]: [event] proximity_detection id=284 verdict=true gt_gap=14.104m  at gt=(45.85, -0.14) s=145.9m
+[INFO] [1789727637.543308, 325.118500]: [event] proximity_detection id=285 verdict=true gt_gap=14.178m  at gt=(46.38, -0.30) s=146.5m
+[INFO] [1789727640.190074, 326.043500]: [event] proximity_detection id=286 verdict=true gt_gap=14.093m  at gt=(46.78, -0.40) s=146.9m
+[INFO] [1789727643.242189, 326.968000]: [event] proximity_detection id=287 verdict=true gt_gap=14.098m  at gt=(47.17, -0.52) s=147.3m
+[INFO] [1789727647.249995, 328.025500]: [event] proximity_detection id=288 verdict=true gt_gap=14.125m  at gt=(47.61, -0.74) s=147.8m
+[INFO] [1789727651.267266, 329.045500]: [event] proximity_detection id=289 verdict=true gt_gap=14.117m  at gt=(48.06, -0.95) s=148.3m
+[INFO] [1789727655.101518, 330.119500]: [event] proximity_detection id=290 verdict=true gt_gap=14.187m  at gt=(48.53, -1.17) s=148.8m
+[INFO] [1789727658.377624, 331.240000]: [event] proximity_detection id=291 verdict=true gt_gap=14.141m  at gt=(48.99, -1.40) s=149.3m
+[INFO] [1789727661.512508, 332.265500]: [event] proximity_detection id=292 verdict=true gt_gap=14.130m  at gt=(49.41, -1.64) s=149.8m
+[INFO] [1789727664.594613, 333.157500]: [event] proximity_detection id=293 verdict=true gt_gap=14.055m  at gt=(49.76, -1.84) s=150.2m
+[INFO] [1789727668.218400, 334.327000]: [event] proximity_detection id=294 verdict=true gt_gap=13.974m  at gt=(50.21, -2.14) s=150.7m
+[INFO] [1789727670.994978, 335.242500]: [event] proximity_detection id=295 verdict=true gt_gap=13.926m  at gt=(50.54, -2.35) s=151.1m
+[INFO] [1789727674.379020, 336.231500]: [event] proximity_detection id=296 verdict=true gt_gap=13.807m  at gt=(50.89, -2.64) s=151.6m
+[INFO] [1789727677.376991, 337.267000]: [event] proximity_detection id=297 verdict=true gt_gap=13.795m  at gt=(51.26, -2.97) s=152.1m
+[INFO] [1789727680.472563, 338.357000]: [event] proximity_detection id=298 verdict=true gt_gap=13.786m  at gt=(51.65, -3.28) s=152.6m
+[INFO] [1789727683.022262, 339.204500]: [event] proximity_detection id=45 verdict=true gt_gap=0.079m  at gt=(51.92, -3.52) s=152.9m
+[INFO] [1789727686.739659, 340.136500]: [event] proximity_detection id=46 verdict=true gt_gap=0.082m  at gt=(52.20, -3.82) s=153.3m
+[INFO] [1789727690.660127, 341.184000]: [event] proximity_detection id=47 verdict=true gt_gap=0.086m  at gt=(52.52, -4.19) s=153.8m
+[INFO] [1789727694.094265, 342.175500]: [event] proximity_detection id=48 verdict=true gt_gap=0.092m  at gt=(52.81, -4.55) s=154.3m
+[INFO] [1789727697.373601, 343.307000]: [event] proximity_detection id=49 verdict=true gt_gap=0.125m  at gt=(53.14, -4.97) s=154.8m
+[INFO] [1789727700.226720, 344.110500]: [event] proximity_detection id=50 verdict=true gt_gap=0.057m  at gt=(53.36, -5.27) s=155.2m
+[INFO] [1789727705.117670, 345.043500]: [event] proximity_detection id=51 verdict=true gt_gap=0.043m  at gt=(53.59, -5.62) s=155.6m
+[INFO] [1789727710.559584, 346.088000]: [event] proximity_detection id=52 verdict=true gt_gap=0.001m  at gt=(53.83, -6.04) s=156.1m
+[INFO] [1789727715.218473, 347.112500]: [event] proximity_detection id=53 verdict=true gt_gap=0.018m  at gt=(54.06, -6.47) s=156.6m
+[INFO] [1789727719.343395, 348.105500]: [event] proximity_detection id=54 verdict=true gt_gap=0.009m  at gt=(54.27, -6.89) s=157.1m
+[INFO] [1789727722.844062, 349.195000]: [event] proximity_detection id=55 verdict=true gt_gap=0.019m  at gt=(54.49, -7.35) s=157.6m
+[INFO] [1789727726.288167, 350.126500]: [event] proximity_detection id=56 verdict=true gt_gap=0.071m  at gt=(54.65, -7.71) s=158.0m
+[INFO] [1789727729.698696, 351.282000]: [event] proximity_detection id=57 verdict=true gt_gap=0.062m  at gt=(54.82, -8.16) s=158.4m
+[INFO] [1789727732.492134, 352.101000]: [event] proximity_detection id=58 verdict=true gt_gap=0.101m  at gt=(54.93, -8.49) s=158.8m
+[INFO] [1789727736.475367, 353.077500]: [event] proximity_detection id=59 verdict=true gt_gap=0.144m  at gt=(55.04, -8.92) s=159.2m
+[INFO] [1789727740.170156, 354.134500]: [event] proximity_detection id=60 verdict=true gt_gap=0.111m  at gt=(55.15, -9.42) s=159.8m
+[INFO] [1789727744.204278, 355.028000]: [event] proximity_detection id=61 verdict=true gt_gap=0.154m  at gt=(55.24, -9.83) s=160.2m
+[INFO] [1789727748.750043, 356.119500]: [event] proximity_detection id=62 verdict=true gt_gap=0.186m  at gt=(55.32, -10.32) s=160.7m
+[INFO] [1789727751.981489, 357.224000]: [event] proximity_detection id=63 verdict=true gt_gap=0.161m  at gt=(55.38, -10.83) s=161.2m
+[INFO] [1789727754.850792, 358.291000]: [event] proximity_detection id=63 verdict=true gt_gap=0.318m  at gt=(55.43, -11.30) s=161.7m
+[INFO] [1789727757.569015, 359.093000]: [event] proximity_detection id=64 verdict=true gt_gap=0.201m  at gt=(55.44, -11.66) s=162.0m
+[INFO] [1789727761.433502, 360.146000]: [event] proximity_detection id=65 verdict=true gt_gap=0.243m  at gt=(55.45, -12.12) s=162.5m
+[INFO] [1789727765.106152, 361.088000]: [event] proximity_detection id=66 verdict=true gt_gap=0.238m  at gt=(55.44, -12.55) s=162.9m
+[INFO] [1789727768.871224, 362.244500]: [event] proximity_detection id=322 verdict=true gt_gap=12.929m  at gt=(55.40, -13.10) s=163.5m
+[INFO] [1789727771.741296, 363.148500]: [event] proximity_detection id=68 verdict=true gt_gap=0.253m  at gt=(55.38, -13.54) s=163.9m
+[INFO] [1789727775.476383, 364.105500]: [event] proximity_detection id=324 verdict=true gt_gap=12.923m  at gt=(55.34, -14.00) s=164.4m
+[INFO] [1789727779.259207, 365.130500]: [event] proximity_detection id=325 verdict=true gt_gap=13.052m  at gt=(55.30, -14.50) s=164.9m
+[INFO] [1789727783.155330, 366.182000]: [event] proximity_detection id=326 verdict=true gt_gap=13.130m  at gt=(55.27, -15.01) s=165.4m
+[INFO] [1789727786.553601, 367.112500]: [event] proximity_detection id=327 verdict=true gt_gap=13.118m  at gt=(55.24, -15.47) s=165.8m
+[INFO] [1789727789.907248, 368.147000]: [event] proximity_detection id=328 verdict=true gt_gap=13.176m  at gt=(55.20, -15.97) s=166.3m
+[INFO] [1789727793.541112, 369.104000]: [event] proximity_detection id=329 verdict=true gt_gap=13.318m  at gt=(55.17, -16.44) s=166.8m
+[INFO] [1789727797.425739, 370.200000]: [event] proximity_detection id=330 verdict=true gt_gap=13.477m  at gt=(55.14, -16.97) s=167.3m
+[INFO] [1789727800.897391, 371.233000]: [event] proximity_detection id=331 verdict=true gt_gap=13.536m  at gt=(55.11, -17.47) s=167.8m
+[INFO] [1789727804.291877, 372.276000]: [event] proximity_detection id=332 verdict=true gt_gap=13.619m  at gt=(55.07, -17.98) s=168.4m
+[INFO] [1789727807.567165, 373.337000]: [event] proximity_detection id=333 verdict=true gt_gap=13.661m  at gt=(55.03, -18.50) s=168.9m
+[INFO] [1789727810.693727, 374.221500]: [event] proximity_detection id=334 verdict=true gt_gap=13.758m  at gt=(55.00, -18.93) s=169.3m
+[INFO] [1789727813.971112, 375.310500]: [event] proximity_detection id=335 verdict=true gt_gap=13.924m  at gt=(54.96, -19.48) s=169.9m
+[INFO] [1789727816.984643, 376.285000]: [event] proximity_detection id=336 verdict=true gt_gap=13.971m  at gt=(54.93, -19.96) s=170.3m
+[INFO] [1789727820.641564, 377.169000]: [event] proximity_detection id=337 verdict=true gt_gap=13.960m  at gt=(54.90, -20.40) s=170.8m
+[INFO] [1789727824.678165, 378.178000]: [event] proximity_detection id=338 verdict=true gt_gap=14.010m  at gt=(54.87, -20.89) s=171.3m
+[INFO] [1789727828.949158, 379.202500]: [event] proximity_detection id=339 verdict=true gt_gap=14.047m  at gt=(54.84, -21.39) s=171.8m
+[INFO] [1789727832.787187, 380.403000]: [event] proximity_detection id=340 verdict=true gt_gap=14.234m  at gt=(54.80, -21.94) s=172.3m
+[INFO] [1789727835.509628, 381.306500]: [event] proximity_detection id=341 verdict=true gt_gap=14.195m  at gt=(54.80, -22.35) s=172.7m
+[INFO] [1789727838.323737, 382.300000]: [event] proximity_detection id=342 verdict=true gt_gap=14.323m  at gt=(54.81, -22.82) s=173.2m
+[INFO] [1789727841.880431, 383.246500]: [event] proximity_detection id=343 verdict=true gt_gap=14.358m  at gt=(54.83, -23.28) s=173.7m
+[INFO] [1789727845.272952, 384.226500]: [event] proximity_detection id=344 verdict=true gt_gap=14.327m  at gt=(54.85, -23.75) s=174.1m
+[INFO] [1789727848.774650, 385.223000]: [event] proximity_detection id=345 verdict=true gt_gap=14.395m  at gt=(54.86, -24.22) s=174.6m
+[INFO] [1789727852.353052, 386.386500]: [event] proximity_detection id=346 verdict=true gt_gap=14.485m  at gt=(54.87, -24.80) s=175.2m
+[INFO] [1789727855.004548, 387.305000]: [event] proximity_detection id=347 verdict=true gt_gap=14.435m  at gt=(54.87, -25.25) s=175.6m
+[INFO] [1789727858.019783, 388.404000]: [event] proximity_detection id=348 verdict=true gt_gap=14.485m  at gt=(54.89, -25.78) s=176.2m
+[INFO] [1789727860.625996, 389.254000]: [event] proximity_detection id=349 verdict=true gt_gap=14.516m  at gt=(54.91, -26.16) s=176.6m
+[INFO] [1789727863.893737, 390.438500]: [event] proximity_detection id=350 verdict=true gt_gap=14.510m  at gt=(54.74, -26.61) s=177.0m
+[INFO] [1789727866.532976, 391.423000]: [event] proximity_detection id=351 verdict=true gt_gap=14.463m  at gt=(54.82, -27.00) s=177.5m
+[INFO] [1789727869.423367, 392.192500]: [event] proximity_detection id=352 verdict=true gt_gap=14.240m  at gt=(54.88, -27.33) s=177.8m
+[INFO] [1789727875.950878, 393.539500]: [event] proximity_detection id=353 verdict=true gt_gap=14.289m  at gt=(54.97, -27.82) s=178.3m
+[INFO] [1789727879.309071, 394.241500]: [event] proximity_detection id=354 verdict=true gt_gap=14.090m  at gt=(54.97, -28.08) s=178.6m
+[INFO] [1789727884.669430, 395.380000]: [event] proximity_detection id=355 verdict=true gt_gap=14.066m  at gt=(54.93, -28.57) s=179.0m
+[INFO] [1789727888.438125, 396.606000]: [event] proximity_detection id=356 verdict=true gt_gap=14.152m  at gt=(54.85, -29.16) s=179.6m
+[INFO] [1789727890.873582, 397.475500]: [event] proximity_detection id=357 verdict=true gt_gap=14.123m  at gt=(54.77, -29.59) s=180.1m
+[INFO] [1789727893.925148, 398.581000]: [event] proximity_detection id=358 verdict=true gt_gap=14.132m  at gt=(54.67, -30.10) s=180.6m
+[INFO] [1789727896.569731, 399.413500]: [event] proximity_detection id=359 verdict=true gt_gap=14.014m  at gt=(54.60, -30.44) s=181.0m
+[INFO] [1789727899.799686, 400.636500]: [event] proximity_detection id=360 verdict=true gt_gap=13.924m  at gt=(54.49, -30.88) s=181.4m
+[INFO] [1789727902.429934, 401.617000]: [event] proximity_detection id=361 verdict=true gt_gap=13.922m  at gt=(54.30, -31.37) s=181.9m
+[INFO] [1789727905.199068, 402.620500]: [event] proximity_detection id=362 verdict=true gt_gap=13.911m  at gt=(54.13, -31.86) s=182.5m
+[INFO] [1789727907.840374, 403.620000]: [event] proximity_detection id=363 verdict=true gt_gap=13.841m  at gt=(53.98, -32.30) s=182.9m
+[INFO] [1789727910.774870, 404.667000]: [event] proximity_detection id=364 verdict=true gt_gap=13.820m  at gt=(53.80, -32.70) s=183.4m
+[INFO] [1789727913.760345, 405.518500]: [event] proximity_detection id=365 verdict=true gt_gap=13.617m  at gt=(53.64, -33.03) s=183.7m
+[INFO] [1789727917.739622, 406.707000]: [event] proximity_detection id=366 verdict=true gt_gap=13.617m  at gt=(53.40, -33.49) s=184.3m
+[INFO] [1789727920.951168, 407.596500]: [event] proximity_detection id=367 verdict=true gt_gap=13.553m  at gt=(53.19, -33.84) s=184.7m
+[INFO] [1789727925.406096, 408.684000]: [event] proximity_detection id=368 verdict=true gt_gap=13.505m  at gt=(52.93, -34.25) s=185.2m
+[INFO] [1789727928.655404, 409.708000]: [event] proximity_detection id=369 verdict=true gt_gap=13.410m  at gt=(52.68, -34.63) s=185.6m
+[INFO] [1789727932.033630, 410.761000]: [event] proximity_detection id=370 verdict=true gt_gap=13.243m  at gt=(52.40, -34.97) s=186.0m
+[INFO] [1789727935.675344, 411.608500]: [event] proximity_detection id=371 verdict=true gt_gap=13.186m  at gt=(52.16, -35.27) s=186.4m
+[INFO] [1789727939.580359, 412.763500]: [event] proximity_detection id=372 verdict=true gt_gap=13.202m  at gt=(51.82, -35.67) s=187.0m
+[INFO] [1789727943.178859, 413.807000]: [event] proximity_detection id=118 verdict=true gt_gap=0.112m  at gt=(51.51, -36.01) s=187.4m
+[INFO] [1789727947.468693, 414.724000]: [event] proximity_detection id=119 verdict=true gt_gap=0.138m  at gt=(51.22, -36.29) s=187.8m
+[INFO] [1789727952.188828, 415.663000]: [event] proximity_detection id=120 verdict=true gt_gap=0.189m  at gt=(50.90, -36.58) s=188.2m
+[INFO] [1789727956.536963, 416.675500]: [event] proximity_detection id=121 verdict=true gt_gap=0.221m  at gt=(50.55, -36.88) s=188.7m
+[INFO] [1789727961.263704, 417.713500]: [event] proximity_detection id=121 verdict=true gt_gap=0.262m  at gt=(50.17, -37.18) s=189.2m
+[INFO] [1789727965.519479, 418.676500]: [event] proximity_detection id=122 verdict=true gt_gap=0.252m  at gt=(49.80, -37.44) s=189.6m
+[INFO] [1789727970.331420, 419.733000]: [event] proximity_detection id=123 verdict=true gt_gap=0.223m  at gt=(49.38, -37.72) s=190.2m
+[INFO] [1789727974.275698, 420.688500]: [event] proximity_detection id=124 verdict=true gt_gap=0.201m  at gt=(48.99, -37.95) s=190.6m
+[INFO] [1789727978.135177, 421.840500]: [event] proximity_detection id=125 verdict=true gt_gap=0.253m  at gt=(48.53, -38.21) s=191.1m
+[INFO] [1789727980.931137, 422.855500]: [event] proximity_detection id=126 verdict=true gt_gap=0.246m  at gt=(48.10, -38.42) s=191.6m
+[INFO] [1789727983.964380, 423.949000]: [event] proximity_detection id=127 verdict=true gt_gap=0.296m  at gt=(47.62, -38.64) s=192.1m
+[INFO] [1789727986.844316, 424.834500]: [event] proximity_detection id=129 verdict=true gt_gap=0.191m  at gt=(47.24, -38.80) s=192.6m
+[INFO] [1789727990.373686, 425.865000]: [event] proximity_detection id=129 verdict=true gt_gap=0.270m  at gt=(46.81, -38.96) s=193.0m
+[INFO] [1789727993.736317, 426.946500]: [event] proximity_detection id=130 verdict=true gt_gap=0.286m  at gt=(46.33, -39.10) s=193.5m
+[INFO] [1789727997.337374, 427.781000]: [event] proximity_detection id=131 verdict=true gt_gap=0.244m  at gt=(45.97, -39.21) s=193.9m
+[INFO] [1789728001.945857, 428.905000]: [event] proximity_detection id=133 verdict=true gt_gap=0.177m  at gt=(45.48, -39.33) s=194.4m
+[INFO] [1789728005.366666, 430.094000]: [event] proximity_detection id=134 verdict=true gt_gap=0.099m  at gt=(44.94, -39.43) s=194.9m
+[INFO] [1789728008.093621, 430.960000]: [event] proximity_detection id=135 verdict=true gt_gap=0.147m  at gt=(44.53, -39.49) s=195.4m
+[INFO] [1789728011.179776, 431.966000]: [event] proximity_detection id=136 verdict=true gt_gap=0.159m  at gt=(44.07, -39.54) s=195.8m
+[INFO] [1789728014.531231, 433.045000]: [event] proximity_detection id=137 verdict=true gt_gap=0.106m  at gt=(43.57, -39.58) s=196.3m
+[INFO] [1789728017.408144, 433.980000]: [event] proximity_detection id=138 verdict=true gt_gap=0.154m  at gt=(43.14, -39.59) s=196.8m
+[INFO] [1789728020.398564, 434.945500]: [event] proximity_detection id=139 verdict=true gt_gap=0.142m  at gt=(42.70, -39.60) s=197.2m
+[INFO] [1789728023.910682, 435.952000]: [event] proximity_detection id=140 verdict=true gt_gap=0.147m  at gt=(42.25, -39.59) s=197.6m
+[INFO] [1789728027.859871, 436.972500]: [event] proximity_detection id=141 verdict=true gt_gap=0.119m  at gt=(41.76, -39.56) s=198.1m
+[INFO] [1789728032.587475, 438.000500]: [event] proximity_detection id=142 verdict=true gt_gap=0.119m  at gt=(41.25, -39.53) s=198.6m
+[INFO] [1789728036.575940, 438.987500]: [event] proximity_detection id=143 verdict=true gt_gap=0.118m  at gt=(40.77, -39.50) s=199.1m
+[INFO] [1789728040.597727, 440.099500]: [event] proximity_detection id=144 verdict=true gt_gap=0.079m  at gt=(40.23, -39.47) s=199.7m
+[INFO] [1789728043.942542, 441.021000]: [event] proximity_detection id=145 verdict=true gt_gap=0.124m  at gt=(39.78, -39.45) s=200.1m
+[INFO] [1789728047.743890, 442.235500]: [event] proximity_detection id=146 verdict=true gt_gap=0.063m  at gt=(39.17, -39.42) s=200.7m
+[INFO] [1789728050.818930, 443.315500]: [event] proximity_detection id=402 verdict=true gt_gap=13.695m  at gt=(38.63, -39.38) s=201.3m
+[INFO] [1789728053.762079, 444.223000]: [event] proximity_detection id=403 verdict=true gt_gap=13.729m  at gt=(38.19, -39.36) s=201.7m
+[INFO] [1789728056.974766, 445.137000]: [event] proximity_detection id=404 verdict=true gt_gap=13.818m  at gt=(37.74, -39.34) s=202.2m
+[INFO] [1789728060.431770, 446.370500]: [event] proximity_detection id=405 verdict=true gt_gap=14.052m  at gt=(37.12, -39.31) s=202.8m
+[INFO] [1789728063.372730, 447.350000]: [event] proximity_detection id=406 verdict=true gt_gap=14.107m  at gt=(36.65, -39.27) s=203.3m
+[INFO] [1789728067.150376, 448.311500]: [event] proximity_detection id=407 verdict=true gt_gap=14.138m  at gt=(36.19, -39.25) s=203.7m
+[INFO] [1789728071.393207, 449.515000]: [event] proximity_detection id=408 verdict=true gt_gap=14.322m  at gt=(35.59, -39.23) s=204.3m
+[INFO] [1789728074.621832, 450.621000]: [event] proximity_detection id=409 verdict=true gt_gap=14.388m  at gt=(35.07, -39.21) s=204.8m
+[INFO] [1789728077.753618, 451.481500]: [event] proximity_detection id=410 verdict=true gt_gap=14.381m  at gt=(34.67, -39.19) s=205.2m
+[INFO] [1789728081.372393, 452.472500]: [event] proximity_detection id=411 verdict=true gt_gap=14.381m  at gt=(34.18, -39.15) s=205.7m
+[INFO] [1789728084.832602, 453.619500]: [event] proximity_detection id=412 verdict=true gt_gap=14.484m  at gt=(33.63, -39.10) s=206.3m
+[INFO] [1789728087.956638, 454.553000]: [event] proximity_detection id=413 verdict=true gt_gap=14.424m  at gt=(33.20, -39.07) s=206.7m
+[INFO] [1789728091.502626, 455.537500]: [event] proximity_detection id=414 verdict=true gt_gap=14.522m  at gt=(32.72, -39.05) s=207.2m
+[INFO] [1789728094.843058, 456.550000]: [event] proximity_detection id=415 verdict=true gt_gap=14.562m  at gt=(32.25, -39.02) s=207.7m
+[INFO] [1789728098.201969, 457.527000]: [event] proximity_detection id=416 verdict=true gt_gap=14.545m  at gt=(31.79, -38.98) s=208.1m
+[INFO] [1789728101.624239, 458.434000]: [event] proximity_detection id=417 verdict=true gt_gap=14.613m  at gt=(31.36, -38.93) s=208.6m
+[INFO] [1789728105.392913, 459.507500]: [event] proximity_detection id=418 verdict=true gt_gap=14.639m  at gt=(30.85, -38.87) s=209.1m
+[INFO] [1789728108.922990, 460.428000]: [event] proximity_detection id=419 verdict=true gt_gap=14.537m  at gt=(30.41, -38.81) s=209.5m
+[INFO] [1789728112.721369, 461.491000]: [event] proximity_detection id=420 verdict=true gt_gap=14.660m  at gt=(29.89, -38.73) s=210.0m
+[INFO] [1789728115.953092, 462.566500]: [event] proximity_detection id=421 verdict=true gt_gap=14.734m  at gt=(29.37, -38.64) s=210.6m
+[INFO] [1789728118.850445, 463.404000]: [event] proximity_detection id=422 verdict=true gt_gap=14.640m  at gt=(28.97, -38.57) s=211.0m
+[INFO] [1789728123.246611, 464.597000]: [event] proximity_detection id=423 verdict=true gt_gap=14.785m  at gt=(28.40, -38.46) s=211.6m
+[INFO] [1789728125.774082, 465.485000]: [event] proximity_detection id=424 verdict=true gt_gap=14.787m  at gt=(27.96, -38.36) s=212.0m
+[INFO] [1789728129.623678, 466.448000]: [event] proximity_detection id=425 verdict=true gt_gap=14.810m  at gt=(27.50, -38.26) s=212.5m
+[INFO] [1789728133.124724, 467.486000]: [event] proximity_detection id=426 verdict=true gt_gap=14.806m  at gt=(27.02, -38.14) s=213.0m
+[INFO] [1789728136.311002, 468.662000]: [event] proximity_detection id=427 verdict=true gt_gap=14.825m  at gt=(26.51, -38.00) s=213.5m
+[INFO] [1789728138.787360, 469.509000]: [event] proximity_detection id=428 verdict=true gt_gap=14.715m  at gt=(26.14, -37.87) s=213.9m
+[INFO] [1789728142.131130, 470.618000]: [event] proximity_detection id=429 verdict=true gt_gap=14.657m  at gt=(25.68, -37.68) s=214.4m
+[INFO] [1789728145.079527, 471.647000]: [event] proximity_detection id=430 verdict=true gt_gap=14.675m  at gt=(25.24, -37.49) s=214.9m
+[INFO] [1789728148.234386, 472.758000]: [event] proximity_detection id=431 verdict=true gt_gap=14.531m  at gt=(24.80, -37.26) s=215.4m
+[INFO] [1789728150.931527, 473.578000]: [event] proximity_detection id=177 verdict=true gt_gap=0.069m  at gt=(24.46, -37.10) s=215.8m
+[INFO] [1789728154.990100, 474.821500]: [event] proximity_detection id=178 verdict=true gt_gap=0.014m  at gt=(23.99, -36.85) s=216.3m
+[INFO] [1789728157.945610, 475.882000]: [event] proximity_detection id=179 verdict=true gt_gap=0.032m  at gt=(23.60, -36.62) s=216.7m
+[INFO] [1789728160.724164, 476.845000]: [event] proximity_detection id=180 verdict=true gt_gap=0.034m  at gt=(23.23, -36.34) s=217.2m
+[INFO] [1789728163.394579, 477.694500]: [event] proximity_detection id=181 verdict=true gt_gap=0.112m  at gt=(22.91, -36.07) s=217.6m
+[INFO] [1789728166.872043, 478.774500]: [event] proximity_detection id=182 verdict=true gt_gap=0.072m  at gt=(22.50, -35.72) s=218.2m
+[INFO] [1789728169.878722, 479.655500]: [event] proximity_detection id=183 verdict=true gt_gap=0.121m  at gt=(22.16, -35.42) s=218.6m
+[INFO] [1789728173.904328, 480.722000]: [event] proximity_detection id=184 verdict=true gt_gap=0.080m  at gt=(21.80, -35.10) s=219.1m
+[INFO] [1789728178.004364, 481.788000]: [event] proximity_detection id=185 verdict=true gt_gap=0.043m  at gt=(21.48, -34.79) s=219.6m
+[INFO] [1789728181.514386, 482.791000]: [event] proximity_detection id=186 verdict=true gt_gap=0.084m  at gt=(21.17, -34.44) s=220.0m
+[INFO] [1789728184.989292, 483.904000]: [event] proximity_detection id=187 verdict=true gt_gap=0.027m  at gt=(20.84, -34.04) s=220.5m
+[INFO] [1789728188.107775, 484.854500]: [event] proximity_detection id=188 verdict=true gt_gap=0.031m  at gt=(20.57, -33.68) s=221.0m
+[INFO] [1789728193.088226, 485.902500]: [event] proximity_detection id=189 verdict=true gt_gap=0.020m  at gt=(20.29, -33.29) s=221.5m
+[INFO] [1789728197.956638, 486.857000]: [event] proximity_detection id=190 verdict=true gt_gap=0.008m  at gt=(20.06, -32.93) s=221.9m
+[INFO] [1789728202.215794, 487.900000]: [event] proximity_detection id=191 verdict=true gt_gap=0.001m  at gt=(19.82, -32.53) s=222.4m
+[INFO] [1789728206.413057, 488.856000]: [event] proximity_detection id=192 verdict=true gt_gap=0.116m  at gt=(19.61, -32.15) s=222.8m
+[INFO] [1789728212.016886, 490.080500]: [event] proximity_detection id=193 verdict=true gt_gap=0.044m  at gt=(19.36, -31.64) s=223.4m
+[INFO] [1789728215.784657, 491.045000]: [event] proximity_detection id=194 verdict=true gt_gap=0.024m  at gt=(19.18, -31.22) s=223.8m
+[INFO] [1789728219.050225, 492.034000]: [event] proximity_detection id=195 verdict=true gt_gap=0.009m  at gt=(19.01, -30.78) s=224.3m
+[INFO] [1789728223.201154, 492.992500]: [event] proximity_detection id=196 verdict=true gt_gap=0.018m  at gt=(18.86, -30.38) s=224.7m
+[INFO] [1789728227.577674, 494.009500]: [event] proximity_detection id=197 verdict=true gt_gap=0.003m  at gt=(18.73, -29.95) s=225.2m
+[INFO] [1789728231.542169, 495.055500]: [event] proximity_detection id=198 verdict=true gt_gap=0.049m  at gt=(18.60, -29.48) s=225.7m
+[INFO] [1789728235.089495, 496.063000]: [event] proximity_detection id=199 verdict=true gt_gap=0.011m  at gt=(18.49, -29.04) s=226.1m
+[INFO] [1789728238.115171, 497.057500]: [event] proximity_detection id=200 verdict=true gt_gap=0.024m  at gt=(18.40, -28.60) s=226.6m
+[INFO] [1789728241.944961, 498.242000]: [event] proximity_detection id=201 verdict=true gt_gap=0.060m  at gt=(18.33, -28.08) s=227.1m
+[INFO] [1789728245.439854, 499.115500]: [event] proximity_detection id=202 verdict=true gt_gap=0.019m  at gt=(18.29, -27.70) s=227.5m
+[INFO] [1789728249.854755, 500.175500]: [event] proximity_detection id=203 verdict=true gt_gap=0.042m  at gt=(18.26, -27.23) s=227.9m
+[INFO] [1789728253.688161, 501.075000]: [event] proximity_detection id=204 verdict=true gt_gap=0.019m  at gt=(18.25, -26.81) s=228.4m
+[INFO] [1789728257.785725, 502.275500]: [event] proximity_detection id=205 verdict=true gt_gap=0.068m  at gt=(18.25, -26.24) s=228.9m
+[INFO] [1789728260.807704, 503.111500]: [event] proximity_detection id=206 verdict=true gt_gap=0.024m  at gt=(18.25, -25.83) s=229.3m
+[INFO] [1789728265.066134, 504.379000]: [event] proximity_detection id=207 verdict=true gt_gap=0.018m  at gt=(18.26, -25.21) s=230.0m
+[INFO] [1789728268.196301, 505.193500]: [event] proximity_detection id=208 verdict=true gt_gap=0.039m  at gt=(18.27, -24.82) s=230.3m
+[INFO] [1789728272.619409, 506.292000]: [event] proximity_detection id=209 verdict=true gt_gap=0.002m  at gt=(18.27, -24.29) s=230.9m
+[INFO] [1789728276.321814, 507.334500]: [event] proximity_detection id=465 verdict=true gt_gap=13.502m  at gt=(18.27, -23.78) s=231.4m
+[INFO] [1789728279.657379, 508.181500]: [event] proximity_detection id=466 verdict=true gt_gap=13.516m  at gt=(18.27, -23.37) s=231.8m
+[INFO] [1789728283.942919, 509.303500]: [event] proximity_detection id=467 verdict=true gt_gap=13.561m  at gt=(18.28, -22.84) s=232.3m
+[INFO] [1789728287.222151, 510.227500]: [event] proximity_detection id=468 verdict=true gt_gap=13.598m  at gt=(18.28, -22.39) s=232.8m
+[INFO] [1789728291.501927, 511.311000]: [event] proximity_detection id=469 verdict=true gt_gap=13.691m  at gt=(18.29, -21.87) s=233.3m
+[INFO] [1789728294.994261, 512.229000]: [event] proximity_detection id=470 verdict=true gt_gap=13.728m  at gt=(18.29, -21.44) s=233.7m
+[INFO] [1789728299.201427, 513.279000]: [event] proximity_detection id=471 verdict=true gt_gap=13.814m  at gt=(18.30, -20.93) s=234.2m
+[INFO] [1789728302.922590, 514.277000]: [event] proximity_detection id=472 verdict=true gt_gap=13.839m  at gt=(18.30, -20.44) s=234.7m
+[INFO] [1789728306.013863, 515.268500]: [event] proximity_detection id=473 verdict=true gt_gap=13.909m  at gt=(18.31, -19.95) s=235.2m
+[INFO] [1789728309.465753, 516.205500]: [event] proximity_detection id=474 verdict=true gt_gap=13.916m  at gt=(18.32, -19.51) s=235.7m
+[INFO] [1789728313.794363, 517.245500]: [event] proximity_detection id=475 verdict=true gt_gap=14.021m  at gt=(18.31, -19.02) s=236.2m
+[INFO] [1789728317.855730, 518.213500]: [event] proximity_detection id=476 verdict=true gt_gap=14.049m  at gt=(18.31, -18.56) s=236.6m
+[INFO] [1789728321.807731, 519.237500]: [event] proximity_detection id=477 verdict=true gt_gap=14.127m  at gt=(18.32, -18.08) s=237.1m
+[INFO] [1789728325.363004, 520.236000]: [event] proximity_detection id=478 verdict=true gt_gap=14.083m  at gt=(18.32, -17.59) s=237.6m
+[INFO] [1789728328.983152, 521.391500]: [event] proximity_detection id=479 verdict=true gt_gap=14.212m  at gt=(18.34, -17.03) s=238.1m
+[INFO] [1789728332.269357, 522.193000]: [event] proximity_detection id=480 verdict=true gt_gap=14.144m  at gt=(18.34, -16.65) s=238.5m
+[INFO] [1789728336.661367, 523.337000]: [event] proximity_detection id=481 verdict=true gt_gap=14.286m  at gt=(18.34, -16.11) s=239.1m
+[INFO] [1789728340.626062, 524.456000]: [event] proximity_detection id=482 verdict=true gt_gap=14.372m  at gt=(18.33, -15.58) s=239.6m
+[INFO] [1789728343.565423, 525.421500]: [event] proximity_detection id=483 verdict=true gt_gap=14.382m  at gt=(18.34, -15.10) s=240.1m
+[INFO] [1789728346.752599, 526.531000]: [event] proximity_detection id=484 verdict=true gt_gap=14.469m  at gt=(18.36, -14.57) s=240.6m
+[INFO] [1789728349.239483, 527.355000]: [event] proximity_detection id=485 verdict=true gt_gap=14.392m  at gt=(18.36, -14.21) s=241.0m
+[INFO] [1789728352.969259, 528.453000]: [event] proximity_detection id=486 verdict=true gt_gap=14.391m  at gt=(18.35, -13.69) s=241.5m
+[INFO] [1789728357.215602, 529.374000]: [event] proximity_detection id=487 verdict=true gt_gap=14.433m  at gt=(18.34, -13.27) s=241.9m
+[INFO] [1789728362.182554, 530.474000]: [event] proximity_detection id=488 verdict=true gt_gap=14.460m  at gt=(18.34, -12.77) s=242.4m
+[INFO] [1789728366.051839, 531.399500]: [event] proximity_detection id=489 verdict=true gt_gap=14.465m  at gt=(18.34, -12.35) s=242.8m
+[INFO] [1789728370.727363, 532.477500]: [event] proximity_detection id=490 verdict=true gt_gap=14.369m  at gt=(18.35, -11.87) s=243.3m
+[INFO] [1789728375.363408, 533.507500]: [event] proximity_detection id=491 verdict=true gt_gap=14.393m  at gt=(18.37, -11.44) s=243.7m
+[INFO] [1789728379.883574, 534.586500]: [event] proximity_detection id=492 verdict=true gt_gap=14.195m  at gt=(18.39, -11.02) s=244.2m
+[INFO] [1789728383.756800, 535.509000]: [event] proximity_detection id=493 verdict=true gt_gap=14.151m  at gt=(18.42, -10.67) s=244.5m
+[INFO] [1789728388.375165, 536.647500]: [event] proximity_detection id=494 verdict=true gt_gap=14.035m  at gt=(18.46, -10.26) s=244.9m
+[INFO] [1789728391.342908, 537.640000]: [event] proximity_detection id=495 verdict=true gt_gap=13.835m  at gt=(18.47, -9.95) s=245.2m
+[INFO] [1789728394.646952, 538.758500]: [event] proximity_detection id=496 verdict=true gt_gap=13.887m  at gt=(18.66, -9.49) s=245.7m
+[INFO] [1789728397.573116, 539.745000]: [event] proximity_detection id=497 verdict=true gt_gap=13.649m  at gt=(18.79, -9.20) s=246.1m
+[INFO] [1789728400.804677, 540.847500]: [event] proximity_detection id=498 verdict=true gt_gap=13.689m  at gt=(18.93, -8.72) s=246.6m
+[INFO] [1789728403.454342, 541.762000]: [event] proximity_detection id=499 verdict=true gt_gap=13.600m  at gt=(19.04, -8.29) s=247.0m
+[INFO] [1789728406.664969, 542.891500]: [event] proximity_detection id=500 verdict=true gt_gap=13.683m  at gt=(19.15, -7.78) s=247.5m
+[INFO] [1789728409.611846, 543.923000]: [event] proximity_detection id=501 verdict=true gt_gap=13.678m  at gt=(19.23, -7.28) s=248.0m
+[INFO] [1789728412.921107, 544.822500]: [event] proximity_detection id=502 verdict=true gt_gap=13.602m  at gt=(19.30, -6.87) s=248.4m
+[INFO] [1789728416.460780, 545.780500]: [event] proximity_detection id=503 verdict=true gt_gap=13.565m  at gt=(19.38, -6.43) s=248.9m
+[INFO] [1789728420.702834, 546.799500]: [event] proximity_detection id=504 verdict=true gt_gap=13.618m  at gt=(19.49, -5.94) s=249.4m
+[INFO] [1789728424.643247, 547.851500]: [event] proximity_detection id=505 verdict=true gt_gap=13.639m  at gt=(19.60, -5.44) s=249.9m
+[INFO] [1789728428.030130, 548.804000]: [event] proximity_detection id=506 verdict=true gt_gap=13.649m  at gt=(19.70, -4.98) s=250.4m
+[INFO] [1789728432.287005, 549.842000]: [event] proximity_detection id=507 verdict=true gt_gap=13.668m  at gt=(19.80, -4.49) s=250.9m
+[INFO] [1789728435.575774, 550.874000]: [event] proximity_detection id=508 verdict=true gt_gap=13.694m  at gt=(19.90, -3.99) s=251.4m
+[INFO] [1789728439.724394, 551.824500]: [event] proximity_detection id=509 verdict=true gt_gap=13.597m  at gt=(19.99, -3.53) s=251.9m
+[INFO] [1789728443.574051, 552.762000]: [event] proximity_detection id=510 verdict=true gt_gap=13.655m  at gt=(20.07, -3.11) s=252.3m
+[INFO] [1789726580.664615, 10.031500]: trajectory_follower: 531 points, 132.50 m, from /home/alessandro/journal_comparison/src/robot_metrics/config/reference_path_mine.yaml
+[INFO] [1789726580.665940, 10.037000]: trajectory_follower: model=two_track_robot cmd=/example_two_track/cmd_vel v<=0.50 w<=1.00 lookahead=1.00
+[INFO] [1789726580.678584, 10.039000]: trajectory_follower: reference path published on ~reference_path in frame "map" (531 poses)
+[INFO] [1789727540.188290, 295.140500]: trajectory_follower: vuelta 1 de 2 completa, lazo cerrado a 0.135 m
+[INFO] [1789728547.334681, 583.240500]: trajectory_follower: path complete (2 vuelta(s)); lazo cerrado a 0.130 m del punto inicial
+[INFO] [1789728547.337967, 583.241000]: trajectory_follower: reached point 529 of 531, vuelta 2 de 2; cross-track error mean 0.015 m, max 0.722 m; 0 stall(s)
+[INFO] [1789728547.340266, 583.241500]: trajectory_follower: lazo cerrado a 0.130 m (close_tolerance 0.15 m)
+[INFO] [1789726580.370079, 9.967500]: run_guard: model=two_track_robot cmd=/example_two_track/cmd_vel
+[INFO] [1789726580.371898, 9.968000]: run_guard: wedged if commanded (>0.10 m/s or >0.20 rad/s) for >=70% of 25s while getting neither >1.50 m from the window start nor >0.50 rad of heading
+[INFO] [1789726580.373025, 9.968500]: run_guard: rolled if |roll|>50 or |pitch|>60 deg held 1.5s
+[INFO] [1789728548.792145, 583.495500]: run_guard: no trip; the run ended on its own terms
+[WARN] [1789726580.546656, 10.006500]:   gt_rate_hz 800.0 is not a divisor of the 2000 Hz physics rate; delivering 1000.0 Hz instead, which is the next exact divisor that is not slower
+[INFO] [1789728447.864285, 554.235000]: [event] proximity_detection id=511 verdict=true gt_gap=13.684m  at gt=(20.22, -2.55) s=252.9m
+[INFO] [1789728450.182905, 555.086500]: [event] proximity_detection id=257 verdict=true gt_gap=0.109m  at gt=(20.29, -2.29) s=253.1m
+[INFO] [1789728453.042492, 556.043500]: [event] proximity_detection id=258 verdict=true gt_gap=0.065m  at gt=(20.32, -2.05) s=253.4m
+[INFO] [1789728456.603036, 557.097000]: [event] proximity_detection id=514 verdict=true gt_gap=12.868m  at gt=(20.56, -1.89) s=253.7m
+[INFO] [1789728459.888680, 558.189000]: [event] proximity_detection id=1 verdict=unknown gt_gap=nanm  at gt=(21.02, -1.66) s=254.2m
+[INFO] [1789728463.146487, 559.172000]: [event] proximity_detection id=1 verdict=unknown gt_gap=nanm  at gt=(21.44, -1.41) s=254.7m
+[INFO] [1789728466.526567, 560.132000]: [event] proximity_detection id=1 verdict=unknown gt_gap=nanm  at gt=(21.79, -1.19) s=255.1m
+[INFO] [1789728469.799399, 561.046000]: [event] proximity_detection id=1 verdict=unknown gt_gap=nanm  at gt=(22.14, -1.02) s=255.5m
+[INFO] [1789728474.116502, 562.236500]: [event] proximity_detection id=1 verdict=unknown gt_gap=nanm  at gt=(22.63, -0.82) s=256.0m
+[INFO] [1789728477.760478, 563.015000]: [event] proximity_detection id=1 verdict=unknown gt_gap=nanm  at gt=(22.99, -0.70) s=256.4m
+[INFO] [1789728483.110263, 564.106500]: [event] proximity_detection id=1 verdict=unknown gt_gap=nanm  at gt=(23.49, -0.53) s=256.9m
+[INFO] [1789728487.294703, 565.028500]: [event] proximity_detection id=1 verdict=unknown gt_gap=nanm  at gt=(23.92, -0.39) s=257.4m
+[INFO] [1789728491.213206, 566.095000]: [event] proximity_detection id=1 verdict=unknown gt_gap=nanm  at gt=(24.39, -0.23) s=257.9m
+[INFO] [1789728495.101322, 567.310500]: [event] proximity_detection id=1 verdict=unknown gt_gap=nanm  at gt=(24.92, -0.08) s=258.4m
+[INFO] [1789728497.834934, 568.120000]: [event] proximity_detection id=1 verdict=unknown gt_gap=nanm  at gt=(25.27, 0.01) s=258.8m
+[INFO] [1789728501.925807, 569.176500]: [event] proximity_detection id=1 verdict=unknown gt_gap=nanm  at gt=(25.75, 0.09) s=259.3m
+[INFO] [1789728505.781733, 570.414000]: [event] proximity_detection id=1 verdict=unknown gt_gap=nanm  at gt=(26.36, 0.18) s=259.9m
+[INFO] [1789728508.595938, 571.393000]: [event] proximity_detection id=1 verdict=unknown gt_gap=nanm  at gt=(26.83, 0.25) s=260.4m
+[INFO] [1789728511.696473, 572.291000]: [event] proximity_detection id=1 verdict=unknown gt_gap=nanm  at gt=(27.22, 0.30) s=260.8m
+[INFO] [1789728515.727342, 573.483500]: [event] proximity_detection id=1 verdict=unknown gt_gap=nanm  at gt=(27.79, 0.32) s=261.3m
+[INFO] [1789728518.654405, 574.305000]: [event] proximity_detection id=1 verdict=unknown gt_gap=nanm  at gt=(28.18, 0.34) s=261.7m
+[INFO] [1789728522.166111, 575.231500]: [event] proximity_detection id=1 verdict=unknown gt_gap=nanm  at gt=(28.62, 0.34) s=262.2m
+[INFO] [1789728526.710603, 576.443500]: [event] proximity_detection id=1 verdict=unknown gt_gap=nanm  at gt=(29.20, 0.33) s=262.8m
+[INFO] [1789728529.367421, 577.360500]: [event] proximity_detection id=1 verdict=unknown gt_gap=nanm  at gt=(29.65, 0.30) s=263.2m
+[INFO] [1789728532.738856, 578.466000]: [event] proximity_detection id=1 verdict=unknown gt_gap=nanm  at gt=(30.20, 0.29) s=263.8m
+[INFO] [1789728535.692769, 579.407000]: [event] proximity_detection id=536 verdict=true gt_gap=12.166m  at gt=(30.67, 0.27) s=264.2m
+[INFO] [1789728539.009740, 580.441500]: [event] proximity_detection id=537 verdict=true gt_gap=12.318m  at gt=(31.16, 0.26) s=264.7m
+[INFO] [1789728541.950624, 581.509500]: [event] proximity_detection id=538 verdict=true gt_gap=12.532m  at gt=(31.69, 0.24) s=265.2m
+[INFO] [1789728545.389511, 582.550000]: [event] proximity_detection id=539 verdict=true gt_gap=12.788m  at gt=(32.21, 0.22) s=265.8m
+[INFO] [1789728548.404963, 583.564000]: [event] proximity_detection id=540 verdict=true gt_gap=12.924m  at gt=(32.57, 0.21) s=266.1m
+[INFO] [1789728549.511174, 583.958000]: Run tracked/04 saved to /home/alessandro/metrics_VF/fixed_trajectory/swept_lidar/tracked/run04
+[INFO] [1789728549.513984, 583.959500]:   28675 samples, 28675 GT poses, 449 events
+[INFO] [1789728549.516992, 583.960500]:   573956 high-rate GT samples from 1147912 messages (1000.0 Hz over 574.0 s)
+[INFO] [1789728549.518819, 583.961000]:   distance travelled (GT): 266.13 m
+[INFO] [1789728549.520239, 583.961500]:   tracking losses: 0, relocalizations: 0
+[INFO] [1789728549.521261, 583.961500]:   loop closures: 0 (visual), 449 (proximity)
+[31m================================================================================REQUIRED process [trajectory_follower-1] has died!
+process has finished cleanly
+log file: /home/alessandro/.ros/log/e8a4d764-b349-11f1-8ba6-4d711d8e6fc4/trajectory_follower-1*.log
+Initiating shutdown!
+================================================================================[0m
+[31m[fixed_trajectory_rviz-3] escalating to SIGTERM[0m
+... logging to /home/alessandro/.ros/log/e8a4d764-b349-11f1-8ba6-4d711d8e6fc4/roslaunch-LAPTOP-EU6F9FQD-89910.log
+Checking log directory for disk usage. This may take a while.
+Press Ctrl-C to interrupt
+Done checking log file disk usage. Usage is <1GB.
+]2;/home/alessandro/journal_comparison/src/robot_metrics/launch/trajectory_follow.launch
+[1mstarted roslaunch server http://LAPTOP-EU6F9FQD:34323/[0m
+
+SUMMARY
+========
+
+PARAMETERS
+ * /metrics_logger/cmd_vel_topic: /example_two_trac...
+ * /metrics_logger/effort_joints: 
+ * /metrics_logger/gt_rate_hz: 800
+ * /metrics_logger/loop_true_radius: 3.0
+ * /metrics_logger/model_name: two_track_robot
+ * /metrics_logger/odom_topic: /rtabmap/odom
+ * /metrics_logger/output_dir: /home/alessandro/...
+ * /metrics_logger/physics_rate_hz: 2000
+ * /metrics_logger/proximity_true_radius: 20.0
+ * /metrics_logger/rate: 50
+ * /metrics_logger/robot_name: tracked
+ * /metrics_logger/run_id: 4
+ * /metrics_logger/suspension_joints: 
+ * /metrics_logger/suspension_topic: /rocker_bogie/joi...
+ * /metrics_logger/tracking_loss_timeout: 1.0
+ * /metrics_logger/velocity_joints: 
+ * /metrics_logger/wheel_links: 
+ * /rosdistro: noetic
+ * /rosversion: 1.17.4
+ * /run_guard/cmd_vel_topic: /example_two_trac...
+ * /run_guard/grace: 30.0
+ * /run_guard/model_name: two_track_robot
+ * /run_guard/pitch_limit: 60.0
+ * /run_guard/progress_min: 1.5
+ * /run_guard/roll_limit: 50.0
+ * /run_guard/stuck_time: 25.0
+ * /run_guard/trip_file: /home/alessandro/...
+ * /run_guard/yaw_progress_min: 0.5
+ * /trajectory_follower/align_threshold: 0.8
+ * /trajectory_follower/backoff_speed: -0.25
+ * /trajectory_follower/backoff_time: 2.0
+ * /trajectory_follower/base_yaw_offset: 0.0
+ * /trajectory_follower/close_timeout: 15.0
+ * /trajectory_follower/close_tolerance: 0.15
+ * /trajectory_follower/cmd_vel_topic: /example_two_trac...
+ * /trajectory_follower/commanded_min: 0.15
+ * /trajectory_follower/cooldown: 5.0
+ * /trajectory_follower/curve_slowdown: 0.6
+ * /trajectory_follower/k_xte: 2.5
+ * /trajectory_follower/laps: 2
+ * /trajectory_follower/lookahead: 1.0
+ * /trajectory_follower/lookahead_k: 0.8
+ * /trajectory_follower/lookahead_max: 1.0
+ * /trajectory_follower/lookahead_min: 0.3
+ * /trajectory_follower/max_stalls: 8
+ * /trajectory_follower/max_vel_theta: 1.0
+ * /trajectory_follower/max_vel_x: 0.5
+ * /trajectory_follower/min_aim_dist: 0.25
+ * /trajectory_follower/model_name: two_track_robot
+ * /trajectory_follower/path_file: /home/alessandro/...
+ * /trajectory_follower/spawn_x: 33.5
+ * /trajectory_follower/spawn_y: 0.2
+ * /trajectory_follower/spawn_yaw: 0.0
+ * /trajectory_follower/speed_max: 0.05
+ * /trajectory_follower/stall_time: 1.0
+ * /trajectory_follower/trip_file: /home/alessandro/...
+ * /trajectory_follower/viz_frame: map
+ * /trajectory_follower/w_v_floor: 0.1
+ * /trajectory_follower/xte_curv_max: 0.5
+
+NODES
+  /
+    fixed_trajectory_rviz (rviz/rviz)
+    metrics_logger (robot_metrics/metrics_logger.py)
+    run_guard (robot_metrics/run_guard.py)
+    trajectory_follower (robot_metrics/trajectory_follower.py)
+
+[1mROS_MASTER_URI=http://localhost:11311[0m
+]2;/home/alessandro/journal_comparison/src/robot_metrics/launch/trajectory_follow.launch http://localhost:11311
+[1mprocess[trajectory_follower-1]: started with pid [89944][0m
+[1mprocess[run_guard-2]: started with pid [89945][0m
+[1mprocess[fixed_trajectory_rviz-3]: started with pid [89946][0m
+[1mprocess[metrics_logger-4]: started with pid [89947][0m
+[metrics_logger-4] killing on exit
+[fixed_trajectory_rviz-3] killing on exit
+[run_guard-2] killing on exit
+[trajectory_follower-1] killing on exit
+shutting down processing monitor...
+... shutting down processing monitor complete
+[1mdone[0m

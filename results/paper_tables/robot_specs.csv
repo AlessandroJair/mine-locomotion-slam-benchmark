@@ -1,0 +1,22 @@
+property,unit,Husky (differential),Tracked,Rocker-bogie
+Total mass,kg,44.99997889999999,44.99999890000001,44.999992294398
+  of which URDF/SDF links,kg,44.99997889999999,44.99999890000001,44.999992294398
+  of which embedded SDF bodies,kg,0,0,0
+Links,-,7,15,20
+Joints,-,6,14,19
+Ground-contact bodies,-,4,10,6
+Length (collision bbox),m,1.0074,0.9760003980389549,1.0314899
+Width (collision bbox),m,0.6852785122009588,0.8709026158732158,0.6900302079312894
+Height (collision bbox),m,0.6681055043896849,0.6573005509798346,0.6327760015313284
+Wheelbase,m,0.512,0.7000000000009716,0.7354899000000001
+Track (max),m,0.57095,0.5709012418800232,0.5757302000000001
+Wheel/sprocket radius,m,0.148,0.138,0.148
+Ground clearance,m,0.07924999999999999,0.01999944902009801,0.26060400000000006
+CoG x (base_link),m,-0.06398349158918117,0.015658284742277095,-0.0044379852922470835
+CoG y (base_link),m,-0.0006285903342106598,8.497714642926638e-09,-5.018342848533303e-07
+CoG z (base_link),m,0.19600356156885,0.3589785466450778,0.12010386195404466
+CoG height above contact plane,m,0.30900356156885,0.1569785466450778,0.2681038619540447
+Wheel rate limit,rad/s,nan,nan,5.0
+Max speed (kinematic limit),m/s,nan,nan,0.74
+Max speed (commanded),m/s,0.4,0.4,0.4
+Source file,-,differential/model/differential/model.sdf,tracked/gazebo_continuous_track_example/model/two_track_robot/model.sdf,rocker_bogie/urdf/ensamblajeurdf.xacro

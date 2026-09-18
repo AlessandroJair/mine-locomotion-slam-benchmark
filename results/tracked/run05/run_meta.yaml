@@ -1,0 +1,45 @@
+robot: tracked
+run_id: 5
+gazebo_model: two_track_robot
+samples: 28782
+duration_s: 575.585
+gt_distance_m: 266.243
+log_rate_hz: 50.0
+ground_truth:
+  topic: /gazebo/model_states
+  type: gazebo_msgs/ModelStates
+  filtering: none
+  added_noise: none
+  frame: gazebo world frame, model canonical link
+  timestamping: ROS sim clock at reception (no header stamp on ModelStates); error
+    bounded by one 0.5 ms physics step
+gt_highrate:
+  enabled: true
+  file: gt_highrate.csv
+  requested_hz: 800.0
+  nominal_hz: 1000.0
+  measured_hz: 1000.0
+  physics_hz: 2000.0
+  decimation: 2
+  samples: 576047
+  messages_seen: 1152094
+  messages_expected: 1152092
+  rows_dropped_queue_full: 0
+  span_s: 576.046
+  note: 'decimated by RECEIVED message count, so an interval is `decimation` physics
+    steps only while nothing is lost. Compare messages_seen against messages_expected:
+    a shortfall means ModelStates was dropped before the callback, and measured_hz
+    falls below nominal_hz.'
+slam:
+  loop_closures: 0
+  proximity_detections: 450
+  tracking_losses: 0
+  relocalizations: 0
+wheel_links: []
+suspension_joints: []
+suspension_topic: null
+suspension_messages: 0
+effort_joints: []
+velocity_joints: []
+ros_time_is_sim_time: true
+git_commit: 4cacede

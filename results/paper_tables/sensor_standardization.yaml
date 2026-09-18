@@ -1,0 +1,138 @@
+purpose: 'Control experiment: put the LiDAR, camera and IMU of all three platforms
+  at the same pose relative to the ground contact plane, so that any remaining difference
+  in SLAM quality is attributable to locomotion rather than to sensor placement.'
+method: 'Heights are given ABOVE THE WHEEL/TRACK CONTACT PLANE, not above base_link,
+  because base_link sits at a different height on each platform. Convert with:  z_base_link
+  = height_above_contact + contact_plane_offset, where the offset per robot is listed
+  below. x and y are measured from the centre of the ground contact polygon so that
+  the lever arm about the pitch axis matches.'
+status: APPLIED. The three model files already carry these poses; the spread reported
+  at the bottom of the sensor table is <= 1 mm.
+rationale_for_common_height: 'The MAXIMUM of the three native heights (0.6700 m, the
+  Rocker-Bogie) is used rather than the minimum or the mean. Lowering would normally
+  be preferable because it needs no new hardware, but it is not achievable here: the
+  Rocker-Bogie has 0.638 m of ground clearance, so the underside of its chassis is
+  already above both native low mounts (0.5805 m Husky, 0.5657 m tracked) and a sensor
+  placed there would sit inside the chassis. Standardizing upwards needs a mast on
+  the two low platforms, modelled as massless with the sensor masses retained; measured,
+  that raises the Husky CoG by 4.66 mm and the tracked robot''s by 0.68 mm, negligible
+  against their 341 and 180 mm CoG heights and in the direction that makes the low
+  platforms slightly less stable, so the choice does not favour the Rocker-Bogie.'
+standard_pose:
+  lidar:
+    forward_offset_m: 0.0
+    y_m: 0.0
+    height_above_contact_m: 0.67
+    roll_deg: 0.0
+    pitch_deg: 0.0
+    yaw_deg: 0.0
+  camera:
+    forward_offset_m: 0.3543
+    y_m: 0.0
+    height_above_contact_m: 0.5307
+    roll_deg: 0.0
+    pitch_deg: 0.0
+    yaw_deg: 0.0
+  imu:
+    rule: at_centre_of_mass
+    lever_arm_from_com_m: 0.0
+    height_above_contact_m:
+      Husky (differential): 0.309
+      Tracked: 0.157
+      Rocker-bogie: 0.2681
+    roll_deg: 0.0
+    pitch_deg: 0.0
+    yaw_deg: 0.0
+note_on_x: 'forward_offset_m is measured from the centre of the ground contact polygon
+  along each platform''s own forward axis. It is not base_link x: base_link sits at
+  a different place in each chassis and the Rocker-Bogie model has forward = -x, so
+  raw x values are not comparable between the three files.'
+contact_plane_offset_m:
+  Husky (differential): -0.113
+  Tracked: 0.202
+  Rocker-bogie: -0.148
+contact_polygon_centre_x_m:
+  Husky (differential): 0.0
+  Tracked: -0.0
+  Rocker-bogie: 0.0
+forward_axis_x:
+  Husky (differential): 1
+  Tracked: 1
+  Rocker-bogie: 1
+applied_poses:
+  Husky (differential):
+    lidar:
+      height_above_contact_m: 0.6699
+      forward_offset_m: 0.0
+    camera: null
+    imu:
+      height_above_contact_m: 0.309
+      forward_offset_m: -0.064
+  Tracked:
+    lidar:
+      height_above_contact_m: 0.67
+      forward_offset_m: 0.0
+    camera: null
+    imu:
+      height_above_contact_m: 0.157
+      forward_offset_m: 0.0157
+  Rocker-bogie:
+    lidar:
+      height_above_contact_m: 0.67
+      forward_offset_m: -0.0
+    camera:
+      height_above_contact_m: 0.5307
+      forward_offset_m: 0.3543
+    imu:
+      height_above_contact_m: 0.2681
+      forward_offset_m: -0.0044
+current_base_link_coordinates:
+  Husky (differential):
+    lidar:
+      x_m: 0.0
+      y_m: 0.0
+      z_m: 0.5569
+      height_above_contact_m: 0.6699
+    camera: null
+    imu:
+      x_m: -0.064
+      y_m: -0.0006
+      z_m: 0.196
+      height_above_contact_m: 0.309
+  Tracked:
+    lidar:
+      x_m: 0.0
+      y_m: 0.0
+      z_m: 0.522
+      height_above_contact_m: 0.67
+    camera: null
+    imu:
+      x_m: 0.0157
+      y_m: 0.0
+      z_m: 0.009
+      height_above_contact_m: 0.157
+  Rocker-bogie:
+    lidar:
+      x_m: 0.0
+      y_m: 0.0
+      z_m: 0.522
+      height_above_contact_m: 0.67
+    camera:
+      x_m: 0.3543
+      y_m: -0.0
+      z_m: 0.3827
+      height_above_contact_m: 0.5307
+    imu:
+      x_m: -0.0044
+      y_m: 0.0
+      z_m: 0.1201
+      height_above_contact_m: 0.2681
+where_the_mounts_are_defined:
+- 'Rocker-Bogie (unchanged, it sets the reference): origins of velodyne_base_mount_joint,
+  camera_joint and imu_joint in rocker_bogie/urdf/ensamblajeurdf.xacro.'
+- 'Husky: <pose> of velodyne_base_link, camera_link and imu_link in differential/model/model.sdf.'
+- 'Tracked: origins of velodyne_base_mount_joint, camera_joint and imu_joint in tracked/gazebo_continuous_track_example/urdf_xacro/two_track_robot.urdf.xacro.'
+- Each edited element carries a SENSOR STANDARDIZATION comment giving its native value
+  and the arithmetic used.
+- 'Re-run extract_sensor_poses.py after any change: the spread at the bottom of the
+  table must stay ~0 for the control to hold.'

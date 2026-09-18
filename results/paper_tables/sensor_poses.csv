@@ -1,0 +1,40 @@
+sensor,property,unit,Husky (differential),Tracked,Rocker-bogie
+lidar,Mount link,-,velodyne_base_link,velodyne_base_link,velodyne_base_link
+lidar,x (base_link),m,0.0,0.0,0.0
+lidar,y (base_link),m,0.0,0.0,2.7755575615628914e-17
+lidar,z (base_link),m,0.55695,0.522,0.5219760000000001
+lidar,Height above contact plane,m,0.6699499999999999,0.67,0.6699760000000001
+lidar,Forward offset from contact centre,m,0.0,4.858613511515841e-13,-1.5000000000431335e-07
+lidar,Lateral offset from base_link (left +),m,0.0,0.0,2.7755575615628914e-17
+lidar,Lateral offset from CoM (left +),m,0.0006285903342106598,-8.497714642926638e-09,5.018342848810859e-07
+lidar,Lever arm from CoM |r|,m,0.3665741585789743,0.5132603564307952,0.4018966422493892
+lidar,roll,deg,0.0,0.0,0.0
+lidar,pitch,deg,-0.0,-0.0,-0.0
+lidar,yaw,deg,0.0,0.0,-1.4033418597069752e-14
+lidar,Update rate,Hz,10,10,10
+camera,Mount link,-,,,camera_link
+camera,x (base_link),m,,,0.3543
+camera,y (base_link),m,,,-1.3877787807814457e-17
+camera,z (base_link),m,,,0.382676
+camera,Height above contact plane,m,,,0.530676
+camera,Forward offset from contact centre,m,,,0.35429984999999997
+camera,Lateral offset from base_link (left +),m,,,-1.3877787807814457e-17
+camera,Lateral offset from CoM (left +),m,,,5.018342848394525e-07
+camera,Lever arm from CoM |r|,m,,,0.4445639096573366
+camera,roll,deg,,,0.0
+camera,pitch,deg,,,-0.0
+camera,yaw,deg,,,-1.4033418597069752e-14
+camera,Update rate,Hz,,,10
+imu,Mount link,-,imu_link,imu_link,imu_link
+imu,x (base_link),m,-0.063983,0.015658,-0.0044379999999999975
+imu,y (base_link),m,-0.000629,0.0,2.7755575615628914e-17
+imu,z (base_link),m,0.196003,0.008977999999999986,0.12010400000000004
+imu,Height above contact plane,m,0.309003,0.15697799999999998,0.26810400000000006
+imu,Forward offset from contact centre,m,-0.063983,0.01565800000048586,-0.004438150000000002
+imu,Lateral offset from base_link (left +),m,-0.000629,0.0,2.7755575615628914e-17
+imu,Lateral offset from CoM (left +),m,-4.096657893401523e-07,-8.497714642926638e-09,5.018342848810859e-07
+imu,Lever arm from CoM |r|,m,8.513786203923724e-07,6.16418053450417e-07,5.20682872079693e-07
+imu,roll,deg,0.0,0.0,0.0
+imu,pitch,deg,-0.0,-0.0,-0.0
+imu,yaw,deg,0.0,0.0,-1.4033418597069752e-14
+imu,Update rate,Hz,100,100,100

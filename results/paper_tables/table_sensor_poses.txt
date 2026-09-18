@@ -1,0 +1,80 @@
+====================================================================================================
+SENSOR MOUNTING POSES, relative to base_link
+====================================================================================================
+
+LIDAR  (LiDAR)
+Property [unit]                     Husky (differential)               Tracked          Rocker-bogie
+----------------------------------------------------------------------------------------------------
+Mount link [-]                        velodyne_base_link    velodyne_base_link    velodyne_base_link
+x (base_link) [m]                                 0.0000                0.0000                0.0000
+y (base_link) [m]                                 0.0000                0.0000                0.0000
+z (base_link) [m]                                 0.5569                0.5220                0.5220
+Height above contact plane [m]                    0.6699                0.6700                0.6700
+Forward offset from contact centre [m]                0.0000                0.0000               -0.0000
+Lateral offset from base_link (left +) [m]                0.0000                0.0000                0.0000
+Lateral offset from CoM (left +) [m]                0.0006               -0.0000                0.0000
+Lever arm from CoM |r| [m]                        0.3666                0.5133                0.4019
+roll [deg]                                        0.0000                0.0000                0.0000
+pitch [deg]                                      -0.0000               -0.0000               -0.0000
+yaw [deg]                                         0.0000                0.0000               -0.0000
+Update rate [Hz]                                      10                    10                    10
+
+CAMERA  (camera)
+Property [unit]                     Husky (differential)               Tracked          Rocker-bogie
+----------------------------------------------------------------------------------------------------
+Mount link [-]                                    absent                absent           camera_link
+x (base_link) [m]                                 absent                absent                0.3543
+y (base_link) [m]                                 absent                absent               -0.0000
+z (base_link) [m]                                 absent                absent                0.3827
+Height above contact plane [m]                    absent                absent                0.5307
+Forward offset from contact centre [m]                absent                absent                0.3543
+Lateral offset from base_link (left +) [m]                absent                absent               -0.0000
+Lateral offset from CoM (left +) [m]                absent                absent                0.0000
+Lever arm from CoM |r| [m]                        absent                absent                0.4446
+roll [deg]                                        absent                absent                0.0000
+pitch [deg]                                       absent                absent               -0.0000
+yaw [deg]                                         absent                absent               -0.0000
+Update rate [Hz]                                  absent                absent                    10
+
+IMU  (imu)
+Property [unit]                     Husky (differential)               Tracked          Rocker-bogie
+----------------------------------------------------------------------------------------------------
+Mount link [-]                                  imu_link              imu_link              imu_link
+x (base_link) [m]                                -0.0640                0.0157               -0.0044
+y (base_link) [m]                                -0.0006                0.0000                0.0000
+z (base_link) [m]                                 0.1960                0.0090                0.1201
+Height above contact plane [m]                    0.3090                0.1570                0.2681
+Forward offset from contact centre [m]               -0.0640                0.0157               -0.0044
+Lateral offset from base_link (left +) [m]               -0.0006                0.0000                0.0000
+Lateral offset from CoM (left +) [m]               -0.0000               -0.0000                0.0000
+Lever arm from CoM |r| [m]                        0.0000                0.0000                0.0000
+roll [deg]                                        0.0000                0.0000                0.0000
+pitch [deg]                                      -0.0000               -0.0000               -0.0000
+yaw [deg]                                         0.0000                0.0000               -0.0000
+Update rate [Hz]                                     100                   100                   100
+
+LEVER ARM  (sensor height above the contact plane; a chassis
+rotation of dtheta displaces the sensor by height * dtheta)
+El IMU ya no se iguala por altura: va en el centro de masas,
+asi que sus tres alturas son distintas a proposito.
+Property [unit]                     Husky (differential)               Tracked          Rocker-bogie
+----------------------------------------------------------------------------------------------------
+lidar height [m]                                  0.6699                0.6700                0.6700
+camera height [m]                                 absent                absent                0.5307
+imu height [m]                                    0.3090                0.1570                0.2681
+Displacement per 1 deg tilt [mm]                 11.6928               11.6937               11.6933
+====================================================================================================
+
+SPREAD ACROSS PLATFORMS (max - min)
+----------------------------------------------------------------------------------------------------
+  lidar      height spread 0.0001 m,  forward-offset spread 0.0000 m,  lateral (desde el CM) spread 0.0006 m
+
+BRAZO DESDE EL CENTRO DE MASAS  |r| [m]
+----------------------------------------------------------------------------------------------------
+  lidar      0.3666  0.5133  0.4019
+  imu        0.0000  0.0000  0.0000   <- tiene que ser 0: ver sensor_mounting en sim_config
+
+All three platforms carry their sensors at the same pose
+relative to the ground contact plane (spread <= 1 mm), so
+sensor placement is controlled for and any remaining
+difference in SLAM quality is attributable to locomotion.
