@@ -25,7 +25,7 @@ platform on a different route from the other two and invalidates the comparison.
 
 ### Key Findings
 
-Campaign of 2026-09-17/18, at commit `4cacede`: fixed-trajectory control with
+Campaign: fixed-trajectory control with
 the swept LiDAR, 5 runs per platform, two laps of the closed loop (~267 m of
 ground truth per run). Figures, tables and per-run trajectories are in
 [`results/`](results/).
