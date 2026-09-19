@@ -179,14 +179,10 @@ orientation is noiseless ground truth — and should be declared as such.
 
 ```bash
 cd ~/journal_comparison
-catkin_init_workspace src     # only on a fresh clone: makes src/CMakeLists.txt
+catkin_init_workspace src
 catkin_make
 source devel/setup.bash
 ```
-
-`src/CMakeLists.txt` is not in the repository: catkin creates it as a symlink
-into the local ROS installation, so it is machine-specific.
-`catkin_init_workspace` remakes it.
 
 ## Running
 
