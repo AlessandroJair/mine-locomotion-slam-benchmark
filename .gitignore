@@ -14,3 +14,6 @@ __pycache__/
 # runtime logs, except the ones shipped with the published results
 *.log
 !results/**/*.log
+
+# catkin creates this as a symlink into /opt/ros; catkin_init_workspace remakes it
+src/CMakeLists.txt
