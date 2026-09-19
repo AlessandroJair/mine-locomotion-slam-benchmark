@@ -22,7 +22,6 @@ catkin_install_python(PROGRAMS
   scripts/twist_to_wheels.py
   scripts/rocker_differential.py
   scripts/waypoint_navigator_yaml.py
-  scripts/waypoint_recorder.py
   scripts/wheel_odom.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

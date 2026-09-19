@@ -10,18 +10,13 @@
          models, not the terrain, so nothing in this repository ever told
          Gazebo where the terrain was.
 
-         It worked anyway because ~/.bashrc exported the directory by hand.
-         That is a dependency on one developer's interactive shell, and the
-         path it exported pointed at ~/jounal_comparison - a stale duplicate of
-         this workspace, with a typo in its name.  Any run that did not source
-         that .bashrc (a script, a CI job, a background campaign) got
+         Declaring it here makes the launch self-contained; without it the
+         path depends on whatever the interactive shell exported, and a run
+         that does not get it (a script, a CI job, a background campaign) gets
          "Unable to find uri[model://lc_mine]" and a world with NO GROUND: the
-         robot spawns at z and free-falls forever while x and y never change,
-         which reads exactly like a robot that refuses to move.
-
-         Declaring it here makes the launch self-contained.  optenv keeps
-         whatever the environment already had, so an existing setup is not
-         broken by this.
+         robot free-falls in z while x and y never change, which reads exactly
+         like a robot that refuses to move.  optenv keeps whatever the
+         environment already had.
          ===================================================================== -->
     <env name="GAZEBO_MODEL_PATH"
          value="$(find gazebo_continuous_track_example)/world/mine:$(find gazebo_continuous_track_example)/model:$(optenv GAZEBO_MODEL_PATH)" />
@@ -69,46 +64,34 @@
     -->
     <arg name="spawn_x" default="33.5" />
     <arg name="spawn_y" default="0.2" />
-    <!-- 1.0 -> 1.35 on 2026-08-21.  At 1.0 this platform spawned INSIDE the
-         terrain and the simulation never ran: real-time factor 5.6e-06,
-         /gazebo/model_states silent, no error anywhere because nothing is
-         illegal about it - just impossible to solve.
+    <!-- SPAWNING THIS PLATFORM INSIDE THE TERRAIN DOES NOT FAIL, IT STALLS.
+         The continuous track carries hundreds of collision elements, and
+         hundreds of deep interpenetrations against a triangle mesh is what
+         stops ODE: real-time factor 5.6e-06, /gazebo/model_states silent, and
+         no error anywhere, because nothing about it is illegal - just
+         impossible to solve.  (Proof it is the spawn and not the model: the
+         identical robot runs at RTF 0.993 in its own example world, whose
+         ground is an analytic plane it lands on top of, and lowering the
+         solver to 50 iterations changes nothing.)
 
-         The geometry: the lowest collision point is the sprocket at -0.178 m
-         below the root link, the mine floor at (33.5, 0.2) is about 0.937 m, so
-         a root at 1.0 starts the sprockets 0.115 m UNDER the ground.  The
-         continuous track carries hundreds of collision elements, and hundreds
-         of deep interpenetrations against a triangle mesh is what stalls ODE.
-
-         Proof it was the spawn and not the model: the identical robot runs at
-         RTF 0.993 in its own example world, whose ground is an analytic plane
-         it lands on top of.  Lowering the solver to 50 iterations changed
-         nothing, which rules out solver cost.
-
-         1.35 gives 0.235 m of clearance, matching what the other two already
-         had (rocker_bogie +0.240, differential +0.420).  z is the per-platform
-         drop height and sim_config.yaml states it is not a test condition, but
-         it is declared there and check_sim_parity.py section 6 enforces it, so
-         it is updated there too. -->
+         z is the per-platform drop height, not a test condition, but it is
+         declared in sim_config.yaml and check_sim_parity.py section 6
+         enforces it, so it has to be changed in both places. -->
     <arg name="spawn_z" default="0.91" />
-    <!-- BAJADA 2026-09-01, de 1.35 a 0.91.  Medido: esta plataforma
-         reposa en z = 0.8493, asi que 1.35 dejaba 50 cm de caida.  Con
-         el contacto a kp = 1e7 ese impacto hacia GIRAR al Husky
-         16.4 grados sobre +z durante el aterrizaje, y esos grados se
-         quedaban como condicion inicial de la corrida.  Ahora la
-         caida son 6 cm: suficiente para no aparecer dentro del
-         terreno, poco para golpear. -->
+    <!-- La plataforma reposa 6 cm por debajo de este valor: suficiente para
+         no aparecer dentro del terreno, poco para golpear.  Una caida mayor
+         importa, porque con el contacto rigido el impacto hace GIRAR al
+         vehiculo en el aterrizaje y esos grados se quedan como condicion
+         inicial de la corrida. -->
     <arg name="spawn_Y" default="0.0" />
 
     <!--
       SPAWNED FROM THE SDF, NOT FROM robot_description.  Do not "modernise"
       this back to `-param ... -urdf`.
 
-      It was `-param example_two_track/robot_description -urdf` for a while, to
-      have a single authoritative definition.  The intent was right but the
-      mechanism does not survive: `spawn_model -urdf` runs the model through
-      sdformat's URDF->SDF conversion, and that conversion cannot express what
-      gazebo_continuous_track needs.  Three separate things were lost, each
+      `spawn_model -urdf` runs the model through sdformat's URDF->SDF
+      conversion, and that conversion cannot express what
+      gazebo_continuous_track needs.  Three separate things are lost, each
       failing in a way that does not look like a spawning problem at all:
 
         <robotNamespace>   The xacro does not declare one, so gazebo_ros_control

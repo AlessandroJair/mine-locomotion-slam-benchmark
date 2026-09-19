@@ -25,8 +25,6 @@ catkin_install_python(PROGRAMS
   scripts/map_vs_groundtruth.py
   scripts/plot_wheel_contact.py
   scripts/plot_ate_vs_attitude.py
-  scripts/yaw_calibration.py
-  scripts/analiza_calibracion.py
   scripts/wheel_odometry.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

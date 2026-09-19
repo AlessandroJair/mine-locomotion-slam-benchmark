@@ -10,18 +10,13 @@
          models, not the terrain, so nothing in this repository ever told
          Gazebo where the terrain was.
 
-         It worked anyway because ~/.bashrc exported the directory by hand.
-         That is a dependency on one developer's interactive shell, and the
-         path it exported pointed at ~/jounal_comparison - a stale duplicate of
-         this workspace, with a typo in its name.  Any run that did not source
-         that .bashrc (a script, a CI job, a background campaign) got
+         Declaring it here makes the launch self-contained; without it the
+         path depends on whatever the interactive shell exported, and a run
+         that does not get it (a script, a CI job, a background campaign) gets
          "Unable to find uri[model://lc_mine]" and a world with NO GROUND: the
-         robot spawns at z and free-falls forever while x and y never change,
-         which reads exactly like a robot that refuses to move.
-
-         Declaring it here makes the launch self-contained.  optenv keeps
-         whatever the environment already had, so an existing setup is not
-         broken by this.
+         robot free-falls in z while x and y never change, which reads exactly
+         like a robot that refuses to move.  optenv keeps whatever the
+         environment already had.
          ===================================================================== -->
     <env name="GAZEBO_MODEL_PATH"
          value="$(find differential)/world/mine:$(optenv GAZEBO_MODEL_PATH)" />
@@ -78,13 +73,11 @@
     <arg name="spawn_x" default="33.5" />
     <arg name="spawn_y" default="0.2" />
     <arg name="spawn_z" default="1.15025" />
-    <!-- BAJADA 2026-09-01, de 1.5 a 1.18.  Medido: esta plataforma
-         reposa en z = 1.1171, asi que 1.5 dejaba 38 cm de caida.  Con
-         el contacto a kp = 1e7 ese impacto hacia GIRAR al Husky
-         16.4 grados sobre +z durante el aterrizaje, y esos grados se
-         quedaban como condicion inicial de la corrida.  Ahora la
-         caida son 6 cm: suficiente para no aparecer dentro del
-         terreno, poco para golpear. -->
+    <!-- La plataforma reposa 6 cm por debajo de este valor: suficiente para
+         no aparecer dentro del terreno, poco para golpear.  Una caida mayor
+         importa, porque con el contacto rigido el impacto hace GIRAR al
+         vehiculo en el aterrizaje y esos grados se quedan como condicion
+         inicial de la corrida. -->
     <arg name="spawn_Y" default="0.0" />
 
     <!-- =====================================================================
@@ -93,17 +86,14 @@
          normal  el gpu_ray monolitico: 1875x16 rayos disparados TODOS en el
                  mismo instante, asi que la nube no puede tener distorsion de
                  movimiento.  Es el sensor con el que se tomo la campaña.
-         sliced  el mismo LiDAR partido en 40 pedazos sobre un rotor que gira a
-                 10 Hz, como un VLP-16 real.  Cada rebanada sale de la pose que
-                 el robot tenia en ese instante, y el ensamblado solo corrige
-                 el rotor - no el movimiento del vehiculo - que es justo lo que
-                 hace un driver sin de-skew.
+         swept   la misma nube con la distorsion de barrido metida por
+                 formulas (robot_metrics/scripts/sweep_distortion.py), como la
+                 mediria un VLP-16 real que barre durante 100 ms.
 
-         El modelo troceado se DERIVA del model.sdf en cada arranque, no hay
-         una segunda copia en el repositorio que pueda quedarse atras.  Las
-         caracteristicas del VLP-16 (resolucion angular, 16 anillos, rango,
-         ruido sembrado) se heredan del sensor original: lo unico que cambia
-         entre los dos modos es la temporizacion.
+         EL SENSOR NO CAMBIA entre los dos modos: el modelo spawneado es el
+         mismo salvo el topic, asi que resolucion angular, 16 anillos, rango y
+         ruido sembrado son literalmente los mismos objetos.  Lo unico que
+         cambia es la temporizacion.
          ===================================================================== -->
     <arg name="lidar" default="normal" />
 
@@ -144,14 +134,13 @@
         <param name="robot_description" command="xacro --inorder '$(find differential)/urdf_xacro/husky_gazebo.urdf.xacro'" />
 
         <!--
-          Drive controllers.  The Husky used to be driven by
-          libgazebo_ros_skid_steer_drive.so, which wrote target velocities and
-          an fmax straight onto the ODE joint motors: a RIGID velocity source
-          with zero droop under load, where the other two platforms sag through
-          a PID velocity loop.  Equal torque ceilings do not make platforms
-          comparable when one of them responds to load in a different way, so
-          this one now runs the same gazebo_ros_control loop they do.  The four
-          VelocityJointInterface transmissions were already in husky.urdf.xacro.
+          Drive controllers.  This platform runs the SAME gazebo_ros_control
+          velocity loop as the other two.  A skid-steer drive plugin would
+          not be comparable: it writes target velocities and an fmax straight
+          onto the ODE joint motors, i.e. a rigid velocity source with zero
+          droop under load, while the other two sag through a PID loop.  Equal
+          torque ceilings do not make platforms comparable when one of them
+          responds to load in a different way.
         -->
         <rosparam>
             joint_state_controller:
@@ -209,12 +198,10 @@
               output="screen" />
 
         <!--
-          cmd_vel -> four wheel velocities.  Replaces the command half of the
-          old drive plugin.  Subscribes to cmd_vel in this namespace, i.e.
-          /husky/cmd_vel, which is where move_base.launch remaps it.
-          track_width and wheel_radius are the values the old plugin used
-          (wheelSeparation 0.5709, wheelDiameter 0.3555), so the kinematics are
-          unchanged - only the loop underneath them is.
+          cmd_vel -> four wheel velocities.  Subscribes to cmd_vel in this
+          namespace, i.e. /husky/cmd_vel, which is where move_base.launch
+          remaps it.  track_width and wheel_radius are the Husky's own
+          kinematic figures (wheelSeparation 0.5709, wheelDiameter 0.3555).
         -->
         <node name="twist_to_wheels" pkg="differential" type="twist_to_wheels.py" output="screen">
             <param name="track_width"  value="0.5709" />

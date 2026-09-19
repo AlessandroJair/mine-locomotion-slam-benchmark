@@ -210,35 +210,24 @@
     <!-- ================= VELODYNE VLP-16 LIDAR ================= -->
     <link name="velodyne_base_link">
       <!-- SENSOR STANDARDIZATION (see robot_metrics/README.md section 1.5).
-           Native pose was "0 0 0.4", i.e. 0.4 + 0.0377 (internal sensor pose)
-           - (-0.1428) (contact plane) = 0.5805 m above the wheel contact plane.
            All three platforms are referred to a COMMON ray-origin height so
            that a given chassis tilt displaces every LiDAR by the same amount:
 
-             z_link = 0.6700 + (-0.1428) - 0.0377 = 0.4895
+             z_link = lidar_height + contact_plane - internal_sensor_pose
 
-           RAISED FROM 0.8248 m TO 0.9000 m on 2026-08-26.  0.8248 m was the
-           Rocker-Bogie's native height and it sits so close to the chassis
-           tops that the LOWEST of the 16 rings clips the robot's own geometry:
-           swept over the visuals of every link, the -15 deg ring was blocked
-           by 7.5 deg here (by camera_link, at r = 0.371 m), and 0.87% of the
-           sphere came back empty.  The monolithic gpu_ray never showed it -
-           Gazebo does not let a ray sensor see the visual of its own link, and
-           the Velodyne hangs off exactly that link - but the sliced LiDAR's
-           wedge rides on a link of its own (velodyne_rotor_link), so the whole
-           robot turns opaque to it and those rings simply vanish.  At 0.9000 m
-           every ring clears every part of all three chassis: margin 3.5 deg
-           here, 5.3 deg on the tracked, 4.2 deg on the Rocker-Bogie.
+           with lidar_height from sim_config.yaml.  The height also has to
+           clear the platform's own geometry, which the monolithic gpu_ray
+           will NOT show you - Gazebo does not let a ray sensor see the visual
+           of its own link, and the Velodyne hangs off exactly that link.
+           Check the margin with robot_metrics/scripts/lidar_occlusion.py.
 
-           The 0.83 kg sensor mass is retained at the new height; the mast that
-           carries it is treated as massless (see README section 1.5).
+           The 0.83 kg sensor mass is retained at the standardised height; the
+           mast that carries it is treated as massless (README section 1.5).
 
            KEEP IN SYNC with differential/urdf_xacro/husky.urdf.xacro.  This
            SDF is what Gazebo spawns; the xacro is what robot_state_publisher
-           turns into TF.  They disagreed by 0.2443 m until 2026-08-26 - the
-           xacro still carried the native 0.4 - so every cloud was transformed
-           as if its rays had left a quarter of a metre below where they
-           actually did. -->
+           turns into TF.  If they disagree, every cloud is transformed as if
+           its rays had left somewhere the sensor is not. -->
       <pose>0 0 0.51925 0 0 0</pose>
       <inertial>
         <mass>0.825345</mass>
@@ -344,19 +333,18 @@
     <!-- ================= IMU SENSOR ================= -->
     <link name='imu_link'>
       <!-- SENSOR STANDARDIZATION: EL IMU VA EN EL CENTRO DE MASAS.
-           Cambiado 2026-09-04.  Antes las tres plataformas llevaban el IMU a
-           la misma altura sobre el suelo (0.6969 m), que es la regla correcta
-           para el LiDAR y la camara -lo que ven depende de su altura- y la
-           equivocada para un inercial: un acelerometro mide
+           Igualar la ALTURA SOBRE EL SUELO es la regla correcta para el LiDAR
+           y la camara -lo que ven depende de su altura- y la equivocada para
+           un inercial: un acelerometro mide
 
                a_sensor = a_cm + alpha x r + omega x (omega x r)
 
-           con r desde el CENTRO DE MASAS.  Igualando la altura sobre el suelo
-           los brazos quedaban en 0.360 / 0.485 / 0.238 m (husky / tracked /
-           rocker): un factor 2.04, porque los tres tienen el CM a alturas muy
-           distintas (0.343 / 0.212 / 0.459 m).  Con el mismo balanceo de
-           chasis el IMU del tracked leia el doble de termino de brazo que el
-           del rocker, y eso no es una propiedad de la locomocion.
+           con r desde el CENTRO DE MASAS.  Con la altura igualada los brazos
+           quedaban en 0.360 / 0.485 / 0.238 m (husky / tracked / rocker), un
+           factor 2.04, porque los tres tienen el CM a alturas muy distintas
+           (0.343 / 0.212 / 0.459 m): con el mismo balanceo de chasis el IMU
+           del tracked leia el doble de termino de brazo que el del rocker, y
+           eso no es una propiedad de la locomocion.
 
            r = 0 y no un |r| comun: alpha x r depende del VECTOR r, no de su
            modulo, asi que dos brazos iguales en modulo y distintos en
@@ -364,8 +352,8 @@
            tres que ademas es canonico es el cero.
 
            El punto es el CM del robot SIN el IMU (solucion exacta de
-           p = c(p); el IMU pesa 0.0149 kg de 45).  Recalcular con
-           ~/imu_target.py si cambia cualquier masa. -->
+           p = c(p); el IMU pesa 0.0149 kg de 45).  Recalcular si cambia
+           cualquier masa. -->
       <!-- MUST MATCH el imu_joint de urdf_xacro/husky.urdf.xacro y la copia
            de model/model.sdf.  CM del husky sin el IMU, en base_link. -->
       <pose>-0.063983 -0.000629 0.196003 0 0 0</pose>
@@ -522,38 +510,21 @@
             <length>0.1143</length>
           </cylinder>
         </geometry>
-        <!-- Contact model equalised with the Rocker-Bogie 2026-08-20.  Was
-             mu 100000 / mu2 100000 / slip2 0.1 with no <contact> block, i.e.
-             unlimited grip in both directions on ODE's default 1e12 contact.
-             This is the file Gazebo actually spawns; husky_gazebo.urdf.xacro
-             declares its own, different values that never take effect.
+        <!-- Contact model shared with the other two platforms: declared in
+             sim_config.yaml under robot_contact and checked by
+             check_sim_parity.py.  THIS is the file Gazebo spawns;
+             husky_gazebo.urdf.xacro declares its own values that never take
+             effect.
 
-             mu EQUALISED WITH THE TRACKED PLATFORM 2026-08-28: 100.0 ->
-             0.75.  mu is the coefficient along fdir1 - +x of the collision
-             frame, i.e. the rolling direction - and mu2 the one across it,
-             so 100.0 / 0.75 declared an ANISOTROPIC tyre: ODE takes the
-             minimum against the surface it touches, giving 1.0 longitudinal
-             on the mu 1.0 gallery floor against 0.75 lateral.  The tracks
-             declare 0.75 / 0.75 and the Rocker-Bogie declared the same
-             100.0 / 0.75 as this file, so the three platforms were driving
-             on two different contact models and nothing checked it.  With
-             mu == mu2 the friction is isotropic and fdir1 no longer selects
-             anything; it is kept only so the frame the coefficients refer
-             to stays on the record.
-
-             REVERTIDO A 1.0 / 0.75 EL 2026-09-01, CON MEDIDA.  La isotropia
-             le quito al Husky la capacidad de girar: un skid-steer rota
-             porque agarra mas rodando que de lado, y con mu == mu2 el
-             arrastre lateral resiste tanto como el motriz empuja.  Con esta
-             batalla (0.512 m) y esta via (0.5709 m) el margen de giro cae de
-             1.49 a 1.12.  En el banco de guiñada el techo era 0.141 rad/s de
-             1.0 pedido y no rotaba parado; con mu 1.0 sube a 0.265.  fdir1
-             vuelve a seleccionar la direccion de rodadura.
-             No rompe la paridad que importa: mu2 -el arrastre- sigue en 0.75
-             en las tres, y el encabezado del mundo dice que la friccion del
-             lado de la RUEDA es propiedad de la plataforma, no sesgo de
-             ensayo.  Declarado en sim_config.yaml under
-             robot_contact and checked by check_sim_parity.py. -->
+             mu is the coefficient along fdir1 -+x of the collision frame, the
+             rolling direction- and mu2 the one across it, and ODE takes the
+             MINIMUM against the surface it touches.  The anisotropy is what
+             lets a skid-steer rotate: it grips more rolling than sideways.
+             With mu == mu2 the drag resists as hard as the drive pushes and
+             this platform loses its turn - measured, the yaw ceiling fell to
+             0.141 rad/s of 1.0 commanded and it would not rotate on the spot,
+             against 0.265 with mu 1.0.  mu2 stays at 0.75 on all three, which
+             is the parity that matters. -->
         <surface>
           <friction>
             <ode>
@@ -632,38 +603,21 @@
             <length>0.1143</length>
           </cylinder>
         </geometry>
-        <!-- Contact model equalised with the Rocker-Bogie 2026-08-20.  Was
-             mu 100000 / mu2 100000 / slip2 0.1 with no <contact> block, i.e.
-             unlimited grip in both directions on ODE's default 1e12 contact.
-             This is the file Gazebo actually spawns; husky_gazebo.urdf.xacro
-             declares its own, different values that never take effect.
+        <!-- Contact model shared with the other two platforms: declared in
+             sim_config.yaml under robot_contact and checked by
+             check_sim_parity.py.  THIS is the file Gazebo spawns;
+             husky_gazebo.urdf.xacro declares its own values that never take
+             effect.
 
-             mu EQUALISED WITH THE TRACKED PLATFORM 2026-08-28: 100.0 ->
-             0.75.  mu is the coefficient along fdir1 - +x of the collision
-             frame, i.e. the rolling direction - and mu2 the one across it,
-             so 100.0 / 0.75 declared an ANISOTROPIC tyre: ODE takes the
-             minimum against the surface it touches, giving 1.0 longitudinal
-             on the mu 1.0 gallery floor against 0.75 lateral.  The tracks
-             declare 0.75 / 0.75 and the Rocker-Bogie declared the same
-             100.0 / 0.75 as this file, so the three platforms were driving
-             on two different contact models and nothing checked it.  With
-             mu == mu2 the friction is isotropic and fdir1 no longer selects
-             anything; it is kept only so the frame the coefficients refer
-             to stays on the record.
-
-             REVERTIDO A 1.0 / 0.75 EL 2026-09-01, CON MEDIDA.  La isotropia
-             le quito al Husky la capacidad de girar: un skid-steer rota
-             porque agarra mas rodando que de lado, y con mu == mu2 el
-             arrastre lateral resiste tanto como el motriz empuja.  Con esta
-             batalla (0.512 m) y esta via (0.5709 m) el margen de giro cae de
-             1.49 a 1.12.  En el banco de guiñada el techo era 0.141 rad/s de
-             1.0 pedido y no rotaba parado; con mu 1.0 sube a 0.265.  fdir1
-             vuelve a seleccionar la direccion de rodadura.
-             No rompe la paridad que importa: mu2 -el arrastre- sigue en 0.75
-             en las tres, y el encabezado del mundo dice que la friccion del
-             lado de la RUEDA es propiedad de la plataforma, no sesgo de
-             ensayo.  Declarado en sim_config.yaml under
-             robot_contact and checked by check_sim_parity.py. -->
+             mu is the coefficient along fdir1 -+x of the collision frame, the
+             rolling direction- and mu2 the one across it, and ODE takes the
+             MINIMUM against the surface it touches.  The anisotropy is what
+             lets a skid-steer rotate: it grips more rolling than sideways.
+             With mu == mu2 the drag resists as hard as the drive pushes and
+             this platform loses its turn - measured, the yaw ceiling fell to
+             0.141 rad/s of 1.0 commanded and it would not rotate on the spot,
+             against 0.265 with mu 1.0.  mu2 stays at 0.75 on all three, which
+             is the parity that matters. -->
         <surface>
           <friction>
             <ode>
@@ -742,38 +696,21 @@
             <length>0.1143</length>
           </cylinder>
         </geometry>
-        <!-- Contact model equalised with the Rocker-Bogie 2026-08-20.  Was
-             mu 100000 / mu2 100000 / slip2 0.1 with no <contact> block, i.e.
-             unlimited grip in both directions on ODE's default 1e12 contact.
-             This is the file Gazebo actually spawns; husky_gazebo.urdf.xacro
-             declares its own, different values that never take effect.
+        <!-- Contact model shared with the other two platforms: declared in
+             sim_config.yaml under robot_contact and checked by
+             check_sim_parity.py.  THIS is the file Gazebo spawns;
+             husky_gazebo.urdf.xacro declares its own values that never take
+             effect.
 
-             mu EQUALISED WITH THE TRACKED PLATFORM 2026-08-28: 100.0 ->
-             0.75.  mu is the coefficient along fdir1 - +x of the collision
-             frame, i.e. the rolling direction - and mu2 the one across it,
-             so 100.0 / 0.75 declared an ANISOTROPIC tyre: ODE takes the
-             minimum against the surface it touches, giving 1.0 longitudinal
-             on the mu 1.0 gallery floor against 0.75 lateral.  The tracks
-             declare 0.75 / 0.75 and the Rocker-Bogie declared the same
-             100.0 / 0.75 as this file, so the three platforms were driving
-             on two different contact models and nothing checked it.  With
-             mu == mu2 the friction is isotropic and fdir1 no longer selects
-             anything; it is kept only so the frame the coefficients refer
-             to stays on the record.
-
-             REVERTIDO A 1.0 / 0.75 EL 2026-09-01, CON MEDIDA.  La isotropia
-             le quito al Husky la capacidad de girar: un skid-steer rota
-             porque agarra mas rodando que de lado, y con mu == mu2 el
-             arrastre lateral resiste tanto como el motriz empuja.  Con esta
-             batalla (0.512 m) y esta via (0.5709 m) el margen de giro cae de
-             1.49 a 1.12.  En el banco de guiñada el techo era 0.141 rad/s de
-             1.0 pedido y no rotaba parado; con mu 1.0 sube a 0.265.  fdir1
-             vuelve a seleccionar la direccion de rodadura.
-             No rompe la paridad que importa: mu2 -el arrastre- sigue en 0.75
-             en las tres, y el encabezado del mundo dice que la friccion del
-             lado de la RUEDA es propiedad de la plataforma, no sesgo de
-             ensayo.  Declarado en sim_config.yaml under
-             robot_contact and checked by check_sim_parity.py. -->
+             mu is the coefficient along fdir1 -+x of the collision frame, the
+             rolling direction- and mu2 the one across it, and ODE takes the
+             MINIMUM against the surface it touches.  The anisotropy is what
+             lets a skid-steer rotate: it grips more rolling than sideways.
+             With mu == mu2 the drag resists as hard as the drive pushes and
+             this platform loses its turn - measured, the yaw ceiling fell to
+             0.141 rad/s of 1.0 commanded and it would not rotate on the spot,
+             against 0.265 with mu 1.0.  mu2 stays at 0.75 on all three, which
+             is the parity that matters. -->
         <surface>
           <friction>
             <ode>
@@ -852,38 +789,21 @@
             <length>0.1143</length>
           </cylinder>
         </geometry>
-        <!-- Contact model equalised with the Rocker-Bogie 2026-08-20.  Was
-             mu 100000 / mu2 100000 / slip2 0.1 with no <contact> block, i.e.
-             unlimited grip in both directions on ODE's default 1e12 contact.
-             This is the file Gazebo actually spawns; husky_gazebo.urdf.xacro
-             declares its own, different values that never take effect.
+        <!-- Contact model shared with the other two platforms: declared in
+             sim_config.yaml under robot_contact and checked by
+             check_sim_parity.py.  THIS is the file Gazebo spawns;
+             husky_gazebo.urdf.xacro declares its own values that never take
+             effect.
 
-             mu EQUALISED WITH THE TRACKED PLATFORM 2026-08-28: 100.0 ->
-             0.75.  mu is the coefficient along fdir1 - +x of the collision
-             frame, i.e. the rolling direction - and mu2 the one across it,
-             so 100.0 / 0.75 declared an ANISOTROPIC tyre: ODE takes the
-             minimum against the surface it touches, giving 1.0 longitudinal
-             on the mu 1.0 gallery floor against 0.75 lateral.  The tracks
-             declare 0.75 / 0.75 and the Rocker-Bogie declared the same
-             100.0 / 0.75 as this file, so the three platforms were driving
-             on two different contact models and nothing checked it.  With
-             mu == mu2 the friction is isotropic and fdir1 no longer selects
-             anything; it is kept only so the frame the coefficients refer
-             to stays on the record.
-
-             REVERTIDO A 1.0 / 0.75 EL 2026-09-01, CON MEDIDA.  La isotropia
-             le quito al Husky la capacidad de girar: un skid-steer rota
-             porque agarra mas rodando que de lado, y con mu == mu2 el
-             arrastre lateral resiste tanto como el motriz empuja.  Con esta
-             batalla (0.512 m) y esta via (0.5709 m) el margen de giro cae de
-             1.49 a 1.12.  En el banco de guiñada el techo era 0.141 rad/s de
-             1.0 pedido y no rotaba parado; con mu 1.0 sube a 0.265.  fdir1
-             vuelve a seleccionar la direccion de rodadura.
-             No rompe la paridad que importa: mu2 -el arrastre- sigue en 0.75
-             en las tres, y el encabezado del mundo dice que la friccion del
-             lado de la RUEDA es propiedad de la plataforma, no sesgo de
-             ensayo.  Declarado en sim_config.yaml under
-             robot_contact and checked by check_sim_parity.py. -->
+             mu is the coefficient along fdir1 -+x of the collision frame, the
+             rolling direction- and mu2 the one across it, and ODE takes the
+             MINIMUM against the surface it touches.  The anisotropy is what
+             lets a skid-steer rotate: it grips more rolling than sideways.
+             With mu == mu2 the drag resists as hard as the drive pushes and
+             this platform loses its turn - measured, the yaw ceiling fell to
+             0.141 rad/s of 1.0 commanded and it would not rotate on the spot,
+             against 0.265 with mu 1.0.  mu2 stays at 0.75 on all three, which
+             is the parity that matters. -->
         <surface>
           <friction>
             <ode>

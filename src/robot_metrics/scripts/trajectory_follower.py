@@ -88,27 +88,18 @@ class Follower(object):
         self.v_max = rospy.get_param('~max_vel_x', 0.5)
         self.w_max = rospy.get_param('~max_vel_theta', 1.0)
         self.goal_tol = rospy.get_param('~goal_tolerance', 0.5)  # m
-        # CIERRE DEL LAZO.  La condicion de fin era
-        #     i >= len(self.pts) - 2 and hypot(fin - pos) < goal_tolerance
-        # y las dos mitades dejaban ruta sin recorrer.  El indice paraba DOS
-        # puntos antes del final -- con el remuestreo a 0.25 m, medio metro-
-        # y la tolerancia permitia ademas quedarse a 0.5 m del punto final.
-        # Medido en el run01 del 2026-08-31: la ruta cierra exacto (ultimo
-        # punto = primero) pero el recorrido del robot abria 0.293 m, y el log
-        # decia "reached point 545 of 547".
-        #
-        # Ahora hay que alcanzar el ultimo punto de verdad, y con una
-        # tolerancia propia mas apretada que la de navegacion.
+        # CIERRE DEL LAZO.  Hay que alcanzar el ultimo punto de verdad, y con
+        # una tolerancia propia mas apretada que la de navegacion: con la de
+        # goal_tolerance el robot podia quedarse a medio metro del final y la
+        # vuelta cerraba abierta.
         self.close_tol = rospy.get_param('~close_tolerance', 0.15)   # m
         # Salvavidas: si el robot ronda el final sin entrar en close_tol, la
         # corrida acabaria en el tope de --duration y se perderia entera.  Se
         # cierra igual y se DEJA ESCRITO el hueco que quedo, que es el dato.
         #
-        # 15 s, POR DEBAJO de los 25 s de stuck_time del vigia.  Con 30 s no
-        # llegaba a actuar nunca: el vigia abortaba primero y la corrida se
-        # perdia entera en vez de cerrarse con su hueco anotado.  Paso el
-        # 2026-09-01 -guard_trip.yaml: "wedged ... commanded for 100% of
-        # 25.0 s"- con la vuelta ya recorrida y el robot a 4 mm del final.
+        # 15 s, POR DEBAJO de los 25 s de stuck_time del vigia: por encima no
+        # llega a actuar nunca -el vigia aborta primero y la corrida se pierde
+        # entera en vez de cerrarse con su hueco anotado-.
         self.close_timeout = rospy.get_param('~close_timeout', 15.0)  # s
         self._close_since = None
         # Hueco con el que se cerro cada vuelta, para el informe final.
@@ -117,8 +108,8 @@ class Follower(object):
         self.k_curve = rospy.get_param('~curve_slowdown', 0.6)
         self.align_thresh = rospy.get_param('~align_threshold', 0.8)  # rad
         # ---- correccion de rumbo SIN girar sobre el sitio -----------------
-        # Medido el 2026-09-05 sobre el banco de rampa cruzada, con la misma
-        # actitud de partida y el mismo terreno:
+        # Medido sobre el banco de rampa cruzada, con la misma actitud de
+        # partida y el mismo terreno:
         #
         #     arco (v 0.25, w 0.35)          5.59 ruedas de 6
         #     giro sobre el sitio (w 0.50)   3.55 ruedas, rev_3 barriendo
@@ -148,19 +139,16 @@ class Follower(object):
         self.min_aim_dist = rospy.get_param('~min_aim_dist', 0.25)   # m
         self.reverse_ok = rospy.get_param('~allow_reverse', False)
 
-        # ---- tracking, revised 2026-08-24 --------------------------------
-        # Measured on differential/run01 over the 137.17 m path: cross-track
-        # error mean 0.281 m, p95 0.680 m, max 0.873 m, 48.6% of the run more
-        # than 0.25 m off.  The worst point sat in the west->north corner, so
-        # the error was concentrated in the corners.  That is corner cutting,
-        # and it has two causes, both of them structural rather than tuning:
+        # ---- tracking ----------------------------------------------------
+        # The error of a naive pure pursuit concentrates in the corners - it
+        # cuts them - and that has two structural causes, not tuning ones:
         #
         #  * Pure pursuit aims at a point a fixed distance ahead ON the path
         #    and steers at the curvature that reaches it.  On a curve that
         #    leaves a steady-state offset: the vehicle settles INSIDE the arc
         #    and stays there, because the geometry is satisfied there.  The
-        #    cross-track error was computed every cycle and used only for the
-        #    report - it never entered the control law.  ~k_xte closes it.
+        #    cross-track error has to enter the control law to close it, which
+        #    is what ~k_xte does.
         #
         #  * A fixed lookahead cannot suit both cases.  At 1.0 m it was long
         #    for a 2-3 m radius corner (the chord cuts) and short for a
@@ -168,20 +156,18 @@ class Follower(object):
         #    speed the vehicle is actually being given, which is short in the
         #    corners - where it slows down - and long on the straights.
         #
-        # Set k_xte to 0.0 and lookahead_min = lookahead_max = 1.0 to recover
-        # the behaviour of every run before 2026-08-24.
-        # ACORTADO EL 2026-09-04.  Era 0.6 + 1.6*v con tope 1.6.
+        # Set k_xte to 0.0 and lookahead_min = lookahead_max = 1.0 for a plain
+        # fixed-lookahead pure pursuit.
         #
-        # El barrido del 2026-09-01 probo lookaheads mas LARGOS y vio que
-        # empeoraban; no probo mas cortos, y ahi estaba la palanca.  Banco
-        # frio nuevo (~/banco_seguidor3.py): planta de guiñada identificada de
-        # las corridas -ganancia en permanente y constante de tiempo- y lazo
+        # EL LOOKAHEAD ES LA PALANCA, y hacia ABAJO.  Banco frio
+        # (test/banco_seguidor3.py): planta de guiñada identificada de las
+        # corridas -ganancia en permanente y constante de tiempo- y lazo
         # cerrado contra la ruta de referencia real.  Error lateral medio:
         #
         #     L = min + k*v (tope)   differential   tracked   rocker
-        #     0.60 + 1.6 v (1.6)        0.103        0.025     0.054   <- era
+        #     0.60 + 1.6 v (1.6)        0.103        0.025     0.054
         #     0.40 + 1.0 v (1.2)        0.054        0.017     0.023
-        #     0.30 + 0.8 v (1.0)        0.041        0.012     0.017   <- es
+        #     0.30 + 0.8 v (1.0)        0.041        0.012     0.017   <- este
         #     0.25 + 0.6 v (0.9)        0.026        0.009     0.014
         #     0.20 + 0.5 v (0.8)        0.024        0.006     0.017
         #
@@ -206,18 +192,16 @@ class Follower(object):
         # (0.22 -> 0.24).
         #
         # LO QUE SE PROBO Y NO SIRVE: accion integral sobre el error lateral.
-        # Barrida k_i de 0.1 a 1.2 en ~/banco_seguidor.py, EMPEORA LAS TRES
+        # Barrida k_i de 0.1 a 1.2 en test/banco_seguidor.py, EMPEORA LAS TRES
         # de forma monotona (differential 0.103 -> 0.174 con k_i 1.2).  El
         # error de esta ruta no es un sesgo constante que una integral pueda
         # anular: son curvas que alternan de signo, y la integral solo mete
-        # retardo de fase en un lazo que ya va justo.  Se deja anotado para no
-        # volver a intentarlo.
+        # retardo de fase en un lazo que ya va justo.
         #
         # La velocidad casi no se mueve, que era el riesgo: el lookahead corto
         # pide mas curvatura y curve_slowdown frena con ella.  Medido en el
-        # banco: differential 0.416 -> 0.429, tracked 0.464 -> 0.466, rocker
-        # 0.439 -> 0.454 m/s.  La horquilla entre plataformas se ESTRECHA del
-        # 11 % al 8 %, que va en la direccion buena para las nubes/m.
+        # banco, la horquilla entre plataformas se ESTRECHA del 11 % al 8 %,
+        # que va en la direccion buena para las nubes/m.
         self.lookahead = rospy.get_param('~lookahead', 1.0)     # m, fallback
         self.la_min = rospy.get_param('~lookahead_min', 0.30)   # m
         self.la_max = rospy.get_param('~lookahead_max', 1.0)    # m
@@ -225,35 +209,26 @@ class Follower(object):
         # Curvature added per metre of cross-track error, 1/m^2.  Pure pursuit
         # supplies the damping - it is already looking ahead - so this stays
         # small; it is clamped below so a transient cannot saturate the turn.
-        # SUBIDO DE 0.8 A 2.5 EL 2026-09-01, con medida.
-        #
-        #     El 0.8 se ajusto cuando el Husky entregaba el 7 % de la guiñada que se le
-        #     pedia.  Ahora entrega el 36 %, asi que la ganancia efectiva del lazo
-        #     cambio y el valor viejo se quedo corto: en la corrida que volco, el robot
-        #     aguanto 0.93 m de desvio durante 5 m de recta LLANA antes de meterse en
-        #     la ladera, con el mando pidiendo +0.38 rad/s sin saturar.  No es que el
-        #     controlador se atascase; es que corregia demasiado despacio.
-        #
-        #     Barrido en frio contra las curvas alfa(w) medidas, arrancando 0.90 m
-        #     fuera -el desvio real, no uno de juguete-.  Metros hasta volver a +-10 cm:
+        # 2.5, medido: barrido en frio contra las curvas alfa(w) de cada
+        # plataforma, arrancando 0.90 m fuera -un desvio real, no uno de
+        # juguete-.  Metros hasta volver a +-10 cm:
         #
         #         k_xte      differential   tracked   rocker
         #         0.8            25.9 m      8.6 m    3.4 m
         #         2.5            10.9 m      6.4 m    2.8 m
         #
-        #     Mejora las tres y la sobreoscilacion BAJA en todas (0.33 -> 0.30 en el
-        #     Husky), asi que no hay que elegir entre plataformas.
+        # Mejora las tres y la sobreoscilacion BAJA en todas, asi que no hay
+        # que elegir entre plataformas.
         #
-        #     xte_curv_max se queda en 0.5 A PROPOSITO.  Subirlo empeora: con k_xte
-        #     2.5, pasar el tope a 2.0 sube el recorrido de 10.9 a 12.6 m y la
-        #     sobreoscilacion de 0.30 a 0.43.  El clamp hace de amortiguador, no de
-        #     estorbo.
+        # xte_curv_max se queda en 0.5 A PROPOSITO.  Subirlo empeora: con
+        # k_xte 2.5, pasar el tope a 2.0 sube el recorrido de 10.9 a 12.6 m y
+        # la sobreoscilacion de 0.30 a 0.43.  El clamp amortigua, no estorba.
         self.k_xte = rospy.get_param('~k_xte', 2.5)
         self.xte_curv_max = rospy.get_param('~xte_curv_max', 0.5)   # 1/m
-        # w = curv * v is the arc the vehicle is asked to trace.  The old code
-        # used max(v, 0.15), which over-rotates whenever the curve slowdown
-        # takes v below that - i.e. exactly in the corners.  Kept as a floor
-        # so the vehicle still turns when nearly stopped, but exposed.
+        # w = curv * v is the arc the vehicle is asked to trace.  A floor much
+        # above zero over-rotates whenever the curve slowdown takes v below it,
+        # i.e. exactly in the corners; it is kept small so the vehicle still
+        # turns when nearly stopped, and exposed so it can be checked.
         self.w_v_floor = rospy.get_param('~w_v_floor', 0.10)
         self.last_v = 0.0
 
@@ -264,20 +239,14 @@ class Follower(object):
         # vehicle at different points, and the comparison would be measuring the
         # guard rather than the locomotion.
         #
-        # Why this exists.  rearing_guard cancels a move_base GOAL, and there is
-        # no move_base here, so nothing was watching.  Measured 2026-08-23 on
-        # rocker_bogie, second lap, at (54.6, -28.5) on the step descent: the
-        # vehicle wedged, ground speed fell to 0.062 m/s against 0.5 m/s
-        # commanded and stayed there ~2 s while the drive kept pushing, the
-        # suspension loaded against its joint stops, and the constraint released
-        # explosively - 12.35 rad/s (708 deg/s), 190.9 rad/s^2 of roll
-        # acceleration and 4.2 m/s of ground speed, against 1.09 rad/s,
-        # 15.6 rad/s^2 and 0.96 m/s for the whole rest of that run.  The vehicle
-        # ended inverted.  route_mine.yaml records the same solver artefact at
-        # 1150 deg/s and 13.3 m/s.  The stall is the precondition: back off
-        # before the energy accumulates and the release does not happen.
-        # An earlier run wedged at the same step and pushed for 17 minutes of
-        # wall clock without anything noticing.
+        # Why this exists.  rearing_guard cancels a move_base GOAL, and there
+        # is no move_base here, so nothing else is watching.  A wedged vehicle
+        # whose drive keeps pushing loads the suspension against its joint
+        # stops until the constraint releases explosively: measured on the step
+        # descent, 12.35 rad/s (708 deg/s) and 190.9 rad/s^2 of roll against
+        # 1.09 rad/s and 15.6 rad/s^2 for the rest of that run, and the vehicle
+        # ended inverted.  The stall is the precondition: back off before the
+        # energy accumulates and the release does not happen.
         self.commanded_min = rospy.get_param('~commanded_min', 0.15)
         self.speed_max = rospy.get_param('~speed_max', 0.05)
         self.stall_time = rospy.get_param('~stall_time', 1.0)
@@ -289,13 +258,10 @@ class Follower(object):
         # produces a run nobody can use.  0 disables the abort.
         self.max_stalls = rospy.get_param('~max_stalls', 8)
         # Donde avisar que la corrida se aborto.  Lo pone run_campaign.sh.
-        # Sin esto el abort era INVISIBLE para la campana: el seguidor
-        # bajaba la corrida correctamente, metrics_logger alcanzaba a
-        # escribir un metrics.csv perfectamente valido de los metros que
-        # se hicieron, y run_campaign.sh la daba por buena porque ese
-        # archivo existe.  Medido 2026-08-24: differential/run01 quedo en
-        # disco con paper_usable: true y 50.9 m de 274.6 m, lista para que
-        # aggregate_runs.py la promediara con las completas.
+        # Sin esto el abort es INVISIBLE para la campana: metrics_logger
+        # alcanza a escribir un metrics.csv perfectamente valido de los metros
+        # que se hicieron y la corrida queda en disco marcada como buena, lista
+        # para que aggregate_runs.py la promedie con las completas.
         self.trip_file = rospy.get_param('~trip_file', '')
 
         with open(path_file) as fh:
@@ -592,15 +558,11 @@ class Follower(object):
         # finished?
         ex, ey = self.pts[-1]
         d_fin = math.hypot(ex - x, ey - y)
-        # EL CIERRE SE DECIDE POR DISTANCIA, NO POR INDICE.
-        #
-        # Exigir i >= len(pts) - 1 era tan fragil como el "- 2" que vino a
-        # sustituir, y por el motivo contrario: nearest() devuelve el punto
-        # MAS CERCANO, y sobre el final del lazo -que coincide con el
-        # inicio- el mas cercano puede seguir siendo el 543 de 545.  El
-        # 2026-09-01 el Husky estuvo 22 s a 4 mm del punto final, cumpliendo
-        # close_tolerance de sobra, y la vuelta no se dio por cerrada porque
-        # el indice nunca llego al ultimo.
+        # EL CIERRE SE DECIDE POR DISTANCIA, NO POR INDICE.  nearest()
+        # devuelve el punto MAS CERCANO, y sobre el final del lazo -que
+        # coincide con el inicio- ese puede seguir siendo el 543 de 545: con
+        # el indice como condicion, un robot a milimetros del final no cierra
+        # la vuelta nunca.
         #
         # El indice se queda solo como CANDADO: impide cerrar al arrancar,
         # cuando el robot esta sobre el punto inicial y por tanto tambien
@@ -653,13 +615,11 @@ class Follower(object):
         ly = -math.sin(th) * dx + math.cos(th) * dy
         L2 = lx * lx + ly * ly
         # DISTANCIA MINIMA AL OBJETIVO.  atan2 sobre un vector de milimetros
-        # no da un rumbo, da ruido de posicion.  Medido el 2026-09-01: el
-        # Husky llego al punto final a 4 mm y ahi el rumbo al objetivo salto
-        # entre -164 y +172 grados de una muestra a otra.  Cada vez que el
-        # valor aleatorio pasaba de align_threshold, la regla de girar en el
-        # sitio frenaba en seco y mandaba +-1.0 rad/s; el robot se quedo 22 s
-        # dando tumbos sobre el punto hasta que el vigia lo aborto.  Y la
-        # curvatura de pure pursuit, 2*ly/L2, explota igual con L2 diminuto.
+        # no da un rumbo, da ruido de posicion: a 4 mm del objetivo el rumbo
+        # salta entre -164 y +172 grados de una muestra a otra, y cada vez que
+        # ese valor aleatorio pasa de align_threshold la regla de girar en el
+        # sitio frena en seco y manda +-1.0 rad/s.  Y la curvatura de pure
+        # pursuit, 2*ly/L2, explota igual con L2 diminuto.
         # Por debajo de min_aim_dist no se apunta: ni curvatura ni giro en el
         # sitio.  El termino de error lateral sigue actuando, que es el que
         # tiene sentido cuando ya se esta encima del punto.
@@ -702,8 +662,7 @@ class Follower(object):
     def report(self):
         self.cmd.publish(Twist())
         if self.n_xte:
-            # lap, not lap + 1: self.lap counts COMPLETED laps, so the old
-            # form reported "vuelta 3 de 2" on a finished two-lap run.
+            # lap, not lap + 1: self.lap counts COMPLETED laps.
             done = min(self.lap + (0 if self.done else 1), self.laps)
             rospy.loginfo('trajectory_follower: reached point %d of %d, '
                           'vuelta %d de %d; cross-track error mean %.3f m, '

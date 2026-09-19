@@ -10,18 +10,13 @@
          models, not the terrain, so nothing in this repository ever told
          Gazebo where the terrain was.
 
-         It worked anyway because ~/.bashrc exported the directory by hand.
-         That is a dependency on one developer's interactive shell, and the
-         path it exported pointed at ~/jounal_comparison - a stale duplicate of
-         this workspace, with a typo in its name.  Any run that did not source
-         that .bashrc (a script, a CI job, a background campaign) got
+         Declaring it here makes the launch self-contained; without it the
+         path depends on whatever the interactive shell exported, and a run
+         that does not get it (a script, a CI job, a background campaign) gets
          "Unable to find uri[model://lc_mine]" and a world with NO GROUND: the
-         robot spawns at z and free-falls forever while x and y never change,
-         which reads exactly like a robot that refuses to move.
-
-         Declaring it here makes the launch self-contained.  optenv keeps
-         whatever the environment already had, so an existing setup is not
-         broken by this.
+         robot free-falls in z while x and y never change, which reads exactly
+         like a robot that refuses to move.  optenv keeps whatever the
+         environment already had.
          ===================================================================== -->
     <env name="GAZEBO_MODEL_PATH"
          value="$(find rocker_bogie)/world/mine:$(optenv GAZEBO_MODEL_PATH)" />
@@ -93,7 +88,7 @@
          differential implementations tried here that both constrains the
          rockers and leaves the vehicle upright.
 
-         Measured 2026-08-18, driving at 0.3 m/s over the gallery floor:
+         Measured driving at 0.3 m/s over the gallery floor:
 
                               no differential      geometric linkage
              chassis pitch    -13.06 deg sd 10.33   +1.80 deg sd 0.24
@@ -102,17 +97,12 @@
              |phi_l + phi_r|   29.9 deg mean         4.70 deg mean
                                68.2 deg max         10.5 deg max
 
-         The chassis now stays essentially level while driving, which is the
-         mechanical claim this study is built on and which nothing in the model
-         delivered before.  4.7 deg of residual is not the 0.003 deg the gearbox
-         achieves and cannot be: a linkage with real inertia and compliant
-         contacts is a coupling, not an algebraic constraint.  It is a sixfold
-         improvement and it does not tip the vehicle over, which the gearbox
-         does.
-
-         NOTE FOR THE PAPER: every result collected before this date was taken
-         with NO effective differential at all, whatever the configuration said.
-         They have to be regenerated. -->
+         The chassis stays essentially level while driving, which is the
+         mechanical claim this study is built on.  The 4.7 deg of residual is
+         not the 0.003 deg a gearbox joint achieves and cannot be: a linkage
+         with real inertia and compliant contacts is a coupling, not an
+         algebraic constraint.  It is a sixfold improvement and it does not tip
+         the vehicle over, which the gearbox does. -->
     <arg name="differential_linkage" default="true" />
 
     <param name="rocker_bogie/robot_description" command="xacro --inorder '$(find rocker_bogie)/urdf/ensamblajeurdf.xacro' differential_linkage:=$(arg differential_linkage) bogie_upper:=$(arg bogie_upper) bogie_drop:=$(arg bogie_drop) rocker_drop:=$(arg rocker_drop)" />
@@ -123,24 +113,15 @@
          packages already exposed them as args. -->
     <arg name="spawn_x" default="33.5" />
     <arg name="spawn_y" default="0.2" />
-    <!-- 2026-09-13: base_link va a la altura de los ejes y centrado, asi que
-         spawn_z = 1.16 + 0.0548 y ya NO depende de rocker_drop.  Deja el apoyo
-         a la misma altura que el husky. -->
+    <!-- base_link va a la altura de los ejes y centrado, asi que
+         spawn_z = 1.16 + 0.0548 y NO depende de rocker_drop.  Deja el apoyo a
+         la misma altura que el husky. -->
     <arg name="spawn_z" default="1.1848" />
-    <!-- BAJADA 2026-09-01, de 1.3 a 1.16.  Medido: esta plataforma
-         reposa en z = 1.0956, asi que 1.3 dejaba 20 cm de caida.  Con
-         el contacto a kp = 1e7 ese impacto hacia GIRAR al Husky
-         16.4 grados sobre +z durante el aterrizaje, y esos grados se
-         quedaban como condicion inicial de la corrida.  Ahora la
-         caida son 6 cm: suficiente para no aparecer dentro del
-         terreno, poco para golpear.
-
-         BAJADA OTRA VEZ, de 1.16 a 0.99, al acortar el brazo del rocker.
-         rocker_drop sube las seis ruedas 0.170395 m en el marco de base_link,
-         asi que base_link reposa 0.170395 m mas abajo (1.0956 -> 0.9252) y
-         spawn_z tiene que bajar lo mismo para conservar esos 6 cm.  Si se
-         cambia rocker_drop hay que restarselo aqui: spawn_z = 1.16 -
-         rocker_drop. -->
+    <!-- La plataforma reposa en z = 1.0956, o sea 6 cm por debajo: suficiente
+         para no aparecer dentro del terreno, poco para golpear.  Una caida
+         mayor importa, porque con el contacto rigido el impacto hace GIRAR al
+         vehiculo en el aterrizaje y esos grados se quedan como condicion
+         inicial de la corrida. -->
     <arg name="spawn_Y" default="0.0" />
 
     <!-- =====================================================================
@@ -160,11 +141,9 @@
     <!-- Los args del xacro tienen que ir TAMBIEN aqui, y ser los mismos que
          arriba.  Sin ellos el generador invoca `xacro ensamblajeurdf.xacro` a
          secas y se lleva los defaults DEL XACRO, que no son los de este
-         launch: differential_linkage=false (sin varillaje).  El modo
-         sliced spawneaba asi un robot distinto del que describe
-         robot_description, y distinto del que corre en modo normal: la
-         comparacion entre los dos LiDAR medía tambien un cambio de
-         suspension. -->
+         launch: se spawnearia un robot distinto del que describe
+         robot_description, y la comparacion entre los dos LiDAR mediria
+         tambien un cambio de suspension. -->
     <param name="swept_robot_description"
            if="$(eval arg('lidar') == 'swept')"
            command="$(find robot_metrics)/scripts/retopic_lidar.py --xacro
@@ -355,30 +334,14 @@
                  rocker_differential.py on shutdown turns out to be dominated by
                  ringing, critical damping is damping = 2*sqrt(k*I) = 123.9. -->
             <param name="stiffness" value="948.08" />
-            <!-- DAMPING STAYS AT 28.44 (zeta = 0.23).  Two things are true
-                 and only one of them justifies changing it:
-
-                 (a) the tuning IS wrong.  rocker_differential.py computed the
-                     zeta it prints from a hardcoded inertia of 0.45 kg*m^2
-                     while the model's rocker subtree is 4.046, so it reported
-                     ~0.69 every launch when the truth was 0.23.  That is fixed
-                     - the inertia is a parameter now and the node reports
-                     honestly.
-
-                 (b) it is NOT what tilts the chassis.  The comment below
-                     prescribed 2*sqrt(k*I) = 123.87 "if the residual turns out
-                     to be dominated by ringing".  Measured 2026-08-18: it is
-                     not.  Both pivots sit PINNED against their +-0.6 rad
-                     (34.377 deg) stops with sd 0.25 deg - stationary, not
-                     oscillating - so error_dot is ~0 and damping contributes
-                     nothing.  Running at zeta = 1.000 changed the residual
-                     from 66.8 to 68.3 deg and the pitch from -31.2 to -27.0
-                     deg: no fix.
-
-                 The real problem is geometric, see rocker_pivot_zero_note in
-                 sim_config.yaml.  Changing a tuned parameter that feeds the
-                 published stability numbers, on a premise that measurement has
-                 disproven, would be the wrong trade. -->
+            <!-- DAMPING STAYS AT 28.44 (zeta = 0.23).  Critical damping
+                 would be 2*sqrt(k*I) = 123.87, and it is NOT the fix: with
+                 both pivots sitting against their stops (sd 0.25 deg -
+                 stationary, not oscillating) error_dot is ~0 and damping
+                 contributes nothing.  Running at zeta = 1.000 moved the
+                 residual from 66.8 to 68.3 deg and the pitch from -31.2 to
+                 -27.0 deg.  The real problem is geometric, see
+                 rocker_pivot_zero_note in sim_config.yaml. -->
             <param name="damping"   value="28.44" />
             <param name="inertia"   value="4.046" />
             <param name="max_torque" value="189.6" />
@@ -387,22 +350,20 @@
         <!--
           Twist to individual wheel velocities and steering angles.
 
-          GEOMETRY (corrected 2026-07).  All four values are measured from the
-          URDF by extract_robot_specs.py, not guessed:
+          GEOMETRY.  All four values are measured from the URDF by
+          extract_robot_specs.py, not guessed:
 
-            wheelbase    front axle to rear axle      0.8532 m  (was 0.57)
-            rear_track   middle/rear wheel separation 0.7821 m  (was 0.6775)
-            front_track  front wheel separation       0.5961 m  (not modelled
-                                                                before)
-            wheel_radius cylinder collision radius    0.178  m  (correct)
+            wheelbase    front axle to rear axle
+            rear_track   middle/rear wheel separation
+            front_track  front wheel separation
+            wheel_radius cylinder collision radius
 
-          The old wheelbase was 33% short and the old track 13% short, so the
-          Ackermann solution was computed for a vehicle that does not exist:
-          every commanded yaw rate produced a steering angle that was too small
-          and inner/outer wheel speeds that did not match the actual turn.  The
-          robot understeered and scrubbed its way through the corners, which
-          inflates both the slip metric and the IMU vibration signal that the
-          paper attributes to the locomotion type.
+          Getting them wrong solves the Ackermann geometry for a vehicle that
+          does not exist: every commanded yaw rate produces a steering angle
+          that is too small and inner/outer wheel speeds that do not match the
+          actual turn, so the robot understeers and scrubs through the corners
+          - which inflates both the slip metric and the IMU vibration signal
+          the paper attributes to the locomotion type.
         -->
         <node name="twist_to_wheels" pkg="rocker_bogie" type="twist_to_wheels.py" output="screen">
             <param name="wheelbase" value="0.7355" />
@@ -412,30 +373,22 @@
             <!-- 1.1 rad, matching the joint limit: the point turn needs
                  1.0484 rad and clamping below that just scrubs.
 
-                 PROBADO Y REVERTIDO 2026-08-24: se bajo a 0.7854 (45 deg)
-                 para ver si el giro de las ruedas de esquina era lo que
-                 desequilibraba a la plataforma en el escalon.  No se pudo
-                 evaluar: move_base dejo de poder conducir.  El radio minimo
-                 de la plataforma es half_wheelbase / tan(max_steer), o sea
+                 NO RECORTAR LA DIRECCION SIN TOCAR EL PLANIFICADOR.  El
+                 radio minimo es half_wheelbase / tan(max_steer):
                      1.1000 rad -> 0.217 m
                      0.7854 rad -> 0.427 m
-                 y el planificador local no conoce ese limite: con
-                 min_vel_x 0.0 y max_vel_theta 1.0, DWA puede pedir v=0.1 con
-                 w=1.0, que son 0.10 m de radio.  Al doblarse el radio minimo
-                 el robot dejo de seguir los arcos comandados y move_base
-                 aborto tres veces seguidas por "oscillating over and over" y
-                 "a valid control could not be found", tras agotar sus
-                 recuperaciones; el cmd_vel se quedo en cero y la plataforma
-                 parada.  Es el mismo desajuste que describe el comentario de
-                 rev_5 en el URDF para el lock de 28.6 deg, en version suave.
-
-                 Si se vuelve a intentar recortar la direccion, hay que
-                 ajustar a la vez el planificador (subir min_vel_x o bajar
-                 max_vel_theta hasta que v/w no baje del radio alcanzable) - y
+                 y el planificador local no conoce ese limite: con min_vel_x
+                 0.0 y max_vel_theta 1.0, DWA puede pedir v=0.1 con w=1.0, o
+                 sea 0.10 m de radio.  Probado a 0.7854: el robot dejo de
+                 seguir los arcos comandados y move_base aborto tres veces por
+                 "oscillating over and over" y "a valid control could not be
+                 found".  Si se recorta, hay que subir min_vel_x o bajar
+                 max_vel_theta hasta que v/w no baje del radio alcanzable - y
                  eso es condicion compartida por las tres plataformas. -->
             <param name="max_steer_angle" value="1.1" />
             <!-- 0.0 for all three platforms; see command.min_angular_rad_s
-                 in sim_config.yaml.  The tracked platform used to force 0.25. -->
+                 in sim_config.yaml.  A non-zero floor makes a platform turn
+                 harder than it was asked to. -->
             <param name="min_angular" value="0.0" />
         </node>
 

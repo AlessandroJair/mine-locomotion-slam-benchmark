@@ -1,41 +1,33 @@
 <?xml version="1.0" ?>
 <robot name="ensamblajeurdf" xmlns:xacro="http://www.ros.org/wiki/xacro">
 
-<!-- Geometric differential: a real beam and two rods.  The gearbox
-     version (<joint type="gearbox">, arg "differential") was removed on
-     2026-09-13: it tipped the vehicle over on the spawn drop. -->
+<!-- Geometric differential: a real beam and two rods.  A gearbox joint
+     imposes the same relation but leaves the roll freedom unrestrained,
+     and it tipped the vehicle over on the spawn drop. -->
 <xacro:arg name="differential_linkage" default="false"/>
 
 <!-- ============ ORIENTACION DEL VARILLAJE DEL DIFERENCIAL ============
-     true  (defecto desde 2026-09-16): BARRAS LONGITUDINALES.  La viga rola
-           sobre el eje VERTICAL (Z) y sus dos extremos barren en +-x, asi
-           que las dos varillas van horizontales y a lo largo del vehiculo,
-           de la viga a un punto 53.192 mm POR DEBAJO del eje de cada rocker.
-     false: la de antes, TRANSVERSAL.  La viga rola sobre el eje de balanceo
-           (X), sus extremos suben y bajan, y las varillas bajan inclinadas
-           55 grados hasta el soporte de BarraBR, 50.9 mm por delante del eje
-           del rocker.  Es el varillaje con el que se midieron drop3 y drop4,
-           asi que para comparar con esas corridas hay que poner false.
+     true (defecto): BARRAS LONGITUDINALES.  La viga rola sobre el eje
+     VERTICAL (Z) y sus extremos barren en +-x, asi que las varillas van
+     horizontales y a lo largo del vehiculo, de la viga a un punto 53.192 mm
+     por debajo del eje de cada rocker.  false: TRANSVERSAL, la viga rola
+     sobre el eje de balanceo (X) y las varillas bajan inclinadas 55 grados.
 
-     LAS DOS DAN EL MISMO ACOPLAMIENTO, y esa es la cuenta que importa.  Con
-     la viga en Z, su extremo izquierdo avanza +y_off*sin(psi) y el derecho
-     -y_off*sin(psi): en OPOSICION.  Un punto del rocker a dz del eje avanza
-     dz*theta al cabecear.  Con una barra rigida a lo largo de x, el avance
-     del extremo de la viga y el del enganche son el mismo, asi que
+     LAS DOS DAN EL MISMO ACOPLAMIENTO.  Con la viga en Z, su extremo
+     izquierdo avanza +y_off*sin(psi) y el derecho -y_off*sin(psi), en
+     OPOSICION; un punto del rocker a dz del eje avanza dz*theta al cabecear,
+     y con barra rigida los dos avances son el mismo, asi que
          +y_off sin(psi) = dz*theta_izq      -y_off sin(psi) = dz*theta_der
      y sumando sale theta_izq + theta_der = 0, que es el diferencial.
 
-     POR QUE NO VALE SOLO CAMBIAR EL <axis> A Z dejando lo demas: con la viga
-     transversal y las varillas colgando, girar en Z mueve los enganches
-     23.2 mm en X y 0.0 en Z (a 10 grados), o sea las varillas no suben ni
-     bajan y el diferencial deja de acoplar.  Medido antes de tocar nada.
+     NO BASTA CON CAMBIAR EL <axis> A Z: con la viga transversal y las
+     varillas colgando, girar en Z mueve los enganches 23.2 mm en X y 0.0 en Z
+     (a 10 grados), o sea las varillas no suben ni bajan y deja de acoplar.
 
-     LO QUE CUESTA: la viga baja de z 0.673472 a 0.523472 en el marco del
-     chasis, o sea de asomar 38 mm por encima del techo a quedarse DENTRO de
-     la caja del chasis, y las varillas pasan a correr por la panza, 8.5 mm
-     por encima de ella.  Ninguno de los tres eslabones lleva colision, asi
-     que la fisica no simula esa interferencia; en un vehiculo de verdad hay
-     que dejarles el hueco.
+     LO QUE CUESTA: la viga queda DENTRO de la caja del chasis y las varillas
+     corren por la panza, 8.5 mm por encima.  Ninguno de los tres eslabones
+     lleva colision, asi que la fisica no simula esa interferencia; en un
+     vehiculo de verdad hay que dejarles el hueco.
      =================================================================== -->
 <xacro:arg name="diff_longitudinal" default="true"/>
 <xacro:property name="dlong"
@@ -48,137 +40,73 @@
                          '$(arg differential_linkage)' == 'true'}"/>
 
 <!-- TOPE SUPERIOR DE LOS BOGIES (rev_3 / rev_4), en radianes.
-     SUBIDO DE 0.6 A 1.0 EL 2026-09-10, y es una hipotesis a contrastar, no un
-     valor asentado.  Medido sobre metrics_rocker_bogie_diagnostic/run01, una
-     vuelta de 135.8 m con los pivotes ya registrados:
 
-                        recorrido usado        toca +0.6   toca -0.6
-       rockers          -8.9 .. +8.2 deg  25%      0.00 %     0.00 %
-       rev_3 (bogie)   -19.0 .. +34.4 deg 100%     1.88 %     0.00 %
-       rev_4 (bogie)   -25.9 .. +34.4 deg 100%     0.06 %     0.00 %
-
-     Los dos pivotes llevaban el mismo +-0.6 rad: al rocker le sobran tres
-     cuartos y al bogie le falta, y le falta SOLO por arriba.  Y saturar no es
-     inocuo: con el bogie en el tope hay rueda en el aire el 100 % del tiempo,
-     sin una sola excepcion en la corrida; con las seis apoyadas, el tope no se
-     toca nunca (0.00 %).  La descarga previa al despegue es gradual (fuerza
-     normal 1.00 -> 0.12 en 200 ms), o sea el mecanismo se queda sin geometria,
-     no es un rebote de contacto.
-
-     PROBADO 1.0 Y ES PEOR.  MUCHO PEOR.  No ampliar sin leer esto.
-     A/B a igual seed, ruta y LiDAR, sobre el tramo que las dos corridas
-     recorrieron (0 - 52.2 m):
+     NO AMPLIAR SIN LEER ESTO.  Sobre una vuelta completa los bogies usan todo
+     su recorrido y tocan el tope superior, asi que parece que 0.6 ata.  El
+     A/B a igual seed, ruta y LiDAR dice lo contrario:
 
                               0.6        1.0
        n<6                   21.5 %     64.6 %
        n<=4                   8.1 %     40.5 %
-       contacto Rueda_3_1    91.5 %     39.8 %
-       contacto Rueda_1_1    96.7 %     62.0 %
        rev_4 en su tope       0.16 %    49.52 %
        final                 135.8 m    VUELCO en 54.2 m (roll -112 deg)
 
-     Y el detalle que lo explica: con 1.0, rev_4 se enrolla hasta +57.3 deg en
-     el metro 17.7 y SE QUEDA CLAVADO AHI 25 metros seguidos.  Durante los
-     metros 20-40 la Rueda_3_1 esta en el aire el 100 % del tiempo y el
-     vehiculo rueda sobre cuatro.  Ese tramo es el LLANO, donde la corrida de
-     0.6 pierde contacto el 3.2 % y el 0.0 %.  No es el terreno pidiendo mas
-     recorrido: el balancin se va a tope y se aparca.
+     Con 1.0, rev_4 se enrolla hasta +57.3 deg en el metro 17.7 y SE QUEDA
+     CLAVADO AHI 25 metros -en el LLANO- con la Rueda_3_1 en el aire el 100 %
+     del tiempo.  El tope no ataba: SOSTENIA.
 
-     O SEA: el +-0.6 no ataba, SOSTENIA.  El tope estaba cargando el vehiculo.
-     Es el mismo sintoma que rocker_pivot_zero_note (sim_config.yaml) apunto en
-     los rockers -"pivots are DRIVEN to whatever stop exists", 34 deg -> 56 deg
-     al ampliar- y que quedo como "causa no encontrada".  Ahora se sabe que no
-     es especifico de los rockers: le pasa igual a los bogies, y el sentido es
-     siempre el mismo (+, nunca -).
+     HIPOTESIS, no comprobada: el par de reaccion del motor de la rueda.  Las
+     ruedas van con controlador de velocidad y la reaccion cae sobre el propio
+     balancin; sin nada que la equilibre -no hay muelle, y damping/friction
+     solo resisten, no devuelven- un par constante enrolla el pivote hasta
+     donde le dejen.  Mientras eso no se resuelva, ampliar el tope solo mueve
+     el problema mas lejos.
 
-     HIPOTESIS PARA LA PROXIMA, no comprobada: el par de reaccion del motor de
-     la rueda.  Las ruedas van con controlador de velocidad y la reaccion cae
-     sobre el eslabon que lleva la articulacion, o sea el propio balancin.  Sin
-     nada que la equilibre -no hay muelle, y damping/friction solo resisten, no
-     devuelven- un par constante enrolla el pivote hasta donde le dejen.  Se
-     contrasta mirando si el enrollamiento sigue al par de rueda y si afloja al
-     parar o al retroceder: en el metro 45-50 rev_4 si aflojo (+5.1 deg) y la
-     Rueda_3_1 recupero el 55 % de contacto.
-
-     Mientras eso no se resuelva, ampliar el tope solo mueve el problema mas
-     lejos.  Se queda en 0.6, que es donde estaba.
-
-     EL LOWER NO SE TOCA a proposito: se queda en -0.6 y el maximo medido es
-     -25.9 deg, asi que no ata.  Cambiar solo lo que la hipotesis dice.
-
-     OJO, NO REPETIR EL FALLO DE LOS ROCKERS: ampliar +-0.6 a +-1.0 en
-     rocker_pivot_* empeoro las cosas y quedo como "causa no encontrada" en
-     rocker_pivot_zero_note (sim_config.yaml).  Ahora se sabe por que: se le dio
-     recorrido al pivote que iba sobrado.  Los rockers siguieron en +-0.6
-     hasta el 2026-09-13, cuando se ampliaron a +-1.0 a peticion: con el
-     varillaje del diferencial usan como mucho ~7 deg y no tocan el tope,
-     asi que el aviso de arriba ya no aplica a ellos (a los bogies SI).
-
-     A/B: differential_linkage y lo demas igual, y bogie_upper:=0.6 reproduce
-     el modelo con el que se tomo la corrida de referencia. -->
+     EL LOWER NO SE TOCA: el maximo medido es -25.9 deg, asi que no ata.  Los
+     rockers SI llevan +-1.0: con el varillaje del diferencial usan como mucho
+     ~7 deg y no tocan el tope.  El aviso de arriba es de los BOGIES. -->
 <xacro:arg name="bogie_upper" default="0.6"/>
 
 <!-- ALTURA DEL PIVOTE DEL BOGIE (rev_3 / rev_4): cuanto se BAJA, en metros.
-     0.0 = el modelo de siempre, byte a byte.  El pivote esta hoy 0.529 m sobre
-     la huella de contacto (0.351 sobre el eje, mas el radio 0.178).
 
      POR QUE ES UNA PALANCA.  El par de una rueda llega al brazo por DOS
      caminos que suman: la reaccion -e en el eje, y la fuerza de traccion e/r
-     aplicada en la huella, que cuelga de ese brazo de 0.529 m.  El total es
+     aplicada en la huella, que cuelga del brazo del pivote.  El total es
          M_motor = K * ( -(e_media + e_trasera) ),   K = h_huella / r
-     con K = 0.529/0.178 = 2.97 hoy.  Medido sobre
-     metrics_rocker_bogie_par_ruedas/run01 (135.5 m): K ajustado 3.15 (rev_4,
-     r=-0.93) y 3.07 (rev_3, r=-0.96), y el balance estatico del pivote cierra
-     con residuo -0.05 y -0.78 N*m.  M_motor positivo levanta la rueda MEDIA,
-     que es justo la peor de las seis en contacto (94.2 % y 92.2 %).
-     Despega con M_motor ~ +50 N*m = 8.4 N*m por rueda, menos de la mitad del
-     limite de 20.
-
-     K escala LINEAL con esta altura: K = (0.529 - bogie_drop) / 0.178.
-       0.100 -> K 2.41 (-19 %)
-       0.178 -> K 1.97 (-34 %)
-       0.351 -> K 1.00 (-66 %), el pivote a la altura del EJE
-     1.00 es el suelo: ahi ya solo queda la reaccion en el eje, porque la
-     huella siempre esta un radio por debajo.
+     Ajustado sobre una corrida de 135.5 m: K 3.15 (rev_4, r=-0.93) y 3.07
+     (rev_3, r=-0.96), con el balance estatico del pivote cerrando con residuo
+     -0.05 y -0.78 N*m.  M_motor positivo levanta la rueda MEDIA, que es la
+     peor de las seis en contacto, y despega con ~8.4 N*m por rueda, menos de
+     la mitad del limite de 20.  K escala LINEAL con esta altura,
+     K = (0.529 - bogie_drop) / 0.178, y su suelo es 1.00: ahi solo queda la
+     reaccion en el eje, porque la huella siempre esta un radio por debajo.
 
      QUE MUEVE Y QUE NO.  Solo baja el EJE del pivote y el soporte que cuelga
      de el (Acople_Rodamiento_*_1: 1.4 kg, visual e inercia, sin colision).
      Los cuatro hijos (link_r_15..18) se suben lo mismo, asi que las seis
-     ruedas, los brazos del balancin (-0.189 media / +0.237 trasera) y la
-     altura de reposo quedan EXACTAMENTE donde estaban -> spawn_z no se toca.
-     Lo comprueba src/robot_metrics/test/test_bogie_drop.py, que es el fallo
-     silencioso: bajar el pivote sin compensar hunde media suspension.
+     ruedas, los brazos del balancin y la altura de reposo quedan EXACTAMENTE
+     donde estaban -> spawn_z no se toca.  Lo comprueba
+     src/robot_metrics/test/test_bogie_drop.py, porque el fallo es silencioso:
+     bajar el pivote sin compensar hunde media suspension.
 
-     LA HUELLA DE APOYO NO SE PAGA, SE GANA.  En reposo es identica: 0.5383 m2,
-     batalla 0.8532, via 0.6775, las seis ruedas coplanarias.  Deflectado si
-     cambia, y a favor: hoy el brazo pivote->rueda esta INCLINADO (dx -0.189,
-     dz -0.351), asi que girar el balancin echa la rueda hacia ATRAS ademas de
-     subirla: en el tope de +34.4 deg la rueda media retrocede 0.165 m, la
-     batalla se hunde a 0.613 y el area cae un 27 %, hasta 0.391 m2.  Con el
-     pivote a la altura del eje el brazo queda horizontal, la rueda apenas se
-     mueve en x (+0.033) y el area solo pierde un 6 %.  Con los angulos
-     medidos en metrics_rocker_bogie_par_ruedas/run01: area p05 0.480 ->
-     0.528 m2, y en el peor instante 0.391 -> 0.507 (+30 %).
-
-     Y EL RECORRIDO DE LA SUSPENSION NO SE TOCA.  El desnivel que traga el
-     balancin (rueda media contra trasera) es +0.241 m a 34.4 deg con drop 0
-     y con drop 0.351: depende solo de los brazos HORIZONTALES, que no se
-     mueven.  El tope de +-0.6 rad sigue valiendo para el mismo escalon.
+     LA HUELLA NO SE PAGA, SE GANA.  En reposo es identica.  Deflectada
+     cambia a favor: con el brazo pivote->rueda INCLINADO, girar el balancin
+     echa la rueda hacia atras ademas de subirla y el area cae un 27 % en el
+     tope; con el pivote a la altura del eje el brazo queda horizontal y solo
+     pierde un 6 %.  El recorrido de la suspension no se toca: el desnivel que
+     traga el balancin depende solo de los brazos HORIZONTALES.
 
      Como el varillaje, va por las DOS rutas de spawn del launch. -->
-<!-- TOPE DE bogie_drop, Y SE LO COME rocker_drop.  La cuenta de arriba
-     -0.178 -> K 1.97, 0.351 -> K 1.00- vale con rocker_drop = 0, que es cuando
-     el pivote del bogie sale de 0.351444 m sobre el eje.  Con rocker_drop en su
-     defecto (0.343839) el montante comun ya lo ha bajado a 0.178, o sea
+<!-- TOPE DE bogie_drop, Y SE LO COME rocker_drop.  La cuenta de arriba vale
+     con rocker_drop = 0; con el montante comun ya bajado,
 
          tope de bogie_drop = 0.351444 - max(0, rocker_drop - 0.170395)
 
-     y con el defecto eso son 0.178 m EXACTOS, no 0.351.  Pasarse no da error:
-     mete el eje del bogie POR DEBAJO del plano de las ruedas, con lo que la
-     huella deja de estar un radio por debajo del pivote y K vuelve a subir por
-     el otro lado.  Las dos palancas ya estan igualadas en K = 2.00 con
-     bogie_drop = 0, asi que este arg solo hace falta para desnivelarlas a
-     proposito.  Lo comprueba test_bogie_drop.py (seccion 2). -->
+     Pasarse no da error: mete el eje del bogie POR DEBAJO del plano de las
+     ruedas, con lo que la huella deja de estar un radio por debajo del pivote
+     y K vuelve a subir por el otro lado.  Con el defecto las dos palancas ya
+     estan igualadas con bogie_drop = 0, asi que este arg solo hace falta para
+     desnivelarlas a proposito.  Lo comprueba test_bogie_drop.py (seccion 2). -->
 <xacro:arg name="bogie_drop" default="0.0"/>
 <xacro:property name="bogie_drop" value="$(arg bogie_drop)"/>
 <!-- El montante del pivote se fue con las mallas: los dos tubos del soporte
@@ -190,119 +118,76 @@
      toca: misma altura, misma guarda al suelo, misma altura de sensores.
 
      POR QUE.  La huella de apoyo era 0.5383 m2 contra 0.3996 del tracked y
-     0.2923 del husky.  Con 0.862 queda en 0.4000 m2, la del tracked al 0.1 %.
-     Batalla 0.8532 -> 0.7355, via 0.7821 -> 0.5840.
-
+     0.2923 del husky; con 0.862 queda en 0.4000 m2, la del tracked al 0.1 %.
      0.862 ES EL MINIMO: las ruedas quedan a 0.3677 m entre centros, 11.7 mm
-     de holgura entre llantas de 0.178 m.  Menos factor y chocan, y encoger la
-     rueda rompe el radio igualado de las tres plataformas.
+     de holgura entre llantas, y encoger la rueda rompe el radio igualado de
+     las tres plataformas.
 
      Se escalan solo los origin de los joint y las pose de los joints de bola;
      NO los origin de dentro de los link: las piezas no cambian de tamaño,
-     solo se acercan, asi que conservan masa e inercia.  Las mallas no
-     encogen, asi que los eslabones estructurales se solapan un poco en
-     pantalla; ninguno tiene colision salvo las seis ruedas.
+     solo se acercan, asi que conservan masa e inercia.
 
-     bogie_drop sube a 0.227 (K 1.70) porque el margen contra el despegue
-     escala con el brazo del balancin, que pasa a -0.1632 / +0.2046.
-
-     MEDIDO con esta geometria (metrics_rocker_bogie_drop3): n<6 = 11.37 %,
-     contra 4.91 % con la huella grande y el mismo K.  Encoger la huella
-     CUESTA contacto, sobre todo en las delanteras (96.51 / 95.01).
+     CUESTA CONTACTO: con esta geometria n<6 = 11.37 % contra 4.91 % con la
+     huella grande y el mismo K, sobre todo en las delanteras.
      ========================================================== -->
 
 <!-- ==================== ALTURA DEL ROCKER ====================
      rocker_drop: cuanto se ACORTA, en metros, la caida vertical del brazo del
-     rocker entre su pivote y el eje de las ruedas.  0.0 = el modelo de CAD.
-
-     QUE ERA.  El pivote del rocker estaba 0.5219 m por encima del plano de
-     los ejes, o sea 0.6999 m sobre la huella de contacto, con lo que
-         K_rocker = h_huella / r = 0.6999 / 0.178 = 3.93
-     contra 2.98 del bogie con bogie_drop = 0.  Es la misma palanca que la
-     nota de bogie_drop describe, y la del rocker era la mayor de las dos.  El
-     chasis quedaba 0.638 m sobre el suelo con las ruedas de 0.178: una mesa
-     sobre zancos, no un rover.
+     rocker entre su pivote y el eje de las ruedas.  0.0 = el modelo de CAD,
+     que dejaba el pivote 0.6999 m sobre la huella -K_rocker = 3.93 contra
+     2.98 del bogie- y el chasis 0.638 m sobre el suelo: una mesa sobre
+     zancos, no un rover.
 
      QUE HACE.  Acorta las DOS ramas del rocker en la misma cantidad, asi que
      las seis ruedas suben lo mismo y siguen coplanarias:
-       * rama delantera - link_r_21 / link_r_22 (BarraBR -> ApoyoServomotor),
-         -0.256945 m de caida, se le resta rocker_drop entero.
-       * rama trasera   - link_r_7/8, link_r_9/10, link_r_11/12, 0.170395 m
-         de caida en total, se escalan las tres por rk_rear para que la rama
-         siga bajando de forma monotona en vez de doblarse.
+       * rama delantera - link_r_21 / link_r_22, -0.256945 m de caida, se le
+         resta rocker_drop entero.
+       * rama trasera   - link_r_7/8, 9/10, 11/12, 0.170395 m en total, se
+         escalan por rk_rear para que la rama siga bajando de forma monotona.
 
-     LO QUE NO TOCA: nada en x ni en y.  Batalla, via, area de apoyo, brazos
-     del balancin y los tres parametros de twist_to_wheels se quedan
-     exactamente donde estaban.  Tampoco toca bogie_drop: el pivote del bogie
-     conserva su altura RELATIVA al brazo, asi que las dos palancas se pueden
-     mover por separado.  Tampoco toca link_r_5 / link_r_6, que es donde el
-     varillaje del diferencial cierra sus ball joints (-0.053192): el enganche
-     sigue siendo valido sin recalcular el varillaje.
+     LO QUE NO TOCA: nada en x ni en y -batalla, via, area de apoyo, brazos
+     del balancin y los tres parametros de twist_to_wheels se quedan donde
+     estaban-, ni bogie_drop, ni link_r_5 / link_r_6, que es donde el varillaje
+     del diferencial cierra sus ball joints.
 
-     SALE DE DOS SITIOS, Y EL PRIMERO SE AGOTA EN 0.170395 m.
-
-     TRAMO 1, hasta 0.170395: lo paga la RAMA TRASERA del rocker, que se va
-     aplanando.  0.170395 es exactamente lo que el pivote del rocker estaba por
-     encima del del bogie (0.5219 contra 0.3515 sobre los ejes), asi que al
-     agotarlo los DOS PIVOTES QUEDAN A LA MISMA ALTURA y la rama trasera queda
-     horizontal: el dibujo de libro del mecanismo.  Ahi K_rocker pasa de 3.93 a
-     2.97, la del bogie con bogie_drop = 0.  Mas alla, rk_rear seria negativo y
-     la rama subiria antes de bajar, asi que el tramo se cierra.
-
-     TRAMO 2, otros 0.211702: lo paga el MONTANTE COMUN, lo que hay entre el
-     extremo de cada brazo y el eje de su rueda.  Las SEIS ruedas lo comparten,
-     asi que encogerlo baja los dos pivotes A LA VEZ y en la misma cantidad:
-     siguen nivelados y los brazos no cambian de forma.  Por eso la ESTRUCTURA
-     SE CONSERVA: lo unico que encoge es el montaje de la rueda.
-
-     Y SE GASTA EN DOS PARTES, PORQUE NO SON LO MISMO.  El montante tiene
-     encima la junta de direccion (rev_5..8 en las cuatro ruedas de las
-     esquinas) y debajo la MANGUETA, que es la pieza que gira con ella:
+     SALE DE DOS SITIOS.  TRAMO 1, hasta 0.170395: lo paga la RAMA TRASERA,
+     que se va aplanando; 0.170395 es exactamente lo que el pivote del rocker
+     estaba por encima del del bogie, asi que al agotarlo LOS DOS PIVOTES
+     QUEDAN A LA MISMA ALTURA (K_rocker 3.93 -> 2.97) y la rama trasera queda
+     horizontal.  Mas alla rk_rear seria negativo y la rama subiria antes de
+     bajar.  TRAMO 2, otros 0.211702: lo paga el MONTANTE COMUN, que comparten
+     las SEIS ruedas, asi que baja los dos pivotes a la vez y en la misma
+     cantidad: la ESTRUCTURA SE CONSERVA y lo unico que encoge es el montaje
+     de la rueda.  Y se gasta en dos partes porque no son lo mismo:
 
        2a. rev_5..8 y link_r_25/26, 0.074002 m: del extremo del brazo a la
-           junta de direccion.  Esto SI se gasta entero primero; al agotarlo la
-           junta queda en el propio extremo del brazo, que es donde va.
-       2b. link_r_27..32, 0.137700 m: la MANGUETA, el poste VERTICAL que cuelga
-           de la junta de direccion y del que cuelga la rueda.  Es el eje de
-           giro de la direccion en persona, asi que dejarlo sin altura hace que
-           las ruedas de las esquinas giren sobre un muñon de milimetros.  Se
-           gasta el ULTIMO y el defecto le deja el 60 %.
-
-     REPARTO NUEVO 2026-09-13: link_r_33..38 (soporte del motor) pasa de
-     "0 +-0.0270927 -0.05865" a "0 +-0.0270927 0", o sea a ser un brazo
-     PURAMENTE HORIZONTAL, y sus 0.05865 m de caida se los queda link_r_27..32.
-     El total no cambia -las ruedas siguen donde estaban- pero la union pasa a
-     leerse como lo que es: poste vertical a 90 grados + salida lateral al eje.
-     Antes la caida iba repartida entre los dos y la mangueta salia en diagonal.
+           junta de direccion.  Se gasta entero primero.
+       2b. link_r_27..32, 0.137700 m: la MANGUETA, el poste VERTICAL del que
+           cuelga la rueda y que ES el eje de giro de la direccion.  Se gasta
+           el ULTIMO y el defecto le deja el 60 %.
 
      TECHO 0.382097 = 0.170395 + 0.074002 + 0.137700.  Ahi la mangueta es cero
-     y la rueda colgaria del brazo. No llegar.
+     y la rueda colgaria del brazo.  No llegar.
 
-     0.299477 POR DEFECTO, que deja la mangueta en el 60 % (82.6 mm).  Se
-     probo 0.239200 (K 2.59, mangueta entera) el 2026-09-13 y se volvio aqui
-     el mismo dia.  Con 0.299477:
+     0.299477 POR DEFECTO:
          pivote del rocker  0.5219 -> 0.2224 m sobre los ejes
          K_rocker             3.93 -> 2.25
          K_bogie              2.97 -> 2.25
          panza del chasis    0.638 -> 0.338 m sobre el suelo
      EL COMPROMISO ES EXPLICITO: la mangueta y K tiran en contra.  Con la
-     mangueta entera (rocker_drop 0.244397) K se queda en 2.56; gastandola toda
-     (0.382097) K baja a 1.78 pero no queda direccion que dibujar.  60 % es el
-     punto en que el poste sigue siendo un poste.  K = 1.00 no se alcanza:
-     haria falta 0.521839 y solo hay 0.382097, porque los brazos no se tocan.
+     mangueta entera K se queda en 2.56; gastandola toda K baja a 1.78 pero no
+     queda direccion que dibujar.  K = 1.00 no se alcanza: haria falta
+     0.521839 y solo hay 0.382097, porque los brazos no se tocan.
 
-     QUE NO LIMITA, y parecia que si: el chasis.  Su caja va de y -0.009 a
-     0.241 y las ruedas apoyan en y -0.244 (izquierda) y +0.365 (derecha), o
-     sea 0.23 m por fuera a cada lado.  Ninguna rueda pasa por debajo del
-     chasis en ninguna combinacion de los cuatro pivotes pasivos a +-0.6 rad,
-     asi que bajar el chasis no le acerca ninguna rueda.  Barrido completo en
-     test_bogie_drop.py (seccion 8).
+     QUE NO LIMITA, y parecia que si: el chasis.  Ninguna rueda pasa por
+     debajo de el en ninguna combinacion de los cuatro pivotes pasivos a
+     +-0.6 rad, asi que bajarlo no le acerca ninguna rueda.  Barrido completo
+     en test_bogie_drop.py (seccion 8).
 
      Todo lo que cuelga del chasis sube rocker_drop en el marco de base_link,
-     asi que spawn_z BAJA lo mismo (spawn_z = 1.16 - rocker_drop) y los tres sensores suben
-     rocker_drop en su montaje para conservar su altura sobre la huella: el
-     LiDAR y la camara se quedan donde manda sim_config.yaml y cuelgan de un
-     mastil, y el IMU sigue al CM con imu_rise_per_drop.
+     asi que spawn_z BAJA lo mismo (spawn_z = 1.16 - rocker_drop) y los tres
+     sensores suben rocker_drop en su montaje para conservar su altura sobre
+     la huella.
      ========================================================== -->
 <xacro:arg name="rocker_drop" default="0.299477"/>
 <xacro:property name="rocker_drop" value="$(arg rocker_drop)"/>
@@ -348,53 +233,33 @@
      y el chasis lo tienen- asi que esto NO cambia la fisica: masas, inercias,
      juntas y colisiones se quedan byte a byte donde estaban.
 
-     POR QUE.  Las mallas son un export de CAD con escala propia
-     (0.001417 0.001164 0.001275) y NO se reescalaron con la huella el
-     2026-09-11, asi que se solapaban en pantalla y el modelo no se podia leer
-     a ojo.  Un tubo dibujado ENTRE dos juntas no puede desincronizarse: se
-     recalcula solo con rocker_drop y con bogie_drop, y de paso se lleva por
-     delante el apaño del montante del bogie, que era un tubo de longitud
-     escrita a mano para tapar ese mismo hueco.
+     POR QUE.  Las mallas son un export de CAD con escala propia y no siguen
+     al reescalado de la huella, asi que se solapaban en pantalla y el modelo
+     no se podia leer a ojo.  Un tubo dibujado ENTRE dos juntas no puede
+     desincronizarse: se recalcula solo con rocker_drop y con bogie_drop.
 
      La RUEDA se queda con su malla: es el unico eslabon cuya forma se compara
-     entre plataformas y su radio (0.178) esta igualado a mano en las tres.
+     entre plataformas y su radio esta igualado a mano en las tres.
      ========================================================== -->
 
 <!-- ============ LA MALLA DE LA RUEDA, A LA ESCALA DE SU COLISION ============
-     CORREGIDO EL 2026-09-16.  Las seis ruedas llevaban el visual a
-     "0.002588 0.002126 0.002329", que es la escala del export de CAD y NO la
-     de la rueda que se simula.  Sobre un STL de 86 x 50 x 86 unidades eso
-     dejaba un OVALO de 111.3 x 100.1 mm de semieje y 106.3 de ancho, contra
-     un cilindro de colision de 178 de radio y 114.3 de ancho:
+     La escala del visual es la de la RUEDA SIMULADA, no la del export de CAD:
 
-       * la rueda se veia un 44 % PEQUEÑA, con el borde de arriba a 200 mm
-         del suelo cuando la panza del chasis esta a 338.7, asi que en Gazebo
-         "las ruedas no llegan al chasis" y el vehiculo parece FLOTAR;
-       * y se veia OVALADA, porque la escala era anisotropa (111.3 en x
-         contra 100.1 en z, un 11 % de diferencia).
+       ESCALA = (2r/86, ancho/50, 2r/86) = 0.00413953 0.002286 0.00413953
 
-     Y LA SIMULACION NO CAMBIA, que era la duda razonable.  La fisica no usa
-     los visuales -masa, inercia, juntas y colisiones siguen byte a byte- y el
-     LiDAR, que SI los usa porque un gpu_ray ve visuales y no colisiones, no
-     alcanza las ruedas: el rayo mas rasante que podria tocar una llanta pide
-     30.5 grados bajo la horizontal con la malla nueva (36.0 con la vieja) y
-     el anillo mas bajo del VLP-16 va a 15.0, ademas de un <range><min> de
-     0.3 m.  O sea que las ruedas no salian en la nube y siguen sin salir; lo
-     unico que cambia es que el dibujo ya coincide con lo que se simula, asi
-     que NO hay que repetir ninguna corrida por esto.  Medido con
-     ve_ruedas.py sobre los seis links.
+     y HAY QUE RECALCULAR EL origin DEL VISUAL, que es el fallo silencioso: en
+     URDF el vertice cae en origin + escala * v, asi que al cambiar la escala
+     la malla se DESPLAZA.  Cada uno de los seis origin esta sacado para que el
+     centro de la caja envolvente del STL caiga en el centro del cilindro de
+     colision, (0, +-0.052315, 0); comprobado sobre el URDF generado, 178.00 /
+     57.15 / 178.00 mm de semieje y 3 um de discrepancia con la colision.
 
-     ESCALA NUEVA = (2r/86, ancho/50, 2r/86) = 0.00413953 0.002286 0.00413953
-     Y HAY QUE RECALCULAR EL origin DEL VISUAL, que es el fallo silencioso:
-     en URDF el vertice cae en origin + escala * v, asi que al cambiar la
-     escala la malla se DESPLAZA.  Cada uno de los seis origin se ha sacado
-     para que el centro de la caja envolvente del STL caiga en el centro del
-     cilindro de colision, (0, +-0.052315, 0).  Comprobado sobre el URDF
-     generado: los seis visuales dan 178.00 / 57.15 / 178.00 mm de semieje y
-     su centro coincide con el de la colision con 3 um.
-
-     NO CAMBIA masa, inercia, juntas ni colisiones: solo se ha tocado
-     <visual>.  Lo que cambia es lo que ve el LiDAR.
+     Con la escala del CAD la rueda se veia un 44 % pequeña y OVALADA, y el
+     vehiculo parecia FLOTAR.  La simulacion no cambia: la fisica no usa los
+     visuales, y el LiDAR -que si los ve, porque un gpu_ray ve visuales y no
+     colisiones- no alcanza las ruedas, pide 30.5 grados bajo la horizontal
+     contra los 15.0 del anillo mas bajo del VLP-16.  O sea que las ruedas no
+     salian en la nube y siguen sin salir.
      ========================================================================= -->
 <xacro:macro name="tubo" params="x2 y2 z2 x1:=0 y1:=0 z1:=0 r:=0.020 mat:=silver">
   <visual>
@@ -428,13 +293,12 @@
                 value="${0.15 if '$(arg differential_linkage)' == 'true' else 0.0}"/>
 
 <!-- ==================== BASE_LINK VOLTEADO Y CENTRADO ====================
-     Desde 2026-09-13 base_link es un marco SIN masa que mira a +x (el avance),
-     con origen en el centro del poligono de apoyo -centros REALES de rueda- y
-     a la altura de los ejes (0.178 m sobre la huella, como el body del
-     tracked).  El chasis del CAD cuelga de el girado 180 grados como
-     chassis_link; Gazebo lo fusiona en base_link al cargar, asi que juntas,
-     signos y fisica no cambian.  Cambia el marco que ven TF, RTAB-Map, el
-     ground truth y los sensores.  Sustituye a base_link_nav. -->
+     base_link es un marco SIN masa que mira a +x (el avance), con origen en el
+     centro del poligono de apoyo -centros REALES de rueda- y a la altura de
+     los ejes, como el body del tracked.  El chasis del CAD cuelga de el girado
+     180 grados como chassis_link; Gazebo lo fusiona en base_link al cargar,
+     asi que juntas, signos y fisica no cambian.  Cambia el marco que ven TF,
+     RTAB-Map, el ground truth y los sensores. -->
 <link name="base_link"/>
 <joint name="base_to_chassis" type="fixed">
   <origin xyz="0.244209 0.100343 ${-(0.054824 + rocker_drop)}" rpy="0 0 3.141592653589793"/>
@@ -444,15 +308,10 @@
 
 <link name="chassis_link">
   <inertial>
-    <!-- CENTRADO 2026-09-13.  Estaba en "0.283293 0.116408", que es el valor
-         de CAD SIN reescalar: el 2026-09-11 se multiplicaron por 0.862 los
-         origin de los JOINT pero no los de dentro de los link, y la caja del
-         chasis es de dentro de un link.  El centro del poligono de apoyo que
-         dan las seis ruedas esta en (0.244221, 0.100345) -y ahi es donde ya
-         estaban el LiDAR, la camara y los dos pivotes del rocker, porque esos
-         si son joints-, asi que el chasis se veia 39 mm adelantado y 16 mm
-         descentrado respecto a su propio vehiculo.  Se mueven a la vez el
-         inertial, el visual y la colision: son la misma pieza. -->
+    <!-- El centro del poligono de apoyo que dan las seis ruedas esta en
+         (0.244221, 0.100345), que es donde tambien estan el LiDAR, la camara y
+         los dos pivotes del rocker.  El inertial, el visual y la colision del
+         chasis se mueven juntos: son la misma pieza. -->
     <origin xyz="0.244209 0.100344 0.574618" rpy="0 0 0"/>
     <!-- 33.855 native, less whatever the differential linkage adds, so the
          platform total stays at the 45.000 kg the mass matching sets whether
@@ -818,30 +677,8 @@
 
 <!-- ================= ROCKER PIVOTS (passive suspension) ================= -->
 <!--
-  SUSPENSION TOPOLOGY  (restructured 2026-07 - see robot_metrics/README.md)
+  SUSPENSION TOPOLOGY
 
-  What was wrong before
-  =====================
-  The two sides of the suspension were welded to each other.  The chain was
-
-      base_link
-        `- differential_joint (revolute Y)  -> AcopleTuboRB_1_1   [left tube]
-             `- differential_bar_joint (FIXED) -> AcopleTuboRB_2_1 [right tube]
-
-  so AcopleTuboRB_1_1 and AcopleTuboRB_2_1 formed ONE rigid body carrying every
-  wheel on both sides, connected to the chassis by a single pivot.  The model
-  therefore had no independent left/right rocker travel whatsoever: when the
-  left wheels met the step, the right wheels were forced to follow.  That is the
-  opposite of what a rocker-bogie does, and it is the direct cause of the
-  wheel lift-off seen when crossing the step.
-
-  The joints actually named "rocker_joint_r" and "rocker_joint_l" were not in
-  the load path at all: their children (AcopleRB_1_1 / AcopleRB_2_1) are leaf
-  links that carry no wheel, so those revolute joints only wobbled two
-  cosmetic stubs.  They are now fixed (see below).
-
-  What the structure is now
-  =========================
       base_link
         |- rocker_pivot_left  (revolute Y) -> AcopleTuboRB_1_1  [LEFT rocker]
         `- rocker_pivot_right (revolute Y) -> AcopleTuboRB_2_1  [RIGHT rocker]
@@ -854,60 +691,38 @@
       * a BOGIE at the other end (rev_3 / rev_4) carrying the MIDDLE and REAR
         wheels, the rear one also steered.
 
-  Sign convention - this is easy to get wrong and was got wrong before.
-  base_link is authored facing -x (the camera sits at x = -0.07 with rpy
-  yaw = pi, and the robot spawns at Y = pi).  With z up and a right-handed
-  frame, LEFT = z_hat x forward = z_hat x (-x_hat) = -y_hat.  So in base_link
-  coordinates the LEFT side is the one with the SMALLER y:
+  The two sides must NOT share a link: welded together through a single pivot
+  the model has no independent left/right travel at all, and the wheels on one
+  side are forced to follow the other over the step.
+
+  Sign convention - easy to get wrong.  The CAD chassis is authored facing -x,
+  so in ITS frame LEFT = z_hat x (-x_hat) = -y_hat, i.e. the LEFT side is the
+  one with the SMALLER y:
 
       AcopleTuboRB_2_1  pivot at y = -0.052384  -> LEFT  rocker
       AcopleTuboRB_1_1  pivot at y = +0.285198  -> RIGHT rocker
 
-  base_link's origin comes from the CAD export and is not centred on the
-  chassis, which is why the two offsets are not symmetric about zero; the
-  centreline is y = +0.116408 (where the sensors sit) and the pivot separation
-  (0.337582 m) is what matters.
+  The offsets are not symmetric about zero because the CAD origin is not
+  centred on the chassis; what matters is the separation, 0.337582 m.
 
-  Travel limits
-  =============
-  The left pivot previously had limits of +/-0.15 rad.  Lifting one wheel over
-  the 0.10 m step needs about atan(0.10 / 0.285) = 0.34 rad of rocker rotation,
-  so the old limit made it geometrically IMPOSSIBLE for the suspension to
-  absorb the step - it hit the joint stop and the chassis was levered upward
-  instead.  Limits are now +/-0.6 rad (+/-34 deg), which clears the step with
-  margin and is consistent with the hard stops of a physical rocker-bogie.
+  Damping and friction are 0.5 and 0.2, representative of a lubricated bearing
+  on this scale, and are the two numbers to vary in a sensitivity study.
 
-  Damping and friction
-  ====================
-  Previously damping = 80 N*m*s/rad and friction = 4-6 N*m on a passive pivot,
-  i.e. the suspension was effectively frozen.  Values are now 0.5 and 0.2,
-  representative of a lubricated bearing on this scale.  These two numbers are
-  the ones to vary in a sensitivity study.
-
-  Actuation
-  =========
   These pivots are PASSIVE.  They carry an EffortJointInterface transmission
-  (see ensamblajeurdf.trans) whose only purpose is to let rocker_differential.py
-  apply the differential coupling torque.  With that node stopped the effort
-  command stays at zero and the joints are free - which is exactly the
-  "no differential" ablation.  They are never position- or velocity-driven.
+  (see ensamblajeurdf.trans) whose only purpose is to let
+  rocker_differential.py apply the differential coupling torque.  With that
+  node stopped the effort command stays at zero and the joints are free -
+  which is exactly the "no differential" ablation.  They are never position-
+  or velocity-driven.
 -->
 <!-- ==================== SUSPENSION TRAVEL ====================
-     The two rocker pivots below travel +-1.0 rad (set again 2026-09-13;
-     the bogies stay at -0.6 / bogie_upper, see the top of this file).  They were +-0.6 rad, sized against the
-     0.10 m step obstacle alone: "0.10 m step over a 0.285 m half-span needs
-     ~0.34 rad" - true, but the step is not the demanding case.  On the mine
-     route the gallery climbs about 5 m, and both rocker pivots were measured
-     PINNED against the +0.6 rad stop for minutes at a time (sd 0.25 deg),
-     with the chassis riding at a mean pitch of -27 deg where the terrain grade
-     was only about 7 deg.  A suspension at its stop does not articulate: it
-     transmits terrain pitch straight into the chassis, which is the opposite
-     of the property this study is measuring.
+     The two rocker pivots below travel +-1.0 rad; the bogies stay at
+     -0.6 / bogie_upper, see the top of this file.
 
-     +-1.0 rad comes from the criterion that DEFINES the mechanism - all six
-     wheels stay in ground contact while surmounting an obstacle of one wheel
-     diameter (MER is specified at roughly 1.5 diameters; one is conservative).
-     With this model's measured geometry:
+     +-1.0 comes from the criterion that DEFINES the mechanism - all six wheels
+     stay in ground contact while surmounting an obstacle of one wheel diameter
+     (MER is specified at roughly 1.5 diameters; one is conservative).  With
+     this model's measured geometry:
 
          wheel diameter D        = 0.356 m
          rocker front lever arm  = 0.4266 m   front wheel to rocker pivot
@@ -916,8 +731,11 @@
          rocker: asin(D / 0.4266)       = 0.988 rad = 56.6 deg
          bogie : asin(D / (2 x 0.2133)) = 0.988 rad = 56.6 deg
 
-     Both round to 1.0 rad, which is what is set here.  At the old +-0.6 rad the
-     same criterion admitted only a 0.24 m obstacle - two thirds of a wheel.
+     Both round to 1.0 rad.  Sizing the travel against the 0.10 m step alone
+     gives 0.34 rad, which is not the demanding case: on the mine route the
+     gallery climbs about 5 m, and a pivot sitting on its stop does not
+     articulate - it transmits terrain pitch straight into the chassis, which
+     is the opposite of the property this study measures.
 
      STILL TO CHECK: whether the CAD linkage actually clears itself at 1.0 rad.
      The meshes are a CAD export and self_collide is false on the wheels, so
@@ -928,15 +746,12 @@
 <!-- ================= SUSPENSION DAMPING ================= -->
 <!--
   damping = 5.0 N*m*s/rad on the four PASSIVE suspension joints
-  (rocker_pivot_left, rocker_pivot_right, rev_3, rev_4), set 2026-09-08.
-  History of this number: 80.0 in the original GitHub model (2026-03-12),
-  0.5 for most of this study, then 80.0, 0.1 and 5.0 on 2026-09-08 as the
-  suspension was being swept by hand.
+  (rocker_pivot_left, rocker_pivot_right, rev_3, rev_4).
 
-  WHAT THE SWEEP IS FOR.  Damping trades ground contact for ride
-  smoothness on this platform, and the two points measured over the full
-  mine route (robot_metrics/ROCKER_RUEDAS_AL_AIRE.md section 2) are the
-  ends of the range, not this value:
+  DAMPING TRADES GROUND CONTACT FOR RIDE SMOOTHNESS on this platform, and the
+  two points measured over the full mine route
+  (robot_metrics/ROCKER_RUEDAS_AL_AIRE.md section 2) are the ENDS of the range,
+  not this value:
 
                            damping 0.5     damping 80
       vibration RMS            2.281          1.693
@@ -945,29 +760,25 @@
       time with <6 wheels     19.7 %         51.7 %
       Rueda_4_1 airborne       6.4 %         38.0 %
 
-  5.0 is an INTERIOR point of that pair and nothing here says where it
-  lands.  The two ends differ by a factor of 160 and the response is not
-  known to be linear in damping, so do not read a proportion off the
-  table.  If 5.0 is meant to be the compromise between the smooth ride of
-  80 and the ground contact of 0.5, that claim needs its own run: the two
-  numbers to log are vibration RMS and time with fewer than six wheels,
-  and they are the two that move in opposite directions.
+  5.0 is an INTERIOR point of that pair and nothing here says where it lands:
+  the ends differ by a factor of 160 and the response is not known to be linear
+  in damping, so do not read a proportion off the table.  Claiming 5.0 as the
+  compromise needs its own run, logging the two numbers that move in opposite
+  directions - vibration RMS and time with fewer than six wheels.
 
-  friction stays at 0.2 and has not moved through any of these changes.
-  At 5.0 the viscous term is back in charge: 5.0 * qdot outweighs the
-  0.2 N*m of Coulomb friction above qdot = 0.04 rad/s, which the
-  suspension is above whenever it is doing anything at all.  That was not
-  true at damping 0.1, where friction was the governing term.
+  friction stays at 0.2.  At damping 5.0 the viscous term is in charge:
+  5.0 * qdot outweighs the 0.2 N*m of Coulomb friction above qdot = 0.04 rad/s,
+  which the suspension exceeds whenever it is doing anything at all.
 
   STABILITY: gazebo-classic integrates joint damping explicitly
-  (implicitSpringDamper is not set here), and the explicit form is stable
-  while damping < 2*I/dt, i.e. 4000*I at dt = 0.0005 s.  The rocker
-  pivots (I ~ 4.05 kg*m^2) are bounded near 16000 and the bogies, the
-  lighter pair, near a few hundred.  5.0 is far below both.
+  (implicitSpringDamper is not set here), and the explicit form is stable while
+  damping < 2*I/dt, i.e. 4000*I at dt = 0.0005 s.  The rocker pivots
+  (I ~ 4.05 kg*m^2) are bounded near 16000 and the bogies, the lighter pair,
+  near a few hundred.  5.0 is far below both.
 
-  check_sim_parity.py does NOT police these four: the other two platforms
-  have no passive suspension to match.  The DRIVE joints (rev_9..rev_14)
-  are the policed ones and stay at damping 0.0.
+  check_sim_parity.py does NOT police these four: the other two platforms have
+  no passive suspension to match.  The DRIVE joints (rev_9..rev_14) are the
+  policed ones and stay at damping 0.0.
 -->
 
 <joint name="rocker_pivot_right" type="revolute">
@@ -1027,24 +838,17 @@
   joints.
 
   Verified passive:
-    * no transmission          - removed from ensamblajeurdf.trans, so
+    * no transmission          - not in ensamblajeurdf.trans, so
                                  gazebo_ros_control never registers them and
                                  cannot command them;
     * no controller            - not listed in any controller_manager spawn;
-    * no PID entry             - removed from the launch pid_gains block.
+    * no PID entry             - not in the launch pid_gains block.
 
-  Previously they DID carry a hardware_interface/VelocityJointInterface
-  transmission.  gazebo_ros_control registers every transmitted joint and, in
-  every write cycle, drives it towards its command - which for an unclaimed
-  joint is a constant zero velocity.  The "passive" bogies were therefore being
-  actively held still by the simulator, on top of damping = 80 N*m*s/rad and
-  friction = 10 N*m from the URDF.  A bogie that cannot rotate transfers the
-  step impulse straight into the chassis and lifts the neighbouring wheel; this
-  is the main reason the simulated contact behaviour did not match Fig. 2.
-
-  Limits widened from +/-0.5 to +/-0.6 rad for the same geometric reason as the
-  rockers (0.10 m step over a 0.285 m half-span needs ~0.34 rad, and the bogie
-  span is shorter still, so the old stop was close to binding).
+  This matters: gazebo_ros_control drives every TRANSMITTED joint towards its
+  command, which for an unclaimed joint is a constant zero velocity, so a
+  "passive" bogie with a transmission is actively held still by the simulator.
+  A bogie that cannot rotate transfers the step impulse straight into the
+  chassis and lifts the neighbouring wheel.
 -->
 <joint name="rev_3" type="revolute">
   <origin xyz="${(0.0509408)+(0.0828882)+(0.0293545)+(0)} ${(-0.0161893)+(0.0000000)+(-0.0275215)+(-0.0210457)} ${(rk_r7)+(rk_r9)+(rk_r11)+(-bogie_drop)}" rpy="0 0 0"/>
@@ -1096,11 +900,10 @@
   0.0000 m - the geometry was laid out for this manoeuvre, and only the joint
   limit was stopping it.
 
-  What this removes: with a 28.6 deg lock the platform could not achieve any
-  turn tighter than a 1.56 m radius, while DWA - which has no notion of a
-  minimum radius - was measured commanding radii down to 0.13 m.  The
-  difference was scrubbed off sideways by the tyres, which is where the 17-21
-  N*m torque peaks came from.
+  What a tighter lock removes: at 28.6 deg no turn tighter than a 1.56 m
+  radius is achievable, while DWA - which has no notion of a minimum radius -
+  was measured commanding radii down to 0.13 m.  The difference is scrubbed off
+  sideways by the tyres, which is where the 17-21 N*m torque peaks came from.
 
   STILL TO CHECK: whether the CAD steering linkage actually clears itself at
   1.1 rad.  Widening a joint limit without looking is how the suspension travel
@@ -1166,22 +969,13 @@
      so that the three platforms have the same total drive authority at the
      contact patch (674.2 N) despite driving 4, 2 and 6 joints respectively.
      check_sim_parity.py fails the campaign if this figure drifts from the
-     config.  It was 100.0 N*m, which gave this platform a 600 N*m / 3371 N
-     ceiling - the largest of the three, and the reason its trouble on grades
-     was never a torque-ceiling problem.
+     config.  This platform is the ANCHOR of the budget: the figure here is
+     chosen and the other two are solved from it, so moving it by hand means
+     editing sim_config.yaml too.  20.0 N*m per wheel is ~5.3x the 3.76 N*m the
+     16.7 deg ramp demands of each of the six.
 
-     SWEPT BY HAND 2026-09-06 to 2026-09-08: 20.0 -> 15.0 -> 10.0 -> 20.0
-     N*m per wheel, i.e. back to where it started.  This platform is the
-     ANCHOR of the budget: the figure here is chosen and the other two are
-     solved from it (Husky 29.958 -> 22.468 -> 14.979 -> 29.958, Tracked
-     60.0 -> 45.0 -> 30.0 -> 60.0), which is why moving it by hand means
-     editing sim_config.yaml too.
-     20.0 N*m per wheel is ~5.3x the 3.76 N*m the 16.7 deg ramp demands of
-     each of the six.
-
-     damping and friction are 0.0 for the same parity reason: they used to be
-     0.5 and 0.1 here and absent on the other two platforms, i.e. 7.4 N*m of
-     drag (a third of the ramp torque) that only this platform paid.  Joint
+     damping and friction are 0.0 for parity: a per-platform joint drag that
+     only this model paid would be worth a third of the ramp torque.  Joint
      drag is not a locomotion property being compared; contact friction, which
      is shared, is.  The PASSIVE suspension pivots and the steering joints keep
      their damping - they model real hardware and have no counterpart to match.
@@ -1278,16 +1072,11 @@
        base_link, and 0.0641 m is the Velodyne's own <sensor><pose> over in
        ensamblajeurdf.gazebo.  See robot_metrics/README.md section 1.5.
 
-       RAISED FROM 0.6375 (= 0.8248 m of height) on 2026-08-26.  At the old
-       height this robot blocked its own lowest ring by 6.8 deg towards the
-       camera, 3.9 deg at the chassis corners and 1.7 deg over the rocker
-       tubes - 3.3% of the sphere returning nothing.  The monolithic gpu_ray
-       never saw any of it: Gazebo does not let a ray sensor see the visual of
-       its own link, and the URDF conversion fuses velodyne_base_link into
-       base_link, so the sensor was ignoring the entire chassis.  The sliced
-       LiDAR's wedge rides on velodyne_rotor_link, a link of its own, so the
-       robot becomes a normal obstacle to it and those rings disappear.  At
-       0.9000 m the -15 deg ring clears everything by 4.2 deg. -->
+       The height has to clear the platform's own geometry: a gpu_ray does
+       NOT see the visual of its own link, and the URDF conversion fuses
+       velodyne_base_link into base_link, so the monolithic sensor ignores the
+       whole chassis while a sensor on a link of its own would not.  Check the
+       margin with scripts/lidar_occlusion.py, not by eye. -->
   <origin xyz="0.244209 0.100343 ${0.5127 + rocker_drop}" rpy="0 0 3.141592653589793"/>
   <parent link="chassis_link"/>
   <child link="velodyne_base_link"/>
@@ -1316,27 +1105,20 @@
 </link>
 
 <joint name="imu_joint" type="fixed">
-  <!-- SENSOR STANDARDIZATION: el IMU va en el CENTRO DE MASAS.  Cambiado
-       2026-09-04; el razonamiento completo esta en
-       differential/model/differential/model.sdf.  Antes: "0.283305 0.116408
-       0.57375", que lo dejaba a 0.6969 m del suelo como los otros dos pero a
-       0.238 m del CM, contra 0.485 m del tracked.
-       CM del rocker sin el IMU, en base_link.  Ojo: este chasis tiene
-       suspension articulada, asi que su CM se mueve con los balancines; este
-       es el de la pose nominal, con las juntas a cero.
+  <!-- SENSOR STANDARDIZATION: el IMU va en el CENTRO DE MASAS; el
+       razonamiento completo esta en differential/model/differential/model.sdf.
+       Ojo: este chasis tiene suspension articulada, asi que su CM se mueve con
+       los balancines; este es el de la pose nominal, con las juntas a cero.
 
        Y SE MUEVE TAMBIEN CON bogie_drop.  Bajar el pivote se lleva abajo los
-       dos soportes Acople_Rodamiento_*_1 (1.39525 kg nativos cada uno), que
-       es la unica masa que cambia de sitio.  El CM sin el IMU baja
+       dos soportes Acople_Rodamiento_*_1, que es la unica masa que cambia de
+       sitio.  El CM sin el IMU baja
            dz = 2 * 1.39525 * mass_scale * bogie_drop / (45.0 - m_imu)
               = 0.029419 * bogie_drop
-       o sea 10.3 mm con bogie_drop = 0.351.  Eso es CINCO VECES la tolerancia
-       de imu_lever_arm_tolerance_m (0.002) de sim_config.yaml, asi que si el
-       IMU no baja con el CM, check_sim_parity 13b (check_imu_at_centre_of_mass)
-       FALLA, y con razon: un acelerometro fuera del CM mide
-       a_cm + alpha x r + omega x (omega x r), y ese brazo es justo lo que la
-       estandarizacion de sensores puso a cero el 2026-09-04.
-       x e y no se tocan: la bajada del pivote es puramente vertical. -->
+       o sea 10.3 mm con bogie_drop = 0.351: CINCO VECES la tolerancia de
+       imu_lever_arm_tolerance_m (0.002), asi que si el IMU no baja con el CM,
+       check_sim_parity 13b FALLA, y con razon.  x e y no se tocan: la bajada
+       del pivote es puramente vertical. -->
   <xacro:property name="imu_z_drop"
                   value="${2*1.39525*mass_scale*bogie_drop / (45.0 - 0.0149159)}"/>
   <origin xyz="0.248647 0.100343 0.474405" rpy="0 0 3.141592653589793"/>
@@ -1399,13 +1181,10 @@
   rather than seen.  This is also what the Curio / Sawppy rover does.
 
   GEOMETRY IS SYNTHESISED, NOT FROM CAD - but it is anchored on links that
-  exist.  The first version of this attached the rods 0.20 m forward of each
-  rocker pivot and hung the beam 0.30 m above them, which put the whole linkage
-  at z = 0.877 when the highest point on the robot is z = 0.664: it floated
-  clear of the vehicle, joined to nothing you could see.  It still worked,
-  because a joint frame is defined relative to a link ORIGIN and not to where
-  that link's mesh happens to be - which is exactly how a linkage can be
-  kinematically right and physically nonsense at the same time.
+  exist.  A joint frame is defined relative to a link ORIGIN and not to where
+  that link's mesh happens to be, which is how a linkage can be kinematically
+  right and physically nonsense at the same time: the first version of this one
+  floated clear of the vehicle, joined to nothing you could see.
 
   The attachment points are now measured, not assumed.  BarraBR_2_1 and
   BarraBR_1_1 are the rocker bars: real, drawn, and DIRECT fixed children of the

@@ -55,66 +55,42 @@
   fdir1: direccion de rodadura en frame del body (X=adelante)
   kp/kd: rigidez y amortiguamiento normal del contacto (ODE)
 
-  CONTACT-STIFFNESS REVIEW (asked for in the revision)
-  ====================================================
-  Values in use, identical on all six wheels:
+  CONTACT STIFFNESS - is it stiff enough to FAKE a loss of contact on the
+  step?  No: at a static load of ~65 N per wheel and kp = 1e5 N/m the
+  equilibrium penetration is 0.65 mm, which is soft (the stock Husky wheels
+  use 1e6..1e7).  maxVel caps the contact-correcting velocity, which is what
+  actually suppresses restitution, and minDepth keeps the solver from
+  chattering around zero penetration.  The values in use are shared by the
+  three platforms and declared in sim_config.yaml.
 
-      mu1      = 100.0        mu2      = 0.75
-      kp       = 1.0e5 N/m    kd       = 10.0 N*s/m
-      minDepth = 0.003 m      maxVel   = 1.0 m/s
+  What DID cause lift-off on the step, both fixed: a suspension mechanically
+  unable to articulate (welded rocker sides and stray transmissions holding
+  the pivots at zero velocity), and an under-converged ODE solver - 6 wheel
+  contacts plus the passive pivots in one constraint island do not converge at
+  the default 50 iterations, and the residual shows up as contact jitter.
 
-  Is kp too stiff, i.e. could it fake a loss of contact on the step?
-  With a total vehicle mass of ~40 kg the static load per wheel is ~65 N, which
-  at kp = 1e5 N/m gives an equilibrium penetration of 0.65 mm - soft, not
-  stiff.  For comparison, the stock Husky wheels use kp = 1e6...1e7.  maxVel
-  caps the contact-correcting velocity at 1 m/s, which is what actually
-  suppresses restitution, and minDepth = 3 mm keeps the solver from chattering
-  around zero penetration.  So the contact model itself is NOT the cause of the
-  lift-off observed on the step.
-
-  Two other things were, and both are now fixed:
-    1. the suspension was mechanically unable to articulate (see the URDF: the
-       two rocker sides were welded together and the pivots were held at zero
-       velocity by stray transmissions);
-    2. the world declared no <physics> block, so the ODE solver ran at its
-       default 50 iterations.  With 6 wheel contacts and the passive pivots in
-       one constraint island that does not converge inside a 1 ms step, and the
-       residual shows up as contact jitter.  lcmine.world now pins the solver
-       at 150 iterations.
-
-  From now on the claim is testable rather than argued: the contact sensors
-  declared further down log the real per-wheel contact state, and
-  plot_wheel_contact.py turns them into the figure that replaces Fig. 2.
-  If a sensitivity check is requested, sweep kp over 1e4 / 1e5 / 1e6 with
-  everything else fixed and compare the contact traces.
+  The claim is testable rather than argued: the contact sensors further down
+  log the real per-wheel contact state and plot_wheel_contact.py turns them
+  into the figure that replaces Fig. 2.  For a sensitivity check, sweep kp
+  over 1e4 / 1e5 / 1e6 with everything else fixed and compare the traces.
 -->
-<!-- FRICCION DE LAS SEIS RUEDAS.  mu1 = mu2 = 0.75, los valores de la
-     plataforma de orugas, que es el ancla: sus segmentos de oruga declaran
-     0.75 / 0.75 isotropico.  Aqui decia mu1 = 100.0 con mu2 = 0.75, igual
-     que el Husky, o sea un neumatico ANISOTROPO - ODE toma el minimo contra
-     la superficie que toca, asi que sobre el suelo de galeria (mu 1.0)
-     quedaba 1.0 longitudinal contra 0.75 lateral.  Dos modelos de contacto
-     distintos entre las tres plataformas, y ningun chequeo lo miraba.
-     Con mu1 == mu2 el rozamiento es isotropo y fdir1 ya no elige nada; se
-     deja solo para dejar constancia del marco al que se refieren.
-     El comentario anterior hablaba de 'ruedas esquina mu2=0.4' y 'ruedas
-     medio mu=0.75': ese 0.4 no existia en el archivo desde hacia tiempo y
-     las seis ruedas llevaban el mismo par de valores.
-     Declarado en sim_config.yaml (robot_contact) y verificado por
-     check_sim_parity.py. -->
+<!-- FRICCION DE LAS SEIS RUEDAS, declarada en sim_config.yaml
+     (robot_contact) y verificada por check_sim_parity.py.  El ancla es la
+     plataforma de orugas; ODE toma el minimo contra la superficie que toca,
+     asi que una rueda anisotropa y una oruga isotropa son dos modelos de
+     contacto distintos en un estudio que los compara.  fdir1 se deja para
+     dejar constancia del marco al que se refieren los coeficientes. -->
 
 <!-- Rueda_1_1: esquina (rev_12 - RL) -->
-<!-- FRICCION POR GRUPOS, restaurada 2026-09-02.  Los siete
-     eslabones NO motrices -chasis, acoples y barras del
-     balancin- llevan mu1 = 0.2 a proposito: si un brazo de la
-     suspension roza el terreno tiene que DESLIZAR, no agarrarse.
-     El 2026-09-02 se les subio a 1.0 por error, igualandolos con
-     las ruedas, y el mecanismo se trabo: dos de las seis ruedas
-     dejaron de tocar el suelo (26.8 % y 18.4 % del tiempo sobre
-     una vuelta) mientras otra soportaba 200 N de los 441 que pesa.
-     Un rocker-bogie existe para repartir entre las seis.
-     Solo los seis links Rueda_* son superficie de contacto
-     declarada en sim_config.yaml; estos siete no. -->
+<!-- FRICCION POR GRUPOS.  Los siete eslabones NO motrices -chasis,
+     acoples y barras del balancin- llevan mu1 = 0.2 a proposito: si un brazo
+     de la suspension roza el terreno tiene que DESLIZAR, no agarrarse.
+     Igualarlos a las ruedas traba el mecanismo: medido, dos de las seis
+     ruedas dejaron de tocar el suelo (26.8 % y 18.4 % del tiempo sobre una
+     vuelta) mientras otra soportaba 200 N de los 441 que pesa, y un
+     rocker-bogie existe para repartir entre las seis.
+     Solo los seis links Rueda_* son superficie de contacto declarada en
+     sim_config.yaml; estos siete no. -->
 <gazebo reference="Rueda_1_1">
   <material>Gazebo/DarkGrey</material>
   <mu1>1.0</mu1>

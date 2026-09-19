@@ -1,73 +1,54 @@
 # =============================================================================
 # route_mine.yaml - the exploration route, defined ONCE in world coordinates
 # =============================================================================
-# The three platforms used to carry hand-edited, mutually inconsistent waypoint
-# files.  The Husky file even carried the comment
-#
-#     "Transformados desde rocker_bogie (x*-1, y*-1, yaw+180)"
-#
-# which is the right idea applied by hand, once, and never re-checked; the
-# Rocker-Bogie file meanwhile had drifted to a five-point out-and-back along a
-# single corridor while the others ran a fifteen-point loop.  The robots were
-# not driving the same route, so their SLAM results were not comparable.
-#
-# The fix is to stop maintaining three files.  The route is defined here, in
-# GAZEBO WORLD COORDINATES, and generate_waypoints.py projects it into each
-# robot's own map frame using that robot's spawn pose from sim_config.yaml.
-# Every platform therefore drives the same physical path through the same
-# gallery, and the per-robot YAML files become generated artefacts that should
-# never be edited by hand.
+# The route lives here, in GAZEBO WORLD COORDINATES, and generate_waypoints.py
+# projects it into each robot's own map frame using that robot's spawn pose
+# from sim_config.yaml.  Every platform therefore drives the same physical path
+# through the same gallery, and the per-robot waypoint YAMLs are generated
+# artefacts that must never be edited by hand - one hand-edited file puts one
+# platform on a different route and invalidates the comparison.
 #
 # -----------------------------------------------------------------------------
 # HOW THE POINTS WERE CHOSEN
 # -----------------------------------------------------------------------------
 # The corridors are NOT invented.  The mine is a 3D mesh (lc_mine/untitled2.dae)
 # whose drivable galleries cannot be read off the .world file, so the route
-# follows the same four corridors the previous Husky run demonstrably drove:
+# follows the four corridors a Husky run demonstrably drove:
 #
 #     north gallery   y ~   0.2, x from 18 to 52
 #     east  gallery   x ~  54.0, y from 0 to -33
 #     south gallery   y ~ -38.8, x from 47 down to 20
 #     west  gallery   x ~  19.0, y from -34 up to 0
 #
-# (The old differential/config/waypoints_mine.yaml is in the map frame; adding
-# the spawn offset (33.5, 0.2) gives the world coordinates above.)  What has
-# changed is the DISTRIBUTION of points along those corridors, which is what
-# was actually criticised:
+# with the points DISTRIBUTED along them:
 #
-#   1. Even spacing.  The old file had gaps of 1.0 m next to gaps of 11.2 m,
-#      with five of its fifteen points inside a 5 m stretch of the south-west
-#      corner and nothing at all along the 19 m north gallery.  Points are now
-#      placed every 8-11 m along the whole loop.
-#   2. Coverage.  Every corridor now carries intermediate points, so the robot
-#      is driven along the full length of each rather than corner to corner.
+#   1. Even spacing, every 8-11 m along the whole loop, instead of gaps of
+#      1.0 m next to gaps of 11.2 m.
+#   2. Coverage.  Every corridor carries intermediate points, so the robot is
+#      driven along its full length rather than corner to corner.
 #   3. The step is straddled, not landed on.  Waypoints sit 4 m before and 4 m
 #      after the slab, never on it.  A waypoint on the obstacle makes the robot
 #      stop and re-orient with one axle raised, which measures the follower's
-#      tuning instead of the platform's ability to cross; straddling gives a
-#      clean run-up and exit and leaves the crossing as one uninterrupted
-#      segment that plot_wheel_contact.py can isolate.
+#      tuning instead of the platform's ability to cross; straddling leaves the
+#      crossing as one uninterrupted segment plot_wheel_contact.py can isolate.
 #   4. Loop closure.  The route returns to its origin along the same corridor
-#      it left by, so RTAB-Map gets a genuine revisit to detect and the
-#      loop-closure statistics mean something.
+#      it left by, so RTAB-Map gets a genuine revisit to detect.
 #
 # Obstacles, from sim_config.yaml:
-#   step  centred (54.0, -27.0), 0.10 m high, 2.5 m along travel (y).
-#         It lies on the east gallery, which is why the route runs down x = 54.
+#   step  on the east gallery, which is why the route runs down x = 54.
 #
 #   ramp  centred (25.5, -9.5), 5 m long, 1.5 m high, 16.7 deg slope.  This is
 #         NOT a test obstacle: it and the other added blocks are terrain
-#         patching, placed to cover holes in the lc_mine mesh and verified
-#         visually in Gazebo.  It sits inside the loop rather than on any of
-#         the four corridors, and the previous Husky route did not cross it
-#         either, so no robot drives over it.  That is intended - but it does
-#         mean the paper cannot make any claim about slope or ramp climbing on
-#         the strength of these runs.  Doing so would need its own route and
-#         its own validated corridor; do not simply add a waypoint at
-#         (25.5, -9.5) and assume the robot can get there.
+#         patching, placed to cover holes in the lc_mine mesh.  It sits inside
+#         the loop rather than on any of the four corridors, so no robot drives
+#         over it.  That is intended - but it does mean the paper cannot make
+#         any claim about slope or ramp climbing on the strength of these runs.
+#         Doing so would need its own route and its own validated corridor; do
+#         not simply add a waypoint at (25.5, -9.5) and assume the robot can
+#         get there.
 #
 # Spawn pose (identical for all three): x = 33.5, y = 0.2
-# Travel direction: east, south, west, north - the same sense as the old route.
+# Travel direction: east, south, west, north.
 # =============================================================================
 
 route:
@@ -83,23 +64,20 @@ route:
   # exceeds this, and does it in world coordinates BEFORE projecting into each
   # robot's frame, so the three platforms receive identical points.
   #
-  # Why: at the original 8-11 m spacing, a goal that move_base cannot reach
-  # costs the whole segment - it exhausts its recovery behaviours, aborts, and
-  # the navigator skips to a point up to 11 m further on.  Shorter hops mean a
-  # shorter global plan per goal, more goals actually reached, and a much
-  # smaller loss when one is abandoned.
+  # Why: at 8-11 m spacing, a goal move_base cannot reach costs the whole
+  # segment - it exhausts its recovery behaviours, aborts, and the navigator
+  # skips to a point up to 11 m further on.  Shorter hops mean a shorter global
+  # plan per goal, more goals actually reached, and a smaller loss when one is
+  # abandoned.
   #
   # Set to null to recover the original 17-point route.
   max_spacing_m: 4.0
 
   # Interpolated points that would land inside one of these are dropped.  The
   # step obstacle is crossed BETWEEN two waypoints on purpose (see the note
-  # above); an interpolated goal sitting on the slab would undo that.
+  # above); an interpolated goal sitting on the slab would undo that.  y_min
+  # follows the slab: 1 m of margin below its south edge.
   no_waypoint_zones:
-    # y_min sigue a la losa: 1 m de margen por debajo de su borde sur, que
-    # el 2026-08-24 paso de -28.25 a -29.25.  Sin mover esto, un waypoint
-    # interpolado podria caer sobre la losa nueva, que es justo lo que esta
-    # zona existe para impedir.
     - {name: "step_obstacle", x_min: 51.0, x_max: 57.0,
        y_min: -30.55, y_max: -25.05}
 
@@ -117,66 +95,34 @@ route:
     - {name: "step_run_up",      x:  54.0, y: -23.0, yaw:  270.0}
 
     # --- the step (y from -26.05 to -29.55) is crossed between these two ---
-    # x moved 54.0 -> 55.5 on 2026-08-20, so the crossing is taken at an angle
-    # instead of square-on.  Square-on, the Rocker-Bogie stopped dead on the
-    # step: 11 s commanded at 0.500 m/s with a ground speed of 0.02-0.05 m/s
-    # and only 4 of its 6 wheels in contact, then it levered up to 27 deg of
-    # pitch and was thrown over when a suspension joint let go of its 0.6 rad
-    # stop (1150 deg/s, 13.3 m/s - a solver artefact, not locomotion).
-    # Taking it at an angle makes the wheels engage one at a time rather than
-    # both sides at once.  NOTE: this changes the shared route for all three
-    # platforms, which is deliberate - the comparison needs one route.
+    # The crossing is taken at an ANGLE, not square-on, so the wheels engage
+    # one at a time instead of both sides at once: square-on the Rocker-Bogie
+    # stopped dead on the step -11 s commanded at 0.5 m/s with a ground speed
+    # of 0.02-0.05 and 4 of 6 wheels in contact- then levered up to 27 deg of
+    # pitch and was thrown over when a suspension joint let go of its stop
+    # (1150 deg/s, 13.3 m/s: a solver artefact, not locomotion).
     - {name: "step_exit",        x:  55.5, y: -31.0, yaw:  270.0}
 
-    # Was the interpolated midpoint of step_exit -> se_corner, at (53.0, -34.0).
-    # Made explicit and moved +1.0 m in x on 2026-08-20: the Rocker-Bogie cleared
-    # the step but rolled over here on the descent, at (53.42, -31.93), climbing
-    # 0.48 m of terrain with 0.5 m/s commanded and a ground speed of 0.04-0.14.
-    # History of this point, all measured 2026-08-20 on rocker_bogie:
-    #   (53.0, -34.0)  interpolated midpoint of step_exit -> se_corner.
-    #                  Rolled over at (53.42, -31.93) on the descent.
-    #   (54.0, -34.0)  overshot to y = -34.3, was turned back by the planner and
-    #                  rolled over on the way back at (53.10, -32.47, z 6.43),
-    #                  pitch +44.8 deg, two of six wheels down.
-    #   (54.5, -34.0)  BEST RESULT SO FAR - no rollover at all.  38 of 44
-    #                  waypoints, 131.38 m of the 139.1 m route, 0 aborts,
-    #                  0 failed waypoints, max tilt 26.1 deg, all six wheels
-    #                  down 88.3% of the run, left/right contact asymmetry
-    #                  1.1 points, 0 SLAM tracking losses.
-    #   (55.5, -33.0)  tried briefly and reverted without being run: it put this
-    #                  point 2.00 m from step_exit, the shortest leg on the
-    #                  route, on the same x.
-    # Kept at the best measured value.
-    #   (55.0, -34.0)  current, +0.5 m in x.  The DIFFERENTIAL rolled over on
-    #                  the way to this point on 2026-08-20, at (53.17, -31.51,
-    #                  z 6.11): it reared, pitch -8 -> -43.5 deg over 9 s with
-    #                  its ground speed at 0.01-0.09 m/s against 0.5 commanded,
-    #                  and went over backwards.  Same rearing mechanism as its
-    #                  earlier rollover in the south-west corner.
+    # The descent off the step, explicit rather than interpolated because both
+    # wheeled platforms rolled over on this stretch when the point sat further
+    # west: the Rocker-Bogie at (53.42, -31.93) climbing 0.48 m of terrain, and
+    # the differential at (53.17, -31.51) rearing from -8 to -43.5 deg over 9 s
+    # with its ground speed at 0.01-0.09 m/s against 0.5 commanded.  This value
+    # is the best measured: no rollover, 0 aborts, 0 failed waypoints, max tilt
+    # 26.1 deg, all six wheels down 88.3% of the run.  densify() does not move
+    # the points it inserts, so a goal can only be moved by making it a route
+    # waypoint like this one.
     - {name: "step_descent",     x:  55.0, y: -34.0, yaw:  240.0}
 
-    # x 50.5 -> 51.5 on 2026-08-20.  The differential reached this corner and
-    # then stalled on the leg out of it towards se_corner_i1: 8.9 s of the last
-    # 90 commanded but immobile, 4 rearing-guard cancellations and 2 move_base
-    # aborts, ending at (40.43, -37.21, z 7.87) without ever going over.
     - {name: "se_corner",        x:  51.5, y: -37.0, yaw:  210.0}
 
-    # 2026-08-24.  The interpolated point se_corner_i2, at (44.5, -38.2), sat
-    # 0.6 m north of the south gallery's axis (y ~ -38.8) and the Rocker-Bogie
-    # oscillated against it until move_base gave up:
-    #   "Aborting because the robot appears to be oscillating over and over.
-    #    Even after executing all recovery behaviors"
-    # 57 DWA planning failures in that run, at waypoint 21/43.  Densify() does
-    # not move the points it inserts, so the only way to move that goal is to
-    # make it a route waypoint - which is this line.  Placed 1 m south of where
-    # the interpolation had put it, 0.4 m below the axis, so the leg out of the
-    # corner runs down the middle of the gallery rather than grazing its north
-    # wall.  yaw 190 is the value the interpolation gave it (210 -> 180), kept
-    # so the heading profile through the corner is unchanged.
-    #
-    # Waypoint count is unchanged at 43: se_corner -> here is 7.34 m and takes
-    # one interpolated point, here -> south_east is 3.52 m and takes none,
-    # where se_corner -> south_east had taken two.
+    # Explicit for the same reason as step_descent: interpolated, this goal
+    # landed 0.6 m north of the south gallery's axis (y ~ -38.8) and the
+    # Rocker-Bogie oscillated against it until move_base aborted the run.
+    # Placed 0.4 m below the axis so the leg out of the corner runs down the
+    # middle of the gallery rather than grazing its north wall; yaw 190 is the
+    # value the interpolation gave it, kept so the heading profile through the
+    # corner is unchanged.
     - {name: "se_gallery_in",    x:  44.5, y: -39.2, yaw:  190.0}
 
     # --- south gallery, heading west ---
@@ -184,26 +130,15 @@ route:
     - {name: "south_mid",        x:  31.0, y: -39.5, yaw:  180.0}
     - {name: "south_west",       x:  22.0, y: -38.5, yaw:  170.0}
 
-    # 2026-08-24.  Waypoint 29 of 43, which the densifier had been generating
-    # as south_west_i1 at (20.75, -35.75) - the midpoint of south_west ->
-    # sw_corner.  densify() does not move the points it inserts, so making it
-    # explicit here is the only way to move it.  Placed 1 m south of where the
-    # interpolation put it, together with sw_corner below, which moves by the
-    # same 1 m.  yaw 130 is the value the interpolation gave it (170 -> 90),
-    # kept so the heading ramp through the corner is unchanged.
+    # Explicit, and 1 m south of where the densifier put it, together with
+    # sw_corner below.  yaw 130 is the interpolated value, kept so the heading
+    # ramp through the corner is unchanged.
     - {name: "sw_approach",      x: 20.75, y: -36.75, yaw:  130.0}
 
     # --- west gallery, heading north ---
-    # y -33.0 -> -34.0 on 2026-08-24, with sw_approach above moved by the same
-    # 1 m.  Legs after the change: south_west -> sw_approach 2.15 m,
-    # sw_approach -> sw_corner 3.02 m, sw_corner -> west_south 10.01 m (still
-    # over max_spacing_m, so it keeps its two interpolated points).
     - {name: "sw_corner",        x:  19.5, y: -34.0, yaw:   90.0}
     - {name: "west_south",       x:  19.0, y: -24.0, yaw:   90.0}
     - {name: "west_mid",         x:  18.5, y: -14.0, yaw:   90.0}
-    # 2026-08-20: moved from (18.0, -4.0) to (19.0, -3.0).  The run of that date
-    # reached 38 of 44 waypoints and stopped progressing at this corner, which
-    # is where the west gallery turns east to close the loop.
     - {name: "nw_corner",        x:  19.0, y:  -3.0, yaw:   60.0}
 
     # --- back east along the north gallery to close the loop ---
@@ -214,8 +149,7 @@ route:
 # FOLLOWER TUNING
 # -----------------------------------------------------------------------------
 # These become the navigation_params block of every generated file, so the
-# three platforms are driven with identical gains and tolerances. Only the
-# minimum turn radius differs, because it is a property of the chassis.
+# three platforms are driven with identical gains and tolerances.
 navigation_params:
   # Arrival tolerance. 0.8 m is a little over one vehicle length for these
   # platforms; tighter than that and a steered vehicle that cannot pivot on
@@ -223,6 +157,9 @@ navigation_params:
   goal_tolerance: 0.8            # m
   angular_tolerance: 0.15        # rad (~8.6 deg)
 
+  # NOTE: max_linear_speed is NOT what limits the speed of a run.  The follower
+  # commands with ~max_vel_x, which comes from the launch file; verify the
+  # speed a run actually used in its navigation.log, not here.
   max_linear_speed: 0.4          # m/s - identical for all three platforms
   max_angular_speed: 0.8         # rad/s
 
@@ -242,19 +179,12 @@ navigation_params:
 # -----------------------------------------------------------------------------
 # PER-PLATFORM KINEMATIC LIMITS
 # -----------------------------------------------------------------------------
-# Only the turn radius is platform-specific, and it is a measured property of
-# the chassis, not a tuning choice:
-#
-#   Rocker-bogie  steered, cannot pivot cleanly. Minimum radius at full lock is
-#                 (wheelbase/2) / tan(max_steer) = 0.4266 / tan(0.5) = 0.781 m.
-#                 A margin is added because the follower should not be planning
-#                 turns that need full lock.
-#   Husky/Tracked skid steer: they can rotate in place, so the radius is 0.
+# The three pivot in place, so the minimum radius is 0 for all of them.  The
+# Rocker-Bogie's corner wheels reach the tangent angles a point turn needs now
+# that the steering lock is 1.1 rad rather than 0.5 - it was the lock, not the
+# mechanism, that forbade the manoeuvre.
 platform_limits:
   rocker_bogie:
-    # It CAN pivot: the corner wheels reach the tangent angles a point turn
-    # needs now that the steering lock is 1.1 rad rather than 0.5.  These two
-    # said otherwise because the lock, not the mechanism, forbade it.
     min_turn_radius: 0.0         # m
     can_pivot_in_place: true
   differential:

@@ -29,31 +29,22 @@
         gravity ................. 0 0 -9.81 m/s^2
 
       Rationale for the explicit block: with no <physics> element Gazebo falls
-      back to compiled-in defaults (quick solver, 50 iterations).  50 iterations
-      is not enough for the Rocker-Bogie, whose closed suspension chain has 6
-      wheel contacts plus 5 passive pivots in one island: the LCP is left
+      back to compiled-in defaults (quick solver, 50 iterations).  50 is not
+      enough for the Rocker-Bogie, whose closed suspension chain has 6 wheel
+      contacts plus 5 passive pivots in one island: the LCP is left
       unconverged, which shows up as contact jitter and spurious wheel lift-off
-      on the step.  150 was the value at which peak vertical acceleration on
-      the step stopped changing (< 2% between 150 and 300) - measured while
-      the timestep was still 1.0 ms.  It is now 100, because at the current
-      0.5 ms step the LCP is better conditioned and converges in fewer
-      sweeps, and 150 was costing most of the real-time factor.
+      on the step.
 
-      MEASURED 2026-08-24, tracked platform, headless, no SLAM, gz stats:
-        iters=150  RTF 0.41      <- what was shipped
+      MEASURED, tracked platform, headless, no SLAM, gz stats:
+        iters=150  RTF 0.41
         iters=100  RTF 0.69      <- chosen
         iters=50   RTF 0.65
       50 comes out SLOWER than 100, which is what under-convergence looks
-      like: deeper penetration, more contacts, more work per step.  The
-      solver is what sets the real-time factor here, not the sensors and
-      not RTAB-Map - disabling the VLP-16 and the camera changed nothing
-      (0.41 either way, the gpu_ray really does run on the GPU) - pero eso
-      se midio con el LiDAR MONOLITICO, que renderiza 10 veces por segundo.
-      En modo troceado son 400, y ahi la camara si pesa: bajarla de 30 a
-      10 Hz subio la capacidad de render un 43 % (medido el 2026-08-28), and
-      RTAB-Map accounts for 0.41 -> 0.31.  Do NOT "fix" this by putting
-      max_step_size back to 1.0 ms: that gives RTF 1.00 and an unstable
-      velocity loop (p < 2*I/dt), which is the whole reason for 0.5 ms.
+      like: deeper penetration, more contacts, more work per step.  The solver
+      is what sets the real-time factor here, not the sensors and not RTAB-Map.
+      Do NOT "fix" this by putting max_step_size back to 1.0 ms: that gives
+      RTF 1.00 and an unstable velocity loop (p < 2*I/dt), which is the whole
+      reason for 0.5 ms.
 
       PENDING VALIDATION: the < 2% peak-acceleration criterion has NOT been
       re-run at 100 iterations / 0.5 ms on the Rocker-Bogie, the platform
@@ -62,9 +53,8 @@
 
       === TERRAIN FRICTION ====================================================
       Declared explicitly on every drivable surface so it is reportable and
-      identical for the three robots (previously the mine mesh and the ground
-      plane carried no <surface> block at all and silently used the ODE default
-      mu = 1.0):
+      identical for the three robots - a surface with no <surface> block
+      silently takes the ODE default mu = 1.0:
 
         lc_mine (mine gallery mesh) ... mu1 = mu2 = 1.5
         grass_plane (outside ground) .. mu1 = mu2 = 1.5
@@ -77,52 +67,34 @@
     -->
 
     <physics name="mine_physics" default="true" type="ode">
-      <!-- 0.001 -> 0.0005 el 2026-08-23.  gazebo_ros_control integra el lazo
-           de velocidad de cada joint motriz explicitamente al paso de la
-           fisica, y ese lazo es estable solo si  p < 2*I/dt.  El sprocket del
-           tracked tiene I = 0.0152 kg*m^2 sobre su eje - el elemento motriz
-           mas liviano de las tres plataformas - asi que a dt = 0.001 su limite
-           era 30.4 contra la p = 36.975 que le toca por el presupuesto de
-           actuacion: 22% por encima.  El lazo saturaba en +/-4.5 rad/s con
-           comando cero y el robot se movia solo.  Con dt = 0.0005 el limite
-           sube a 60.8.  Se afina dt en vez de bajar p porque p esta fijada por
-           la paridad K_F = n*p/r^2 = 2334 N/(m/s).  Cuesta la mitad del factor
-           de tiempo real, igual para las tres plataformas. -->
+      <!-- gazebo_ros_control integra el lazo de velocidad de cada joint
+           motriz explicitamente al paso de la fisica, y ese lazo es estable
+           solo si  p < 2*I/dt.  El sprocket del tracked tiene I = 0.0152
+           kg*m^2 sobre su eje -el elemento motriz mas liviano de las tres-,
+           asi que a dt = 0.001 su limite es 30.4 contra la p = 36.975 que le
+           toca por el presupuesto de actuacion: el lazo saturaba con comando
+           cero y el robot se movia solo.  A dt = 0.0005 el limite sube a 60.8.
+           Se afina dt y no p porque p esta fijada por la paridad
+           K_F = n*p/r^2.  Cuesta la mitad del factor de tiempo real, igual
+           para las tres plataformas. -->
       <max_step_size>0.0005</max_step_size>
-      <!-- 2000 -> 1000 el 2026-08-28.  NO cambia la fisica: max_step_size
-           sigue en 0.0005, asi que los pasos son los mismos, del mismo
-           tamaño y en el mismo orden, y la trayectoria sale bit a bit igual.
-           Lo unico que cambia es cuantos pasos da Gazebo por segundo de
-           PARED, o sea el RTF objetivo: 0.0005 * 1000 = 0.5.
+      <!-- NO cambia la fisica: max_step_size sigue en 0.0005, asi que los
+           pasos son los mismos y la trayectoria sale bit a bit igual.  Lo
+           unico que cambia es cuantos pasos da Gazebo por segundo de PARED, o
+           sea el RTF objetivo: 0.0005 * 1000 = 0.5.
 
-           EXISTE POR EL LIDAR TROCEADO.  El gpu_ray se temporiza contra el
-           reloj de PARED - SensorContainer::RunLoop duerme sobre
-           world->RealTime() - pero su update_rate se le exige en tiempo de
-           SIMULACION, asi que lo que entrega es
+           EXISTE POR EL LIDAR.  El gpu_ray se temporiza contra el reloj de
+           PARED -SensorContainer::RunLoop duerme sobre world->RealTime()-
+           pero su update_rate se le exige en tiempo de SIMULACION, asi que
+           entrega
 
                Hz_sim = min(pedido, capacidad_de_pared / RTF)
 
-           Cuanto MAS rapido corre la simulacion, MENOS rebanadas caben en
-           cada vuelta.  Por eso el Husky, que es el mas barato de simular y
-           el que mas RTF alcanza, era el que peor barrido recibia: 23.5
-           rebanadas de las 40 pedidas, contra 40.0 del tracked.
-
-           MEDIDO el 2026-08-28, Husky, mismos 258 s de simulacion, con la
-           camara ya bajada a 10 Hz:
-             capacidad ... 274 renders/s de pared
-             RTF ......... 0.935
-             entregadas .. 29.3 de 40  (media; hay vueltas de 24)
-           El RTF maximo que ya permite las 40 es 274/400 = 0.684.  Se elige
-           0.5 para dejar margen al jitter, que es el que abre huecos.
-
-           El cap se aplica a las TRES plataformas aunque solo el Husky se
-           pasara.  Si no, la calidad del LiDAR dependeria de lo barata que
-           sea la fisica de cada robot - un sesgo por plataforma que no es
-           una propiedad del robot y que contaminaria la comparacion.
-
-           NO se arregla subiendo el update_rate del gpu_ray por encima de
-           400 Hz: por encima el hilo de render se desboca y entrega
-           rebanadas de banda desigual (banco ~/skew_test).
+           Cuanto MAS rapido corre la simulacion, MENOS nubes caben.  El cap
+           se aplica a las TRES plataformas aunque solo el Husky -el mas
+           barato de simular y el que mas RTF alcanza- se pasara: si no, la
+           calidad del LiDAR dependeria de lo barata que sea la fisica de cada
+           robot, un sesgo por plataforma que no es una propiedad del robot.
 
            OJO: physics_rate_hz de metrics_logger NO sigue a este numero.
            Vale 1/max_step_size = 2000 y se queda ahi. -->
@@ -138,19 +110,15 @@
         <constraints>
           <cfm>0.0</cfm>
           <erp>0.2</erp>
-          <!-- 100 -> 10 el 2026-08-24.  Limita a que velocidad ODE puede
-               separar dos cuerpos interpenetrados; a 100 m/s no limita nada.
-               MEDIDO en el tercer vuelco del Rocker-Bogie de ese dia: tras 16 s
-               maniobrando dentro de 1 m contra la geometria en (20.4, -34.4),
-               en UN segundo se desplazo 1.533 m -tres veces el max_vel_x de
-               0.5 que es lo maximo que se le puede comandar- subiendo 0.32 m,
-               y llego a 69.3 deg de pitch y -49.3 de roll.  Eso no es
-               locomocion: es la penetracion acumulada resolviendose de golpe.
-               Mismo caracter que el artefacto que documenta el README
-               (1150 deg/s, 13.3 m/s), mas suave.
+          <!-- Limita a que velocidad ODE puede separar dos cuerpos
+               interpenetrados; a 100 m/s no limita nada y una penetracion
+               acumulada se resuelve de golpe: medido en un vuelco del
+               Rocker-Bogie, 1.533 m de desplazamiento en UN segundo -tres
+               veces el max_vel_x de 0.5 que es lo maximo comandable- subiendo
+               0.32 m, hasta 69.3 deg de pitch.  Eso no es locomocion.
                Las ruedas declaran maxVel 1.0 en su propia superficie, pero la
                malla de la mina no declara ninguna, asi que ESE contacto se
-               resolvia con el valor global. -->
+               resuelve con el valor global. -->
           <contact_max_correcting_vel>10.0</contact_max_correcting_vel>
           <contact_surface_layer>0.001</contact_surface_layer>
         </constraints>

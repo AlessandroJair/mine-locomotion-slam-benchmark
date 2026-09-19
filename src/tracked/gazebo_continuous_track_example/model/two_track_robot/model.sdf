@@ -1430,19 +1430,18 @@
     
     <link name='imu_link'>
       <!-- SENSOR STANDARDIZATION: EL IMU VA EN EL CENTRO DE MASAS.
-           Cambiado 2026-09-04.  Antes las tres plataformas llevaban el IMU a
-           la misma altura sobre el suelo (0.6969 m), que es la regla correcta
-           para el LiDAR y la camara -lo que ven depende de su altura- y la
-           equivocada para un inercial: un acelerometro mide
+           Igualar la ALTURA SOBRE EL SUELO es la regla correcta para el LiDAR
+           y la camara -lo que ven depende de su altura- y la equivocada para
+           un inercial: un acelerometro mide
 
                a_sensor = a_cm + alpha x r + omega x (omega x r)
 
-           con r desde el CENTRO DE MASAS.  Igualando la altura sobre el suelo
-           los brazos quedaban en 0.360 / 0.485 / 0.238 m (husky / tracked /
-           rocker): un factor 2.04, porque los tres tienen el CM a alturas muy
-           distintas (0.343 / 0.212 / 0.459 m).  Con el mismo balanceo de
-           chasis el IMU del tracked leia el doble de termino de brazo que el
-           del rocker, y eso no es una propiedad de la locomocion.
+           con r desde el CENTRO DE MASAS.  Con la altura igualada los brazos
+           quedaban en 0.360 / 0.485 / 0.238 m (husky / tracked / rocker), un
+           factor 2.04, porque los tres tienen el CM a alturas muy distintas
+           (0.343 / 0.212 / 0.459 m): con el mismo balanceo de chasis el IMU
+           del tracked leia el doble de termino de brazo que el del rocker, y
+           eso no es una propiedad de la locomocion.
 
            r = 0 y no un |r| comun: alpha x r depende del VECTOR r, no de su
            modulo, asi que dos brazos iguales en modulo y distintos en
@@ -1450,8 +1449,8 @@
            tres que ademas es canonico es el cero.
 
            El punto es el CM del robot SIN el IMU (solucion exacta de
-           p = c(p); el IMU pesa 0.0010 kg de 45).  Recalcular con
-           ~/imu_target.py si cambia cualquier masa. -->
+           p = c(p); el IMU pesa 0.0149 kg de 45).  Recalcular si cambia
+           cualquier masa. -->
 
            OJO CON ESTE MODELO EN CONCRETO: su CM declarado no coincide con el
            del xacro (15.6 mm en x).  Aqui los idlers estan lumpeados dentro de

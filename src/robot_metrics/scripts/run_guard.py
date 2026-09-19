@@ -270,15 +270,11 @@ class RunGuard(object):
 
     def trip(self, reason, detail):
         self.tripped = True
-        # El aviso PRIMERO.  Estaba despues del desempaquetado de abajo, que
-        # pedia 5 valores de una pose que tiene 6 (x, y, z, roll, pitch, yaw -
-        # ver linea 148), asi que trip() lanzaba ValueError antes de emitir
-        # nada.  Como el vigia va con required="true", roslaunch mataba la
-        # corrida igual, pero SIN el mensaje y SIN guard_trip.yaml: la campaña
-        # no veia ningun aborto, no reintentaba, y archivaba como buena una
-        # corrida truncada.  Es justo la trampa que describe run_campaign.sh
-        # en su comprobacion de guard_trip.yaml.  MEDIDO 2026-08-28: el Husky
-        # quedo en 144.8 m de una ruta de 288.1 m y se guardo como valida.
+        # El aviso PRIMERO, antes de cualquier desempaquetado que pueda
+        # lanzar.  El vigia va con required="true", asi que si trip() revienta
+        # antes de emitir, roslaunch mata la corrida igual pero SIN mensaje y
+        # SIN guard_trip.yaml: la campaña no ve ningun aborto, no reintenta, y
+        # archiva como buena una corrida truncada.
         rospy.logerr('run_guard: TRIP (%s) - %s', reason, detail)
         x, y, z, roll, pitch = self.pose[:5]
         if self.trip_file:

@@ -440,15 +440,13 @@ class MetricsLogger(object):
         rospy.Subscriber(cmd_vel_topic, Twist, self.cmd_cb)
 
         if HAS_GAZEBO_MSGS:
-            # queue_size=1 PERDIA EL 43 % DE LOS PASOS DE FISICA.  Medido en
-            # el run01 del 2026-08-31: 233 355 filas en 403.8 s, o sea 577 Hz
-            # de los 1000 que declaraba, con huecos de 8-10 ms repitiendose a
-            # 105 Hz -- la cadencia del IMU, que es de 100 Hz.  Mientras el
-            # hilo del callback esta ocupado, todo lo que llega con la cola en
-            # 1 se descarta, y como la diezmacion cuenta MENSAJES RECIBIDOS,
-            # cada perdida rompe la premisa de "cada intervalo son exactamente
-            # gt_decim pasos".  La cola profunda absorbe la rafaga y
-            # tcp_nodelay quita el retardo de Nagle, que a 2000 Hz pesa.
+            # COLA PROFUNDA A PROPOSITO.  Con queue_size=1 se pierde el
+            # 43 % de los pasos de fisica: mientras el hilo del callback esta
+            # ocupado todo lo que llega se descarta, y como la diezmacion
+            # cuenta MENSAJES RECIBIDOS, cada perdida rompe la premisa de
+            # "cada intervalo son exactamente gt_decim pasos".  La cola
+            # absorbe la rafaga y tcp_nodelay quita el retardo de Nagle, que
+            # a 2000 Hz pesa.
             rospy.Subscriber('/gazebo/model_states', ModelStates,
                              self.model_states_cb, queue_size=2000,
                              tcp_nodelay=True)
@@ -584,30 +582,25 @@ class MetricsLogger(object):
             self.normal_force[link] = 0.0
             return
         self.contact[link] = 1
-        # CORRECTED 2026-08-18, after measuring what this sensor actually
-        # reports.  The original was
-        #     for st in msg.states: total += |force|      # no division
-        # and an intermediate "fix" changed |force| to force.z, which was worse.
+        # TWO THINGS THIS GETS WRONG IF WRITTEN THE OBVIOUS WAY.
         #
-        # (1) THE REAL BUG: no division.  The sensors run at 100 Hz against
-        #     1000 Hz physics, so each message carries exactly 10 ContactState
-        #     entries - one per step, measured, uniform on all six wheels.
-        #     Summing them reported TEN TIMES the load, which is what the middle
-        #     panel of the wheel-contact figure has been showing.
+        # (1) DIVIDE BY len(states).  The sensors run at 100 Hz against 1000 Hz
+        #     physics, so each message carries about 10 ContactState entries -
+        #     one per step.  Summing them without dividing reports TEN TIMES
+        #     the load.
         #
-        # (2) IT MUST BE THE MAGNITUDE, NOT force.z.  The bumper plugin does not
-        #     report in the world frame despite frameName being world: the wheel
-        #     link frames come out of CAD with different orientations per side,
-        #     so on the right-hand wheels the load lands in Fx, not Fz.  Reading
-        #     force.z gave left/right 20:1 and a total of 31% of the weight.
-        #     The magnitude gives 1.26:1 and 451.0 N against a 441.5 N weight -
-        #     a 2% match, and the same equal penetration the contacts show
-        #     (1.96 mm left, 1.84 mm right).  So the magnitude is the load.
+        # (2) USE THE MAGNITUDE, NOT force.z.  The bumper plugin does not
+        #     report in the world frame despite frameName being world: the
+        #     wheel link frames come out of CAD with different orientations per
+        #     side, so on the right-hand wheels the load lands in Fx, not Fz.
+        #     force.z gives left/right 20:1 and a total of 31% of the weight;
+        #     the magnitude gives 1.26:1 and 451.0 N against a 441.5 N weight,
+        #     a 2% match, consistent with the equal penetration the contacts
+        #     show (1.96 mm left, 1.84 mm right).
         #
-        #     It does include the tangential friction component, so this is a
-        #     contact force rather than strictly a normal force.  Labelling it
-        #     "normal force" is only accurate while the wheel is not pushing
-        #     hard along the ground; the figure caption should say so.
+        #     The magnitude includes the tangential friction component, so this
+        #     is a contact force rather than strictly a normal force.  The
+        #     figure caption should say so.
         n = len(msg.states)
         total = 0.0
         for st in msg.states:

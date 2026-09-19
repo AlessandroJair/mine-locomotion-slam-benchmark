@@ -28,7 +28,7 @@ platform on a different route from the other two and invalidates the comparison.
 Campaign of 2026-09-17/18, at commit `4cacede`: fixed-trajectory control with
 the swept LiDAR, 5 runs per platform, two laps of the closed loop (~267 m of
 ground truth per run). Figures, tables and per-run trajectories are in
-[`results/`](results/); read **Known issues** before quoting any of it.
+[`results/`](results/).
 
 | Mean ± std, n=5 | Husky (differential) | Tracked | Rocker-bogie |
 |---|---|---|---|
@@ -74,16 +74,28 @@ journal_comparison/
 │   │   └── gazebo_continuous_track_example/
 │   └── robot_metrics/          # Metrics logging and analysis
 │       ├── config/             # route_mine.yaml, sim_config.yaml
-│       └── scripts/
-│           ├── metrics_logger.py
-│           ├── analyze_metrics.py
-│           ├── aggregate_runs.py
-│           ├── slam_metrics.py
-│           ├── scale_masses.py     # mass normalization across platforms
-│           ├── imu_covariance.py   # fills the IMU covariances the plugin leaves at 0
-│           └── run_campaign.sh     # multi-trial campaign driver
+│       ├── scripts/
+│       │   ├── run_campaign.sh          # campaign driver: the entry point
+│       │   ├── check_sim_parity.py      # refuses a campaign if the three drift apart
+│       │   ├── generate_waypoints.py    # projects the shared route per platform
+│       │   ├── metrics_logger.py        # the per-run log (metrics.csv, the .tum files)
+│       │   ├── trajectory_follower.py   # ground-truth pursuit (--fixed-trajectory)
+│       │   ├── sweep_distortion.py      # swept-LiDAR distortion (--lidar swept)
+│       │   ├── imu_ahrs.py              # orientation the IMU plugin does not publish
+│       │   ├── aggregate_runs.py        # tables over the repetitions
+│       │   ├── analyze_metrics.py       # per-run figures
+│       │   ├── plot_*.py                # the Results-section figures
+│       │   └── scale_masses.py          # mass normalization across platforms
+│       └── test/               # offline benches: no ROS, no Gazebo, just asserts
 └── results/                    # published campaign: figures, tables, trajectories
 ```
+
+The benches under `robot_metrics/test/` run standalone (`python3 test_*.py`) and
+are how the non-obvious pieces are checked without a simulation: the swept-LiDAR
+distortion against an analytic ground truth, the `bogie_drop` compensation that
+would otherwise sink half the suspension silently, the alignment trigger of the
+follower, and the suspension column list that has to agree in three files at
+once.
 
 The vineyard experiment lives in a separate workspace, `~/journal_vineyard_comparison`.
 
@@ -267,150 +279,25 @@ behind the pose that has already been published. `aggregate_runs.py` emits both.
 In the published campaign the gap is larger still: 2.0–4.1 m online against
 0.14–0.17 m on the optimised graph.
 
-## Known issues
+**Ground truth vs. online odometry vs. optimised graph, one run per platform**
 
-Read this before collecting data for publication.
+![Ground truth vs. online odometry vs. optimised graph, one run per platform](results/paper_tables/trajectories_gt_vs_slam.png)
 
-**Loop closure: fixed 2026-08-23, and the earlier diagnosis here was wrong.**
-This section used to blame `Mem/UseOdomFeatures` and an OpenCV built without
-`xfeatures2d`. Both of those warnings are real and both have been fixed
-(`Kp/DetectorStrategy` and `Vis/FeatureType` are now both declared as 8,
-GFTT/ORB, in all three `rtabmap_3d_slam.launch`), and fixing them changed
-nothing: still zero loop closures. They were never the cause. Anyone reading
-the old text was sent down a dead end, so here is what was actually measured.
+**Mean ± std over 5 runs: ATE, rotational ATE, RPE and pitch spread**
 
-The cause was **`RGBD/ProximityMaxGraphDepth`**, which shipped at 50.
+![Mean ± std over 5 runs: ATE, rotational ATE, RPE and pitch spread](results/paper_tables/repeatability_summary.png)
 
-Proximity detection applies two filters in series, and a candidate has to pass
-both. `RGBD/LocalRadius` is spatial, in metres. `RGBD/ProximityMaxGraphDepth`
-is topological, in hops along the pose graph, and a candidate beyond it is
-discarded *before* its distance in metres is ever examined. One lap of this
-route creates about 137 nodes, so on the second lap the node for the same
-physical spot sat 140-200 hops back and was rejected on depth alone — however
-precisely the robot returned, and however many laps it drove. **A limit of 50
-makes closing any loop longer than ~50 nodes structurally impossible**, which
-is why running two laps did not help.
+**Instantaneous online ATE against distance travelled, all 15 runs**
 
-Setting it to 0 — rtabmap's own value for "ignore" — cuts ATE by **79%**.
-Measured by reprocessing one two-lap rocker_bogie run with `rtabmap-reprocess`,
-so every row is the same recorded data:
+![Instantaneous online ATE against distance travelled, all 15 runs](results/paper_tables/ate_vs_distance.png)
 
-| depth | radius | closures | ATE rmse (m) | ATE max (m) | links spanning >½ lap |
-|------:|-------:|---------:|-------------:|------------:|----------------------:|
-| 50 | 20 | 60 | 0.792 | 1.443 | **0** |
-| 0 | 10 | 86 | 0.177 | 0.302 | 172 |
-| 0 | 15 | 121 | 0.171 | 0.325 | 180 |
-| **0** | **20** | 150 | **0.170** | 0.340 | 180 |
+**Pitch, roll and their rates, distribution per platform**
 
-The maximum error falls with the mean, which is the signature of drift being
-redistributed across the whole graph rather than smoothed locally. With the
-depth filter open, `LocalRadius` is worth about 4% — inside the noise of a
-single run. It is kept at 20 m only as margin, because the search runs on the
-*estimated* poses and a platform that drifts more than this one needs the
-revisit to still land inside the radius.
+![Pitch, roll and their rates, distribution per platform](results/paper_tables/attitude_distribution.png)
 
-**Check it with the graph, never with the count.** rtabmap reports both kinds
-of link as `Prox=N`, so the number alone cannot tell a revisit from a link to
-the node that just left short-term memory. Read the `Link` table of the
-database and look at `|from_id - to_id|`. At depth 50 every single link had a
-gap of exactly 30 — `Mem/STMSize` — which is local stiffening and corrects no
-accumulated drift; the 22% ATE gain that a `LocalRadius` sweep appeared to
-show was that, and nothing more. At depth 0 the widest links are `204↔2` and
-`205↔4`, tying the second lap to the first. **That gap is the difference
-between local densification and loop closure, and the count is not.**
+**Accelerations, pitch and roll crossing the 0.10 m step**
 
-**The closures are geometric, not visual — `Prox=89, Loop=0`.** Visual loop
-closure cannot work on this robot as built, and this is a property of the
-sensor suite rather than a bug to fix. The camera publishes no depth and
-nothing projects the LiDAR onto the image, so no keypoint ever gets a 3D
-position: of 233,916 features stored across 263 nodes, **zero** carry one.
-`Vis/EstimationType` defaults to 1 (3D→2D, PnP), which needs 3D geometry from
-the older node, so the old side of every candidate contributed 0 and every
-visual candidate was rejected with `Not enough features in images (old=0,
-new=~850, min=20)` — the `min` there is `Vis/MinInliers`. Setting
-`Vis/EstimationType=2` (2D→2D epipolar) does move the rejection downstream to
-`Variance is too high!`, which confirms the mechanism, but still closes
-nothing. Report this as LiDAR SLAM; it is what the VLP-16 is there for. If
-visual loop closure is ever wanted, the cheapest route is rtabmap_util's
-`pointcloud_to_depthimage` nodelet, which synthesises a depth image from the
-Velodyne cloud without adding a sensor.
-
-Still to confirm: these numbers come from reprocessing a single rocker_bogie
-run. Validate the value live, and on the differential and tracked platforms,
-before it goes into the paper.
-
-**The continuous-track plugin is patched and diverges from upstream.**
-`gazebo_continuous_track`'s `UpdateTrack` now repositions the idle belt variant
-before disabling it, instead of only disabling it. Without that, the idle
-variant stays put in the world while the vehicle drives off; the arc segments
-are revolute and stay tethered, but the straight segments are prismatic with
-±1e16 limits and slide unbounded — 2 of 16 belt links ended 27 m from the
-chassis, visible as track-textured rectangles floating near the robot.
-Reapply the patch if that submodule is ever updated.
-
-**The physics timestep is 0.0005 s, not the Gazebo default 0.001.**
-`gazebo_ros_control` integrates each drive joint's velocity PID explicitly at
-the physics step, so the loop is stable only while `p < 2·I/dt`. The tracked
-sprocket's 0.0152 kg·m² put the 30.4 limit below the `p = 36.975` its share of
-the actuation budget demands, and the platform drove itself at ±4.5 rad/s with
-zero command. Halving the timestep raises the limit to 60.8 and leaves every
-declared gain intact, at about half the real-time factor. `sim_config.yaml`
-carries the derivation.
-
-**The Rocker-Bogie's `gt_yaw` is 180° from its physical heading — and it used
-to destroy two of the reported metrics.** `gt_traj.tum` stores
-`/gazebo/model_states` poses unmodified by design, and that platform's URDF
-authors `base_link` facing −x. The trajectory follower corrects for it via
-`base_yaw_offset`; the logged column is not corrected.
-
-This section used to say "ATE is unaffected (Umeyama alignment absorbs a
-constant rotation) and so is RPE (relative poses)". **Only the Umeyama ATE was
-unaffected.** `evaluate()` builds `T_gt` from the logged yaw, and three metrics
-take that orientation as their frame of reference: `align_origin`, which places
-the estimate with `T_gt[0]`; `rpe`, which takes relative motion in the body
-frame; and `final_drift_m`, which is measured against the origin-aligned
-estimate. Measured on the fixed-trajectory campaign of 2026-08-25,
-rocker_bogie run01:
-
-| metric | reported | true |
-|--------|---------:|-----:|
-| ATE translational RMSE | 56.33 m | 2.14 m |
-| RPE translational RMSE | 1.995 m/m | 0.060 m/m |
-
-1.995 is not a coincidence: it is the error of travelling one metre backwards,
-per metre travelled. The per-run table prints the origin-aligned figure as
-**"ATE translational RMSE"**, so the headline SLAM number for that platform was
-26× its real value, and any cross-platform comparison using it or RPE put the
-Rocker-Bogie 20–40× behind on an artefact.
-
-**Fixed 2026-08-25.** `slam_metrics.evaluate()` now measures the angle between
-each trajectory's logged yaw and the direction it actually travels, rotates
-both onto their own heading before anything else is computed, and records what
-it removed as `gt_yaw_offset_deg` / `est_yaw_offset_deg`. The offset is
-estimated from the trajectory rather than read from `base_yaw_offset`, so a
-platform added later cannot inherit the bug silently. Expect ≈ 0° for the
-differential and the tracked platform and ≈ 180° for the Rocker-Bogie; a value
-that is neither, or one that moves between runs of the same platform, means the
-estimate is not seeing a fixed convention and the run's numbers should not be
-trusted. Correcting it left the other two platforms' figures within 1%.
-
-Any plot comparing the raw `gt_yaw` column across platforms is still wrong.
-
-**No `map` frame.** rtabmap builds its map but does not publish `map→odom`, so
-RViz draws the reference and ground-truth paths — they are tagged `map` and
-match the fixed frame, needing no lookup — but not the robot model or the point
-cloud. The recorded data is unaffected: the SLAM pose comes from
-`/rtabmap/odom`, which works.
-
-**`ICP inliers` and `ICP matches` log as 0.0** while the inlier *ratio* (0.758)
-and correspondence count (6649) are populated. Check those columns before they
-go into a table.
-
-**Peak metrics can rest on a single sample.** On the tracked run,
-`alpha_x,max` was 215.9 rad/s² while the 99.9th percentile was 47.07 and the
-99th was 21.0 — the maximum is 4.6× the next percentile. It occurs 47 s into the
-route, so it is not the spawn transient, but report a high percentile alongside
-the maximum rather than the maximum alone.
+![Accelerations, pitch and roll crossing the 0.10 m step](results/paper_tables/dynamic_profiles_step.png)
 
 ## License
 

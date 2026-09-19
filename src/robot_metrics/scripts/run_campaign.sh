@@ -2,15 +2,11 @@
 #
 # run_campaign.sh - drive the full 3 robots x 3 runs experiment.
 #
-# The repeatability requirement is three runs per platform, each logged
-# separately.  Doing that by hand invites exactly the drift this revision is
-# fixing: a parameter changed between runs, one run overwriting another, or a
-# robot quietly driving a different route.  So the campaign is a script.
-#
-# Before anything runs it calls check_sim_parity.py, which refuses to continue
-# unless the three platforms share the same world, physics and terrain, and
-# generate_waypoints.py --check, which refuses if a waypoint file has been
-# hand-edited away from the shared route.
+# Repeating runs by hand invites drift: a parameter changed between runs, one
+# run overwriting another, a robot quietly driving a different route.  Before
+# anything runs this calls check_sim_parity.py and generate_waypoints.py
+# --check, which refuse to continue if the three platforms do not share the
+# same world, physics, terrain and route.
 #
 # Usage:
 #   ./run_campaign.sh                          all three robots, runs 1-3
@@ -54,12 +50,10 @@ OUTPUT_DIR="${HOME}/metrics_output"
 DRY_RUN=0
 GUI=false
 # --skip-parity runs the parity check, prints it, and continues even if it
-# FAILS.  It exists so a single platform can be driven for debugging while an
-# unrelated platform's parity is broken - watching the Rocker-Bogie climb does
-# not require the Husky's masses to be right.  Every run it produces is
-# stamped paper_usable: false in run_meta.yaml and campaign_meta.yaml, because
-# a run collected under a failing parity check is a debugging artefact and
-# nothing else.  Never use it to produce a number that reaches the paper.
+# FAILS, so one platform can be driven for debugging while another's parity is
+# broken.  Every run it produces is stamped paper_usable: false: a run
+# collected under a failing parity check is a debugging artefact and nothing
+# else.
 SKIP_PARITY=0
 # Gazebo's RNG seed for run N is SEED_BASE + N.  Change it only to collect an
 # independent replication of the whole campaign; keep it at 0 to reproduce the
@@ -71,10 +65,10 @@ SEED_BASE=0
 #
 # It exists because with move_base each platform steers on its own SLAM
 # estimate, that estimate drifts 0.6-0.8 m over this route, and the drift moves
-# the ROBOT, not just the log: measured 2026-08-21, the rocker_bogie crossed the
-# 0.10 m step at x = 54.35 while the differential wedged at x = 53.41, nose-up
-# 48 deg, on ground the rocker never touched.  Two platforms meeting different
-# terrain are not being compared.
+# the ROBOT, not just the log: the rocker_bogie crossed the 0.10 m step at
+# x = 54.35 while the differential wedged at x = 53.41, nose-up 48 deg, on
+# ground the rocker never touched.  Two platforms meeting different terrain are
+# not being compared.
 #
 # This is a SECOND experiment, not a replacement.  Ground truth is not available
 # to a real robot, so a fixed-trajectory run cannot say whether a platform can
@@ -103,13 +97,6 @@ FIXED_TRAJ=0
 # normal salvo esa cadena.  Resolucion angular, 16 anillos, rango y ruido
 # sembrado son literalmente los mismos objetos.
 #
-# Hasta el 2026-09-09 hubo un tercer modo que montaba un rotor con una cuña de
-# 21 grados y ensamblaba las rebanadas.  Se retiro: dependia de que Gazebo
-# cumpliera el update_rate del gpu_ray y no lo cumple, asi que la cobertura de
-# azimut salia de 350 a 356 grados en vez de 360 y bajaba con la carga de
-# simulacion.  Eso hacia que la distorsion fuese una propiedad del planificador,
-# distinta por plataforma.  Queda archivado en ~/arm_sliced_retirado_2026-09-09/.
-#
 # Los resultados van a <output>/swept_lidar/ por la misma razon que los de
 # --fixed-trajectory van a su propio directorio: son dos sensores distintos y
 # promediarlos juntos no significa nada.
@@ -119,25 +106,21 @@ LIDAR=normal
 # multiplica las oportunidades de cierre de loop, sin cambiar la ruta
 # que comparten las tres plataformas.  Subilo junto con --duration.
 LAPS=1
-# REINTENTOS.  run_guard.py (lanzado con required="true") aborta la corrida
-# cuando la plataforma queda encajada o se vuelca, y deja guard_trip.yaml en
-# el directorio de la corrida.  Una corrida asi no es un dato: es una
-# corrida que no ocurrio, y promediarla con las buenas mete un cero de
-# recorrido en la desviacion estandar.  Se repite hasta MAX_RETRIES veces
-# mas; el intento fallido se guarda como run<NN>_failed_attempt<N> en vez
-# de borrarse, porque es justo lo que hay que mirar para entender por que.
-# 0 desactiva el reintento (el vigia sigue abortando y avisando).
+# REINTENTOS.  run_guard.py aborta la corrida cuando la plataforma queda
+# encajada o se vuelca, y deja guard_trip.yaml.  Una corrida asi no es un dato
+# -promediarla mete un cero de recorrido en la desviacion estandar-, asi que se
+# repite hasta MAX_RETRIES veces mas y el intento fallido se guarda como
+# run<NN>_failed_attempt<N> en vez de borrarse.  0 desactiva el reintento.
 MAX_RETRIES=2
 # Intento actual, para que quede escrito en run_meta.yaml.
 ATTEMPT=1
 
 # GANANCIAS DEL SEGUIDOR QUE SE PUEDEN FORZAR DESDE LA LINEA DE ORDENES.
-# Vacias por defecto: sin ellas el launch usa las suyas y la campana no
-# cambia en nada.  Existen para el A/B de velocidad.  El husky va a 0.417
-# m/s y el rocker y el tracked a 0.456-0.459, y esa diferencia NO se manda:
-# la produce el propio seguimiento, porque k_xte*xte entra en la curvatura y
-# curve_slowdown la convierte en freno.  Para medir si la velocidad explica
-# la deriva de rumbo del LiDAR troceado hay que romper esa realimentacion:
+# Vacias por defecto: sin ellas el launch usa las suyas.  Existen para el A/B
+# de velocidad.  El husky va a 0.417 m/s y el rocker y el tracked a
+# 0.456-0.459, y esa diferencia NO se manda: la produce el propio seguimiento,
+# porque k_xte*xte entra en la curvatura y curve_slowdown la convierte en
+# freno.  Para romper esa realimentacion:
 #   --max-vel-x 0.42   frena al rocker hasta la velocidad del husky
 #   --k-xte 0.0        suelta al husky hasta la de los otros dos
 # CUALQUIERA DE LAS DOS ROMPE LA PARIDAD del estudio a proposito: la corrida
@@ -147,9 +130,9 @@ FOLLOW_K_XTE=""
 # TECHO DE RTF forzado.  Vacio = el que declara el mundo (0.0005 * 1000 = 0.50).
 # NO es un ajuste de rendimiento: con use_sim_time, bajar el RTF le da al SLAM
 # mas tiempo de PARED por segundo de simulacion, asi que procesa MAS nubes de
-# las 10/s que produce el sensor.  Medido el 2026-09-03: husky a RTF 0.482
-# procesa el 51 % de sus nubes, tracked a 0.246 el 96 %.  Es una variable
-# experimental, y por eso marca la corrida paper_usable: false.
+# las 10/s que produce el sensor - husky a RTF 0.482 procesa el 51 % de sus
+# nubes, tracked a 0.246 el 96 %.  Es una variable experimental, y por eso
+# marca la corrida paper_usable: false.
 # Se aplica por servicio, en caliente, para no tocar lcmine.world: los tres
 # mundos tienen que seguir siendo byte a byte identicos para check_sim_parity.
 TARGET_RTF=""
@@ -171,7 +154,7 @@ while [[ $# -gt 0 ]]; do
     --k-xte)     FOLLOW_K_XTE="$2"; shift 2 ;;
     --rtf)       TARGET_RTF="$2"; shift 2 ;;
     --max-retries) MAX_RETRIES="$2"; shift 2 ;;
-    -h|--help)  sed -n '2,25p' "$0"; exit 0 ;;
+    -h|--help)  sed -n '2,31p' "$0"; exit 0 ;;
     *) echo "unknown option: $1"; exit 2 ;;
   esac
 done
@@ -233,11 +216,9 @@ nav_pkg() {
   esac
 }
 # The three things waypoint_navigation.launch hardcodes per platform, needed
-# again by trajectory_follow.launch.  Kept here rather than duplicated in a
-# second set of per-platform launch files: one copy, one place to get wrong.
+# again by trajectory_follow.launch.  One copy, one place to get wrong.
 # gt_model must match what Gazebo spawns - check_sim_parity.py section 12
-# enforces that, after a run was lost to the logger looking up "husky" while
-# Gazebo had spawned "differential".
+# enforces that, because a mismatch loses the whole run silently.
 gt_model() {
   case "$1" in
     differential) echo "differential" ;;
@@ -273,8 +254,7 @@ wheel_links() {
 }
 # Articulaciones PASIVAS de la suspension: los dos rockers y los dos bogies.
 # Sin ellas no se puede separar "la suspension articula y el terreno le gana"
-# de "la suspension esta contra sus topes de +-0.6 rad", que es la pregunta que
-# quedo abierta el 2026-09-10 con el 15.2 % de tiempo a menos de seis ruedas.
+# de "la suspension esta contra sus topes".
 suspension_joints() {
   case "$1" in
     rocker_bogie) echo "rocker_pivot_left,rocker_pivot_right,rev_3,rev_4" ;;
@@ -287,9 +267,9 @@ suspension_joints() {
 effort_joints() {
   case "$1" in
     rocker_bogie) echo "rev_9,rev_10,rev_11,rev_12,rev_13,rev_14" ;;
-    # Husky, 2026-09-14: para separar en curva lazo de velocidad blando
-    # (rueda por debajo de consigna con par < 29.958), techo de par, o
-    # contacto (rueda a consigna y el chasis no gira).
+    # Husky: para separar en curva lazo de velocidad blando (rueda por debajo
+    # de consigna con par < 29.958), techo de par, o contacto (rueda a
+    # consigna y el chasis no gira).
     differential) echo "front_left_joint,front_right_joint,back_left_joint,back_right_joint" ;;
     *)            echo "" ;;
   esac
@@ -326,10 +306,7 @@ spawn_yaw() {
 # COPIA.  El original es base_yaw_offset_rad en sim_config.yaml, de donde lo
 # lee generate_waypoints.py; aqui se repite porque este script no sabe leer
 # YAML desde bash, igual que ya repite spawn x/y.  Si cambia uno, cambia el
-# otro: que estas dos discrepen es exactamente el fallo que se arreglo el
-# 2026-09-10, cuando world_to_viz() y to_map_frame() proyectaban al frame
-# `map` con spawn_yaw a secas y dibujaban la ruta y el ground truth del
-# rocker 180 deg fuera de sitio.
+# otro: si discrepan, la ruta y el ground truth se dibujan fuera de sitio.
 base_yaw_offset() {
   case "$1" in
     rocker_bogie) echo "0.0" ;;
@@ -425,15 +402,11 @@ cleanup() {
   # rtabmap goes first, and with SIGINT rather than the default SIGTERM, so it
   # gets to close its database instead of being cut off mid-write.  The file
   # is around 2 GB after two laps, so closing it is not instant - hence the
-  # wait rather than a fixed sleep.  The README's map-scoring step runs
-  # rtabmap-export over this database after the campaign, so it is worth
-  # leaving in a consistent state.
+  # wait rather than a fixed sleep.
   #
   # NOTE: an empty Word table in the saved database is NOT a symptom of this.
-  # Checked 2026-08-23: Mem/RawDescriptorsKept is true, so each feature
-  # carries its own descriptor in the Feature table and Word is simply not
-  # used.  rtabmap's own statistics show the dictionary healthy in memory
-  # (89472 words by the end of a two-lap run).
+  # Mem/RawDescriptorsKept is true, so each feature carries its own descriptor
+  # in the Feature table and Word is simply not used.
   pkill -INT -f rtabmap >/dev/null 2>&1
   local waited=0
   while pgrep -f rtabmap >/dev/null 2>&1 && [[ ${waited} -lt 60 ]]; do
@@ -463,11 +436,9 @@ run_one() {
   local run_dir="${OUTPUT_DIR}/${robot}/run$(printf '%02d' "$run_id")"
 
   # La salida del robot se VACIA al empezar su primera corrida, intentos
-  # fallidos incluidos.  Sin esto, cada campaña sobre el mismo directorio
-  # apilaba los run<NN>_failed_attempt<N> de las anteriores: al mirarlos
-  # despues no habia forma de saber de que campaña era cada uno -misma ruta?
-  # mismas ganancias?- y el mv de archivado acababa anidandolos.  Los datos
-  # de una campaña anterior que interesen hay que moverlos ANTES de relanzar.
+  # fallidos incluidos: sin esto los run<NN>_failed_attempt<N> de campañas
+  # anteriores se apilan y no hay forma de saber de que campaña es cada uno.
+  # Los datos que interesen hay que moverlos ANTES de relanzar.
   if [[ ${run_id} -eq 1 && ${ATTEMPT} -eq 1 ]]; then
     local viejos
     viejos=$(ls -d "${OUTPUT_DIR}/${robot}"/* 2>/dev/null | wc -l)
@@ -504,12 +475,9 @@ run_one() {
 
   # El directorio se VACIA antes de cada corrida.  Sin esto, una corrida que
   # muere a mitad deja sus artefactos y la siguiente sobrescribe unos si y
-  # otros no, de modo que run01/ termina conteniendo un metrics.csv de una
-  # corrida y un navigation.log de otra.  Eso ya provoco un diagnostico
-  # equivocado durante el debug, y en produccion es peor: aggregate_runs.py
-  # leeria un metrics.csv viejo y lo meteria en las tablas del paper sin que
-  # nada lo advierta.  Es seguro borrarlo: la corrida que viene a continuacion
-  # regenera todo el contenido de este directorio.
+  # otros no: run01/ acaba con el metrics.csv de una corrida y el
+  # navigation.log de otra, y aggregate_runs.py lo mete en las tablas sin
+  # avisar.  Es seguro: la corrida regenera todo el contenido.
   rm -rf "${run_dir}"
   mkdir -p "${run_dir}"
 
@@ -565,20 +533,13 @@ run_one() {
   # without RViz means seeing the robot but not the map or the plan.
   # --signal=INT, not the default TERM.  roslaunch treats SIGINT as a Ctrl-C:
   # it shuts its nodes down in order and their shutdown hooks run, which is the
-  # only way metrics_logger writes metrics.csv (see the note below).  On SIGTERM
-  # it dies without running them, so EVERY run that reached the cap produced no
-  # data at all - the run was flagged "kept but flagged" and then discarded two
-  # lines later by the "no metrics.csv was written" branch.  Measured
-  # 2026-08-20: a full-length rocker_bogie run hit the cap and lost all 1200 s.
-  # --kill-after still guarantees termination if the clean shutdown hangs.
-  # output_dir has to be passed explicitly.  metrics_logger.launch defaults it
-  # to $(env HOME)/metrics_output, and waypoint_navigation.launch used not to
-  # override it, so --output moved only THIS script's logs: metrics.csv,
-  # columns.csv, events.csv and both .tum files kept going to ~/metrics_output.
-  # A --output run therefore split itself across two directories, and since the
-  # "rm -rf ${run_dir}" above only empties the campaign's directory, the
-  # logger's half survived from the previous run - the mixed-run corruption
-  # that rm -rf exists to prevent.  Measured 2026-08-20.
+  # only way metrics_logger writes metrics.csv.  On SIGTERM it dies without
+  # running them, so every run that reached the cap would produce no data at
+  # all.  --kill-after still guarantees termination if the shutdown hangs.
+  #
+  # output_dir has to be passed explicitly: metrics_logger.launch defaults it
+  # to $(env HOME)/metrics_output, so without it --output moves this script's
+  # logs but not the logger's, and the run splits across two directories.
   local rc
   if [[ $FIXED_TRAJ -eq 1 ]]; then
     # Ground-truth trajectory following.  No move_base: the SLAM is an observer.
@@ -620,19 +581,9 @@ run_one() {
   sleep 8
   cleanup
 
-  # CUANTAS NUBES ENTREGO DE VERDAD EL LIDAR TROCEADO.
-  #
-  # sweep_distortion.py forma una vuelta cada 100 ms de flujo de rebanadas y
-  # publica las que puede.  Hasta el 2026-09-04 descartaba en silencio entre el
-  # 7 y el 18.5% de ellas -comprobaba la cobertura del encoder DESPUES de haber
-  # consumido las cunas- y la campaña no tenia forma de enterarse: ni el
-  # run_meta, ni la cola del nodo, ni el log, que solo se escribe en las
-  # vueltas que SI se publican.
-  #
-  # La tasa efectiva es lo que importa: la deriva por metro es
-  # error/nube x nubes/m, asi que dos corridas con distinto Hz efectivo no son
-  # comparables aunque el resto coincida.  Por eso va al run_meta y no solo al
-  # log.
+  # La tasa efectiva de nubes va al run_meta y no solo al log: la deriva por
+  # metro es error/nube x nubes/m, asi que dos corridas con distinto Hz
+  # efectivo no son comparables aunque el resto coincida.
 
   # Preserve the graph.  The NEXT run deletes it - rtabmap starts with
   # --delete_db_on_start - so if it is not copied here it is gone.  Two
@@ -640,16 +591,14 @@ run_one() {
   #
   #  * The optimised graph is the ONLY place the loop closures are visible.
   #    metrics_logger writes est_traj.tum from the pose the SLAM published at
-  #    each instant, and loop closure corrects the graph retroactively, so
-  #    that file never receives the correction.  Measured 2026-08-23 on
-  #    rocker_bogie, one two-lap run: the online trajectory scored ATE
-  #    0.998 m rmse while the optimised graph of the SAME run scored 0.177 m.
-  #    Reporting only the online figure hides the entire benefit of closing
-  #    the loop, and calls it "ATE", which in the SLAM literature means the
-  #    optimised one.
+  #    each instant, and loop closure corrects the graph retroactively, so that
+  #    file never receives the correction.  On one two-lap rocker_bogie run the
+  #    online trajectory scored ATE 0.998 m rmse against 0.177 m for the
+  #    optimised graph of the SAME run.  Reporting only the online figure hides
+  #    the benefit of closing the loop and calls it "ATE", which in the SLAM
+  #    literature means the optimised one.
   #  * The README's map scoring runs rtabmap-export over each platform's
-  #    database after the campaign.  Only the last run's database used to
-  #    survive, so that step could not be carried out as documented.
+  #    database after the campaign.
   #
   # Costs about 2 GB per run - 18 GB for a full 3x3 campaign.
   if [[ -f "${HOME}/.ros/rtabmap_3d.db" ]]; then
@@ -678,8 +627,7 @@ run_one() {
     sed -n 's/^detail: //p' "${run_dir}/guard_trip.yaml" | sed 's/^/    /'
     # El run_meta se escribio al ARRANCAR, cuando todavia decia
     # paper_usable: true.  Corregirlo aca es lo que impide que un intento
-    # abortado quede en disco marcado como bueno - que es exactamente lo
-    # que paso con differential/run01 el 2026-08-24.
+    # abortado quede en disco marcado como bueno.
     sed -i 's/^paper_usable: .*/paper_usable: false/' "${run_dir}/run_meta.yaml"
     {
       echo "aborted: true"
@@ -717,12 +665,9 @@ for robot in ${ROBOTS}; do
         err "  ${robot} run ${run_id}: abortada ${ATTEMPT} vez(ces), me rindo"
         break
       fi
-      # mv A B mete A DENTRO de B si B ya existe, en vez de fallar.  Con
-      # los intentos fallidos sin borrar entre campañas, eso anidaba una
-      # corrida dentro de otra: el 2026-09-01 quedo un
-      # run01_failed_attempt1/run01 con datos de DOS campañas distintas, y
-      # el mv que fallo dejo la corrida sin archivar justo antes de que el
-      # reintento la borrase con rm -rf.  Se perdio entera.
+      # mv A B mete A DENTRO de B si B ya existe, en vez de fallar, asi que
+      # el destino se borra primero: si no, una corrida acaba anidada dentro
+      # de otra y el archivado falla justo antes del rm -rf del reintento.
       destino="${run_dir_top}_failed_attempt${ATTEMPT}"
       rm -rf "${destino}"
       if ! mv "${run_dir_top}" "${destino}"; then
@@ -780,11 +725,10 @@ fi
 # numbers averaged over the repetitions, and an average hides the shape.  These
 # draw what a single run did along the way - where the error entered, whether
 # it accumulated or arrived in one event, and what the estimated path looks
-# like next to the ground truth.  On the 2026-08-26 sliced-LiDAR campaign that
-# was the difference between "the tracked platform has 3x the ATE" and seeing
-# that all three estimates keep the shape of the circuit and simply ROTATE,
-# i.e. the error is accumulated heading drift and not a registration failure -
-# which the ATE column alone cannot tell you.
+# like next to the ground truth.  It is the difference between "the tracked
+# platform has 3x the ATE" and seeing that all three estimates keep the shape
+# of the circuit and simply ROTATE, i.e. accumulated heading drift and not a
+# registration failure - which the ATE column alone cannot tell you.
 #
 # run01 because it is the run every campaign has, whatever --runs is set to.
 log "Per-run figures (run01 of each platform)..."
@@ -856,9 +800,6 @@ fi
 # run01 per platform.  It also PRINTS the scalars the text quotes - the
 # crossing peaks, the attitude percentiles and the window sweep - which is why
 # its stdout is kept: those numbers are in the paper and in no table.
-#
-# It was run by hand until 2026-09-18, which is exactly how a figure ends up
-# drawn from one campaign and the table beside it from another.
 log "Results-section figures (step crossing, attitude, trajectories)..."
 python3 "${SCRIPT_DIR}/plot_results_section.py" \
     --results "${OUTPUT_DIR}" \

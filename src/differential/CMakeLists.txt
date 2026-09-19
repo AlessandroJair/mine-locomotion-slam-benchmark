@@ -162,7 +162,6 @@ include_directories(
 catkin_install_python(PROGRAMS
   scripts/twist_to_wheels.py
   scripts/waypoint_navigator_yaml.py
-  scripts/waypoint_recorder.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

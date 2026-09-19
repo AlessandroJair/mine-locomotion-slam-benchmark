@@ -3,26 +3,14 @@
   <!--
     WORLD - default false, and that is deliberate.
 
-    This include used to be unconditional, and there was no `world` arg at all,
-    so the `world:=false` that run_campaign.sh passes was silently ignored by
-    roslaunch.  The guard its comment describes has therefore never existed:
-
-        "world:=false because the world is already up, above, with this run's
-         seed and paused:=false.  Without it the SLAM launch brings its own
-         Gazebo and its own copy of every robot node, which unloads the wheel
-         controllers."
-
-    That is exactly what was happening, on every campaign run and in the manual
-    three-terminal flow in the README too, since both of them start the world
-    in a separate terminal first.  The second gzserver dies on the taken port,
-    but the second gzclient connects to the live server - which is the second
-    Gazebo window - and, more seriously, a SECOND COPY of every node inside the
-    robot's namespace comes up with it: spawn_*, controller_starter,
-    twist_to_*, robot_state_publisher, and on the Rocker-Bogie the
-    rocker_differential node, which would then apply its coupling torque twice.
-
-    false is right because BOTH documented ways of running this bring the world
-    up separately.  Pass world:=true for a self-contained SLAM launch.
+    Both documented ways of running this - run_campaign.sh and the README's
+    three-terminal flow - bring the world up in a separate terminal first.  A
+    second include would start a second gzserver (which dies on the taken
+    port), a second gzclient (a second Gazebo window on the live server) and,
+    worse, a SECOND COPY of every node inside the robot's namespace: spawn_*,
+    controller_starter, twist_to_*, robot_state_publisher, and on the
+    Rocker-Bogie rocker_differential, which would apply its coupling torque
+    twice.  Pass world:=true for a self-contained SLAM launch.
   -->
   <arg name="world" default="false"/>
   <include file="$(find differential)/launch/lcmine_husky_world.launch" if="$(arg world)"/>
@@ -58,15 +46,12 @@
     <param name="Icp/VoxelSize" type="string" value="0.1"/>
     <param name="Icp/PointToPlaneK" type="string" value="20"/>
     <param name="Icp/PointToPlane" type="string" value="true"/>
-    <!-- 30 -> 15 EL 2026-09-04, medido.  El tope SI estaba mordiendo pese a
-         Icp/Epsilon 0.0001: bajarlo a 15 quita el 36 % del tiempo de registro
-         y no mueve la calidad.  Las 15 iteraciones que sobraban refinaban por
-         debajo del ruido, o sea que se pagaban y no compraban nada.
-         Barrido en ~/barrido_icp, corridas a RTF 0.5 sobre la misma ruta.
-         El nodo rtabmap de mas abajo lleva su propio Icp/Iterations, hoy
-         en 22 (era 30 hasta el 2026-09-08): ese es el ICP del cierre de
-         bucle, corre fuera del presupuesto por nube y ahi las iteraciones
-         de mas no cuestan cadencia. -->
+    <!-- 15 y no 30, medido: el tope SI muerde pese a Icp/Epsilon 0.0001, y
+         bajarlo quita el 36 % del tiempo de registro sin mover la calidad.
+         Las iteraciones que sobraban refinaban por debajo del ruido.
+         El nodo rtabmap de mas abajo lleva su propio Icp/Iterations: ese es
+         el ICP del cierre de bucle, corre fuera del presupuesto por nube y
+         ahi las iteraciones de mas no cuestan cadencia. -->
     <param name="Icp/Iterations" type="string" value="15"/>
     <param name="Icp/Epsilon" type="string" value="0.0001"/>
     <param name="Icp/MaxTranslation" type="string" value="2.0"/>
@@ -81,27 +66,24 @@
 
     <!-- Frame to Map -->
     <param name="OdomF2M/ScanSubtractRadius" type="string" value="0.1"/>
-    <!-- 15000 -> 7500 EL 2026-09-04, medido.  Es el mapa local contra el que
-         se registra cada barrido, y era la razon de que el tiempo de ICP
+    <!-- 7500 y no 15000, medido.  Es el mapa local contra el que se registra
+         cada barrido, y el tamaño grande era la razon de que el tiempo de ICP
          CRECIESE durante la corrida: +11.2 ms por minuto, de 196 ms al
          arrancar a 330 al final de una vuelta.  A la mitad, el crecimiento
          baja a 2.8 ms/min y con ello el p99, que es lo que decide si una nube
          entra en su presupuesto.
 
-         JUNTO CON Icp/Iterations 15, medido sobre el mismo tramo de 150 s:
+         JUNTO CON Icp/Iterations 15, sobre el mismo tramo de 150 s:
 
              base        med 141  p90 164  p99 192  max 282 ms   ratio 0.755
              las dos     med  65  p90  77  p99  92  max 109 ms   ratio 0.751
 
-         La precision NO cambia: la std que declara la odometria sale 0.0894 m
-         en las dos, y el ratio de inliers 0.751 contra 0.755.  Lo unico que
-         se va es tiempo.
-
-         QUE COMPRA.  A RTF 0.5 el presupuesto de pared por nube son 203 ms.
-         Con el ICP viejo cabia el 36 % de las nubes y rtabmap tiraba el 38 %
-         de ellas; con este cabe el 100.0 % y procesa el 99.7 %, medido sobre
-         una vuelta entera.  Es lo que permite correr la campaña a RTF 0.5 en
-         vez de 0.25, o sea a la mitad de reloj. -->
+         La precision NO cambia -std de la odometria 0.0894 m en las dos,
+         inliers 0.751 contra 0.755-; lo unico que se va es tiempo.  A RTF 0.5
+         el presupuesto de pared por nube son 203 ms: con el ICP viejo cabia
+         el 36 % de las nubes y rtabmap tiraba el 38 % de ellas, con este cabe
+         el 100.0 % y procesa el 99.7 %.  Es lo que permite correr la campaña
+         a RTF 0.5 en vez de 0.25. -->
     <param name="OdomF2M/ScanMaxSize" type="string" value="7500"/>
     <param name="OdomF2M/BundleAdjustment" type="string" value="1"/>
   </node>
@@ -140,29 +122,27 @@
     <param name="Mem/InitWMWithAllNodes" type="string" value="false"/>
 
     <!-- 3D Mapping -->
-    <!-- ADELGAZADO 2026-08-24 (Grid/3D, Grid/CellSize, Grid/RangeMax).
-         Antes: 3D, celda 0.05 m, alcance 50 m.  Con eso rtabmap crecia
-         ~275 MB/min sin techo: 4693 MB y 242 MB libres de 7738 a los 14
-         min, descolgues del SLAM ("Did not receive data") desde el minuto
-         5 y el RTF hundiendose de 0.47 a 0.13 por thrashing.  La vuelta
-         autonoma se corto en 20 de 43 waypoints.  NINGUNA corrida de la
-         campana podia terminar.
-         Trazar rayos y guardar ocupacion hasta 50 m a 5 cm de celda, en
-         3D, dentro de una galeria cuyas paredes estan a 2-5 m, es casi
-         todo espacio vacio.
+    <!-- REJILLA ADELGAZADA (Grid/3D, Grid/CellSize, Grid/RangeMax).  En 3D,
+         con celda de 0.05 m y alcance de 50 m, rtabmap crecia ~275 MB/min sin
+         techo -4693 MB a los 14 min, descuelgues del SLAM desde el minuto 5 y
+         el RTF hundiendose de 0.47 a 0.13 por thrashing- y ninguna corrida de
+         la campaña podia terminar.  Trazar rayos y guardar ocupacion hasta
+         50 m a 5 cm de celda, dentro de una galeria cuyas paredes estan a
+         2-5 m, es casi todo espacio vacio.
+
          Se adelgaza el nodo y NO se limita su numero: Rtabmap/MemoryThr
-         chocaria con RGBD/ProximityMaxGraphDepth: 0, que existe para que
-         la segunda vuelta cierre contra la primera a ~137 nodos de
-         distancia (ver el comentario largo mas abajo).
-         Lo que consume la rejilla: el costmap global de move_base lee
-         /rtabmap/grid_map, que es la proyeccion 2D.  map_vs_groundtruth.py
-         puntua los mapas con la nube exportada de los ESCANEOS
-         (rtabmap-export, opcion cloud), no con la rejilla.  OJO: un
-         doble guion no puede aparecer dentro de un comentario XML;
-         escribirlo aqui hizo que roslaunch rechazara el archivo entero
-         y el SLAM no arrancara. -->
-         Si se quiere el mapa 3D de vuelta, Grid/3D es el primero a
-         revertir, y hay que volver a medir el consumo.
+         chocaria con RGBD/ProximityMaxGraphDepth: 0, que existe para que la
+         segunda vuelta cierre contra la primera a ~137 nodos de distancia
+         (ver el comentario largo mas abajo).
+
+         Quien consume la rejilla: el costmap global de move_base, que lee
+         /rtabmap/grid_map (la proyeccion 2D).  map_vs_groundtruth.py puntua
+         los mapas con la nube exportada de los ESCANEOS, no con la rejilla.
+         Si se quiere el mapa 3D de vuelta, Grid/3D es el primero a revertir,
+         y hay que volver a medir el consumo.
+
+         OJO: un doble guion no puede aparecer dentro de un comentario XML;
+         escribirlo aqui hace que roslaunch rechace el archivo entero. -->
     <param name="Grid/3D" type="string" value="false"/>
     <param name="Grid/FromDepth" type="string" value="false"/>
     <param name="Grid/RayTracing" type="string" value="true"/>
@@ -182,53 +162,28 @@
     <param name="Icp/VoxelSize" type="string" value="0.1"/>
     <param name="Icp/PointToPlaneK" type="string" value="20"/>
     <param name="Icp/PointToPlane" type="string" value="true"/>
-        <!-- 30 -> 22 EL 2026-09-08.  Recorte del 25 % pedido a mano;
-         30 * 0.75 = 22.5 y hace falta un entero, asi que 22, que es el
-         que cumple el 25 % entero (23 se quedaria en el 23.3 %).
-
-         QUE PESA ESTE NODO.  Medido el 2026-09-08 sobre los slam.log que
-         ya estaban en disco (metrics_output_rtf05_3robots y
-         metrics_output_rtf025_3robots, las tres plataformas), sin lanzar
-         ninguna corrida nueva: los dos nodos imprimen su propio tiempo de
-         pared, asi que el reparto sale de contarlo y sumarlo.
+        <!-- ESTE ES EL ICP DEL CIERRE DE BUCLE, no el de la odometria.
+         Reparto medido sobre los slam.log de dos campañas, las tres
+         plataformas, contando el tiempo de pared que imprime cada nodo:
 
              nodo           llamadas   mediana      total     reparto
              icp_odometry   ~10 / s    107-219 ms   409-1125 s   67-72 %
              rtabmap        ~1 / s     504-917 ms   195-493 s    28-33 %
 
-         Este nodo es un tercio del coste del SLAM y su iteracion sale 5x
-         mas cara que una nube de odometria; lo que lo salva es que solo
-         corre a Rtabmap/DetectionRate = 1.0 Hz.
+         Un tercio del coste del SLAM, con una iteracion 5x mas cara que una
+         nube de odometria; lo que lo salva es que solo corre a
+         Rtabmap/DetectionRate = 1.0 Hz.
 
-         LO QUE ESTE RECORTE NO HACE: acelerar la campana.  Con 16 nucleos
-         los dos nodos van en paralelo, y quien decide si una nube entra en
-         su presupuesto de 203 ms es icp_odometry, no este.  El porcentaje
-         de nubes procesadas no se mueve.
-
-         LO QUE NO ESTA MEDIDO: que fraccion de la iteracion es ICP.  El
-         desglose que rtabmap imprime es Maps update 13-18 %, pub 1-9 % y
-         Conversion ~0 %; el 82-87 % restante mezcla registro, memoria y
-         optimizacion del grafo sin separarlos.  O sea que el ahorro de
-         este recorte NO se puede calcular desde el log: hay que medirlo.
-
-         Y LA CALIDAD ES LO QUE HAY QUE VIGILAR, no el tiempo: este es el
-         ICP que valida los cierres de bucle, y menos iteraciones es menos
+         RECORTAR AQUI NO ACELERA LA CAMPAÑA: con 16 nucleos los dos nodos van
+         en paralelo, y quien decide si una nube entra en su presupuesto de
+         203 ms es icp_odometry.  El porcentaje de nubes procesadas no se
+         mueve.  Lo que hay que vigilar es la CALIDAD, no el tiempo: este es
+         el ICP que valida los cierres, y menos iteraciones es menos
          refinamiento en la transformacion que se acepta o se rechaza.  Los
          numeros a mirar son los cierres aceptados y el ATE. -->
     <param name="Icp/Iterations" type="string" value="22"/>
-    <!-- RESTORED 2026-08-18.  These four values were uncommitted working-tree
-         changes that a `git checkout` of this file destroyed, in all three
-         packages.  The rocker_bogie copies were read back out of a live ROS
-         parameter server; these two had no running simulation to read from, so
-         they are restored from the rocker_bogie values on the study's own
-         parity requirement - the SLAM configuration must be identical across
-         the three platforms, and these four were the ONLY parameters that
-         differed once the frame and topic names are excluded.
-           Icp/Epsilon         0.001 -> 0.0001
-           Icp/MaxTranslation  3     -> 2.0
-           Icp/PMOutlierRatio  0.7   -> 0.85
-           Optimizer/Strategy  1     -> 2
-         The comments that documented WHY they were chosen are not recoverable.
+    <!-- These four are part of the SLAM configuration that must be IDENTICAL
+         across the three platforms; check that before changing any of them.
     -->
     <param name="Icp/Epsilon" type="string" value="0.0001"/>
     <param name="Icp/MaxTranslation" type="string" value="2.0"/>
@@ -239,22 +194,19 @@
     <!-- Visual features -->
     <param name="Kp/MaxFeatures" type="string" value="400"/>
     <!-- 8 = GFTT/ORB, and Vis/FeatureType is declared HERE so it matches.
-         Until 2026-08-23 this was 6 (GFTT/BRIEF) while Vis/FeatureType was
-         never declared at all and so kept its default of 8.  rtabmap resolves
-         that disagreement by switching a third parameter off:
+         If the two disagree, rtabmap resolves it by switching a third
+         parameter off:
            "Mem/UseOdomFeatures is enabled, but Vis/FeatureType and
             Kp/DetectorStrategy parameters are not the same! Disabling..."
          The odometry and loop-closure pipelines then extract features
          independently, and every loop-closure candidate is rejected with
            "Not enough features in images (old=0, new=~840, min=20)"
          because the retrieved node comes back without usable words while the
-         new one still has its own.  Measured on the two-lap rocker_bogie run
-         of 2026-08-23: 37 candidates, 37 rejected, 0 accepted, every one of
-         them old=0.  The database showed the features were never the problem
-         - all 270 nodes held 846-917 features and their image.
-         6 was never really in effect anyway: this OpenCV is built without
-         xfeatures2d, so BRIEF falls back to ORB with a warning.  Setting both
-         to 8 makes the configuration state what the code already does.
+         new one still has its own - measured as 37 candidates, 37 rejected,
+         0 accepted, every one old=0, on a database whose 270 nodes all held
+         846-917 features.  Note that 6 (GFTT/BRIEF) is not really available
+         either: this OpenCV is built without xfeatures2d, so BRIEF falls back
+         to ORB with a warning.
          KEEP THESE TWO EQUAL, and equal across all three platforms. -->
     <param name="Kp/DetectorStrategy" type="string" value="8"/>
     <param name="Vis/FeatureType" type="string" value="8"/>
@@ -287,10 +239,10 @@
          A limit of 50 makes closing ANY loop longer than ~50 nodes
          structurally impossible.  That is why the two-lap runs did not help.
 
-         Measured 2026-08-23, one two-lap rocker_bogie run reprocessed with
-         rtabmap-reprocess so every row is the same recorded data:
+         Measured on one two-lap rocker_bogie run reprocessed with
+         rtabmap-reprocess, so every row is the same recorded data:
            depth  radius  closures  ATE rmse  ATE max  links spanning >1/2 lap
-              50      20        60     0.792    1.443        0   <- was shipped
+              50      20        60     0.792    1.443        0
                0      10        86     0.177    0.302      172
                0      15       121     0.171    0.325      180
                0      20       150     0.170    0.340      180   <- chosen
