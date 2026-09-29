@@ -12,6 +12,8 @@
 #   ./run_campaign.sh                          all three robots, runs 1-3
 #   ./run_campaign.sh --robots rocker_bogie    one platform
 #   ./run_campaign.sh --runs 5                 five repetitions
+#   ./run_campaign.sh --first-run 4 --runs 4   solo la corrida 4, sin vaciar
+#                                              las demas del robot
 #   ./run_campaign.sh --duration 600           cap each run at 600 s
 #   ./run_campaign.sh --seed-base 100          an independent replication
 #   ./run_campaign.sh --dry-run                print what would happen
@@ -29,6 +31,9 @@
 #                                              <output>/fixed_trajectory/.
 #                                              A SECOND experiment, not a
 #                                              replacement - see FIXED_TRAJ.
+#   ./run_campaign.sh --analyze-only           solo tablas y figuras sobre lo
+#                                              que ya hay en --output, con
+#                                              todos los --robots
 #
 # Every run is launched with gzserver --seed (seed_base + run_id), so the
 # sensor noise of any run can be reproduced exactly.  Runs still differ from
@@ -44,6 +49,9 @@ WS_DIR="$( dirname "$SRC_DIR" )"
 
 ROBOTS="differential tracked rocker_bogie"
 RUNS=3
+# Primera corrida.  La salida del robot solo se vacia al empezar en la 1, asi
+# que --first-run > 1 repite corridas sueltas sin tocar las demas.
+FIRST_RUN=1
 DURATION=1200          # hard cap per run, seconds
 SETTLE=25              # seconds for Gazebo, controllers and SLAM to come up
 OUTPUT_DIR="${HOME}/metrics_output"
@@ -106,11 +114,12 @@ LIDAR=normal
 # multiplica las oportunidades de cierre de loop, sin cambiar la ruta
 # que comparten las tres plataformas.  Subilo junto con --duration.
 LAPS=1
+ANALYZE_ONLY=0
 # REINTENTOS.  run_guard.py aborta la corrida cuando la plataforma queda
 # encajada o se vuelca, y deja guard_trip.yaml.  Una corrida asi no es un dato
 # -promediarla mete un cero de recorrido en la desviacion estandar-, asi que se
-# repite hasta MAX_RETRIES veces mas y el intento fallido se guarda como
-# run<NN>_failed_attempt<N> en vez de borrarse.  0 desactiva el reintento.
+# repite hasta MAX_RETRIES veces mas y el intento fallido se borra.
+# 0 desactiva el reintento.
 MAX_RETRIES=2
 # Intento actual, para que quede escrito en run_meta.yaml.
 ATTEMPT=1
@@ -141,6 +150,7 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --robots)   ROBOTS="$2"; shift 2 ;;
     --runs)     RUNS="$2"; shift 2 ;;
+    --first-run) FIRST_RUN="$2"; shift 2 ;;
     --duration) DURATION="$2"; shift 2 ;;
     --output)   OUTPUT_DIR="$2"; shift 2 ;;
     --seed-base) SEED_BASE="$2"; shift 2 ;;
@@ -154,7 +164,8 @@ while [[ $# -gt 0 ]]; do
     --k-xte)     FOLLOW_K_XTE="$2"; shift 2 ;;
     --rtf)       TARGET_RTF="$2"; shift 2 ;;
     --max-retries) MAX_RETRIES="$2"; shift 2 ;;
-    -h|--help)  sed -n '2,31p' "$0"; exit 0 ;;
+    --analyze-only) ANALYZE_ONLY=1; shift ;;
+    -h|--help)  sed -n '2,39p' "$0"; exit 0 ;;
     *) echo "unknown option: $1"; exit 2 ;;
   esac
 done
@@ -366,7 +377,7 @@ echo
 # Record the configuration this campaign ran under, so results can be traced
 # back to it even after the tree moves on.
 mkdir -p "${OUTPUT_DIR}"
-{
+[[ $ANALYZE_ONLY -eq 1 ]] || {
   echo "campaign_started: $(date -Is)"
   # Which experiment produced these numbers.  Without this the two are
   # indistinguishable in the output, and they answer different questions.
@@ -386,6 +397,7 @@ mkdir -p "${OUTPUT_DIR}"
   echo "lidar: $([[ "$LIDAR" == "swept" ]] \
         && echo 'swept (distorsion de barrido metida por formulas sobre la nube instantanea)' \
         || echo 'normal (gpu_ray instantaneo: sin distorsion intra-barrido)')"
+  echo "laps: ${LAPS}"
   echo "parity_check_passed: $([[ $PARITY_OK -eq 1 ]] && echo true || echo false)"
   # Una corrida con ganancias forzadas no es de la campana: no se promedia.
   echo "paper_usable: $([[ $PARITY_OK -eq 1 && ${#FOLLOW_OVERRIDES[@]} -eq 0 && -z "${TARGET_RTF}" ]] && echo true || echo false)"
@@ -650,8 +662,8 @@ run_one() {
 # --------------------------------------------------------------------------
 FAILED=""
 RETRIED=""
-for robot in ${ROBOTS}; do
-  for run_id in $(seq 1 "${RUNS}"); do
+for robot in $([[ $ANALYZE_ONLY -eq 1 ]] || echo "${ROBOTS}"); do
+  for run_id in $(seq "${FIRST_RUN}" "${RUNS}"); do
     ATTEMPT=1
     run_dir_top="${OUTPUT_DIR}/${robot}/run$(printf '%02d' "${run_id}")"
     while : ; do
@@ -665,14 +677,9 @@ for robot in ${ROBOTS}; do
         err "  ${robot} run ${run_id}: abortada ${ATTEMPT} vez(ces), me rindo"
         break
       fi
-      # mv A B mete A DENTRO de B si B ya existe, en vez de fallar, asi que
-      # el destino se borra primero: si no, una corrida acaba anidada dentro
-      # de otra y el archivado falla justo antes del rm -rf del reintento.
-      destino="${run_dir_top}_failed_attempt${ATTEMPT}"
-      rm -rf "${destino}"
-      if ! mv "${run_dir_top}" "${destino}"; then
-        err "  no pude archivar el intento fallido en ${destino}"
-      fi
+      # El intento abortado se BORRA: no es un dato, y un run<NN>_failed_*
+      # al lado de los buenos solo invita a promediarlo.
+      rm -rf "${run_dir_top:?}"
       RETRIED="${RETRIED} ${robot}/run${run_id}"
       ATTEMPT=$(( ATTEMPT + 1 ))
       warn "  reintentando ${robot} run ${run_id} - intento ${ATTEMPT} de $(( MAX_RETRIES + 1 ))"
@@ -686,8 +693,7 @@ done
 echo
 if [[ -n "${RETRIED}" ]]; then
   warn "corridas repetidas por el vigia (encaje o vuelco):${RETRIED}"
-  warn "el intento fallido quedo en run<NN>_failed_attempt<N> con su"
-  warn "guard_trip.yaml, sus logs y su metrics.csv parcial."
+  warn "los intentos abortados se borraron."
 fi
 
 if [[ -n "${FAILED}" ]]; then
