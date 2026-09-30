@@ -22,6 +22,7 @@ Usage:
 
 import argparse
 import os
+import re
 import sys
 
 import numpy as np
@@ -40,6 +41,211 @@ STATS = ('pitch', 'roll', 'pitch_rate', 'roll_rate')
 
 def short(robot):
     return ag.DISPLAY_NAME.get(robot, robot).split(' ')[0]
+
+
+# Ancho de banda de la aceleracion.  La de las tablas deriva la velocidad a
+# 1 kHz, y un impulso de contacto da un pico ~1/dt: el RMS y sobre todo los
+# picos dependen del ancho de banda (critica de revision).  Como sensibilidad
+# se da tambien con una media movil de LP_WINDOW_MS (-3 dB a ~44 Hz, primer
+# cero a 100 Hz para 10 ms).
+LP_WINDOW_MS = 10
+
+
+def boxcar(x, k):
+    """Media movil centrada de k muestras que ignora los NaN."""
+    ok = np.isfinite(x)
+    w = np.ones(k)
+    num = np.convolve(np.where(ok, x, 0.0), w, 'same')
+    den = np.convolve(ok * 1.0, w, 'same')
+    return np.where(den >= k / 2.0, num / np.maximum(den, 1.0), np.nan)
+
+
+def accel_lowpass(hr):
+    """gt_ax/ay/az de gt_highrate pasados por boxcar(LP_WINDOW_MS)."""
+    k = int(round(LP_WINDOW_MS / (1e3 * np.median(np.diff(hr['timestamp'].values)))))
+    return {c: boxcar(hr[c].values, max(k, 1)) for c in ('gt_ax', 'gt_ay', 'gt_az')}
+
+
+# Vuelta: primera vez que la verdad-terreno vuelve a menos de LAP_RADIUS_M del
+# inicio despues de recorrer LAP_MIN_TRAVEL_M.
+LAP_RADIUS_M = 3.0
+LAP_MIN_TRAVEL_M = 50.0
+
+
+def review_checks(res):
+    """Cifras que el texto cita en respuesta a la revision, por corrida.
+
+    pairing   RPE/ATE emparejados fila a fila (lo que habia) frente a por
+              estimacion (las tablas): el sesgo de retencion.
+    latency   RPE con la verdad-terreno retrasada tau (sensibilidad).
+    offset    delta de la estimacion y el ATE segun como se corrija.
+    prox      detecciones de proximidad: cuantas en la primera vuelta y a que
+              distancia real estan los nodos que enlazan (gt_gap del logger;
+              las de gt_gap=nan no tienen nodo conocido y no cuentan).
+    autocorr  autocorrelacion de las series por barrido al lag del bloque del
+              bootstrap: justifica su longitud.
+    """
+    df, hr = res['df'], res['hr']
+    old = sm.evaluate(df)
+    tr_tau, ro_tau = sm.rpe_at_delay(df, hr, res['latency_s'])
+
+    xy = df[['gt_x', 'gt_y']].values
+    s = res['distance_series']
+    back = np.flatnonzero((np.linalg.norm(xy - xy[0], axis=1) < LAP_RADIUS_M)
+                          & (s > LAP_MIN_TRAVEL_M))
+    t_lap = df['timestamp'].values[back[0]] if back.size else np.inf
+    gaps, lap1 = [], []
+    for row in res.get('events', []):
+        if row.get('event[-]') != 'proximity_detection':
+            continue
+        m = re.search(r'gt_gap=([\d.]+)m', row.get('detail[-]', ''))
+        if m:
+            gaps.append(float(m.group(1)))
+            lap1.append(float(row['timestamp[s]']) < t_lap)
+    gaps, lap1 = np.array(gaps), np.array(lap1, dtype=bool)
+
+    W = res['corr']['windows']
+    L = res['corr']['block']
+    ac = {}
+    for k in ('attitude_agitation_rad', 'sweep_rot_deg', 'sweep_trans_m'):
+        x = np.array([w[k] for w in W], dtype=float)
+        x = x - np.nanmean(x)
+        ac[k] = float(np.nansum(x[:-L] * x[L:]) / np.nansum(x * x))
+
+    # vibracion de toda la corrida, mismo tramo que la tabla, con y sin filtro
+    t = df['timestamp'].values
+    tt = hr['timestamp'].values
+    tramo = (tt >= t[0]) & (tt <= t[-1])
+    lp = accel_lowpass(hr)
+    a_lp = np.sqrt(sum(lp[c][tramo] ** 2 for c in lp))
+    vib_lp = float(np.sqrt(np.nanmean(a_lp ** 2)))
+
+    # contacto de ruedas (solo el rocker los lleva), filas de metrics.csv
+    cc = [c for c in df.columns if c.startswith('contact_')]
+    if cc:
+        C = df[cc].values > 0.5
+        contact = {'all': float(C.all(axis=1).mean()),
+                   'min_wheel': float(C.mean(axis=0).min()),
+                   'n_wheels': len(cc)}
+    else:
+        contact = None
+
+    return {
+        'vib': res.get('vibration_rms', float('nan')), 'vib_lp': vib_lp,
+        'contact': contact, 'corr': res['corr'],
+        'rpe_t_row': old['rpe_trans_rmse'], 'rpe_r_row': old['rpe_rot_rmse'],
+        'ate_row': old['ate_origin_trans_rmse'],
+        'rpe_t': res['rpe_trans_rmse'], 'rpe_r': res['rpe_rot_rmse'],
+        'ate': res['ate_origin_trans_rmse'],
+        'rpe_t_tau': tr_tau, 'rpe_r_tau': ro_tau,
+        'offset': sm.ate_offset_sensitivity(df, hr),
+        'lap_m': float(s[back[0]]) if back.size else float('nan'),
+        'gaps': gaps, 'lap1': lap1, 'block': L, 'autocorr': ac,
+    }
+
+
+def print_review(robots, chk):
+    """Imprime, por plataforma, las cifras de review_checks tal y como las
+    cita el texto: medias sobre corridas o rangos entre corridas."""
+    def mean(r, k):
+        return np.mean([c[k] for c in chk[r]])
+
+    def pct(a, b):
+        return 100.0 * (b - a) / a
+
+    print('\n=== RPE PAIRING: row-by-row (held odometry) vs per estimate '
+          '(tables); means over runs ===')
+    for r in robots:
+        print('%-14s RPE trans %.4f -> %.4f m/m (%+.1f%%)   rot %.3f -> %.3f '
+              'deg/m (%+.1f%%)   ATE max |change| over runs %.2f%%'
+              % (short(r), mean(r, 'rpe_t_row'), mean(r, 'rpe_t'),
+                 pct(mean(r, 'rpe_t_row'), mean(r, 'rpe_t')),
+                 np.degrees(mean(r, 'rpe_r_row')), np.degrees(mean(r, 'rpe_r')),
+                 pct(mean(r, 'rpe_r_row'), mean(r, 'rpe_r')),
+                 max(abs(pct(c['ate_row'], c['ate'])) for c in chk[r])))
+
+    print('\n=== LATENCY-CORRECTED RPE (GT delayed by tau per run; '
+          'sensitivity only) ===')
+    for r in robots:
+        print('%-14s RPE trans %.4f m/m (%+.1f%% vs table)   rot %.3f deg/m '
+              '(%+.1f%%)' % (short(r), mean(r, 'rpe_t_tau'),
+                             pct(mean(r, 'rpe_t'), mean(r, 'rpe_t_tau')),
+                             np.degrees(mean(r, 'rpe_r_tau')),
+                             pct(mean(r, 'rpe_r'), mean(r, 'rpe_r_tau'))))
+    for k, name in (('rpe_t', 'trans'), ('rpe_r', 'rot')):
+        for suf, cual in (('', 'table'), ('_tau', 'tau')):
+            orden = sorted(robots, key=lambda r: mean(r, k + suf))
+            print('  ranking %-5s %-5s : %s' % (name, cual,
+                                                ' < '.join(short(r) for r in orden)))
+
+    print('\n=== ESTIMATE HEADING OFFSET and start-aligned ATE by correction ===')
+    for r in robots:
+        o = [c['offset'] for c in chk[r]]
+        d = [x['est_offset_deg'] for x in o]
+        dg = [abs(x['ate_gt_offset'] - x['ate_own']) for x in o]
+        dn = [abs(x['ate_uncorrected'] - x['ate_own']) for x in o]
+        dnp = [100 * abs(x['ate_uncorrected'] - x['ate_own']) / x['ate_own'] for x in o]
+        print('%-14s est offset %.2f..%.2f deg   |ATE gt-offset - own| max %.3f m   '
+              '|ATE uncorrected - own| max %.3f m (%.1f%%)'
+              % (short(r), min(d), max(d), max(dg), max(dn), max(dnp)))
+    for k in ('ate_own', 'ate_gt_offset', 'ate_uncorrected'):
+        orden = sorted(robots, key=lambda r: np.mean([c['offset'][k] for c in chk[r]]))
+        print('  ranking %-16s: %s' % (k, ' < '.join(short(r) for r in orden)))
+
+    print('\n=== PROXIMITY DETECTIONS with known node gap: lap split at first '
+          'return within %.0f m of start after %.0f m ===' % (LAP_RADIUS_M,
+                                                              LAP_MIN_TRAVEL_M))
+    for r in robots:
+        cs = chk[r]
+        rng = lambda f: '%.1f..%.1f' % (min(f(c) for c in cs), max(f(c) for c in cs))
+        print('%-14s lap at %s m   lap1 share %s%%   lap1 gap median %s m   '
+              'gap median %s m   <=1 m %s%%   in (1,5] m %d'
+              % (short(r), rng(lambda c: c['lap_m']),
+                 rng(lambda c: 100 * c['lap1'].mean()),
+                 rng(lambda c: np.median(c['gaps'][c['lap1']])),
+                 rng(lambda c: np.median(c['gaps'])),
+                 rng(lambda c: 100 * np.mean(c['gaps'] <= 1.0)),
+                 sum(int(np.sum((c['gaps'] > 1) & (c['gaps'] <= 5))) for c in cs)))
+
+    print('\n=== YAW AGITATION without the commanded turn, sigma(psi - int '
+          'omega_cmd), one sweep; means over runs ===')
+    for r in robots:
+        cs = [c['corr'] for c in chk[r]]
+        g = lambda k: np.nanmean([c.get(k, np.nan) for c in cs])
+        print('%-14s rot: r %.3f (raw sigma_psi %.3f)  r|attitude %.3f (raw %.3f)   '
+              'trans: r %.3f (raw %.3f)'
+              % (short(r),
+                 g('r_yaw_resid_agitation_rad__sweep_rot_deg'),
+                 g('r_yaw_agitation_rad__sweep_rot_deg'),
+                 g('pa_yaw_resid_agitation_rad__sweep_rot_deg'),
+                 g('pa_yaw_agitation_rad__sweep_rot_deg'),
+                 g('r_yaw_resid_agitation_rad__sweep_trans_m'),
+                 g('r_yaw_agitation_rad__sweep_trans_m')))
+
+    print('\n=== VIBRATION RMS: 1 kHz derivative (tables) vs %d ms moving '
+          'average; means over runs ===' % LP_WINDOW_MS)
+    for r in robots:
+        print('%-14s %.3f -> %.3f m/s^2' % (short(r), mean(r, 'vib'), mean(r, 'vib_lp')))
+
+    print('\n=== WHEEL CONTACT (contact sensors, 50 Hz rows, after warm-up) ===')
+    for r in robots:
+        cs = [c['contact'] for c in chk[r] if c['contact']]
+        if cs:
+            print('%-14s all %d wheels in contact %.2f..%.2f%% of the time   '
+                  'least-contact wheel %.2f..%.2f%%'
+                  % (short(r), cs[0]['n_wheels'], 100 * min(c['all'] for c in cs),
+                     100 * max(c['all'] for c in cs),
+                     100 * min(c['min_wheel'] for c in cs),
+                     100 * max(c['min_wheel'] for c in cs)))
+
+    print('\n=== AUTOCORRELATION of per-sweep series at the bootstrap block lag '
+          '(max over runs) ===')
+    for r in robots:
+        cs = chk[r]
+        print('%-14s block %d sweeps   %s' % (
+            short(r), cs[0]['block'],
+            '  '.join('%s %.3f' % (k, max(c['autocorr'][k] for c in cs))
+                      for k in cs[0]['autocorr'])))
 
 
 def first_crossing(hr, step, margin):
@@ -85,9 +291,11 @@ def profile(res, step, margin):
     d1 = np.interp(t[span[1]], df['timestamp'].values, df['gt_distance'].values)
     pitch = np.degrees(hr['gt_pitch'].values[near])
     roll = np.degrees(hr['gt_roll'].values[near])
+    lp = accel_lowpass(hr)
     return {
         'x': d - d0, 'slab_len': d1 - d0,
         'az': hr['gt_az'].values[near], 'ax': hr['gt_ax'].values[near],
+        'az_lp': lp['gt_az'][near], 'ax_lp': lp['gt_ax'][near],
         'pitch': pitch, 'roll': roll,
         'pitch_rate': rate_deg_s(t[near], hr['gt_pitch'].values[near]),
         'roll_rate': rate_deg_s(t[near], hr['gt_roll'].values[near]),
@@ -193,7 +401,7 @@ def plot_trajectories(robots, first, out_dir):
     ag.save(fig, out_dir, 'trajectories_gt_vs_slam')
 
 
-def print_numbers(robots, prof, stats, sweeps):
+def print_numbers(robots, prof, stats, sweeps, latency, noshift, rms_rot):
     print('\n=== STEP CROSSING (run01, first pass) ===')
     for r in robots:
         p = prof.get(r)
@@ -207,6 +415,13 @@ def print_numbers(robots, prof, stats, sweeps):
                  p['pitch'].min(), p['pitch'].max(), p['roll'].min(),
                  p['roll'].max(), np.max(np.abs(p['pitch_rate'])),
                  np.max(np.abs(p['roll_rate'])), p['slab_len'], p['duration_s']))
+    print('low-pass (%d ms moving average):' % LP_WINDOW_MS)
+    for r in robots:
+        p = prof.get(r)
+        if p is not None:
+            print('%-14s |a_z|max %6.2f  |a_x|max %6.2f'
+                  % (short(r), np.nanmax(np.abs(p['az_lp'])),
+                     np.nanmax(np.abs(p['ax_lp']))))
 
     print('\n=== ATTITUDE DISTRIBUTION (all runs, gt_highrate) ===')
     print('%-14s %-10s %8s %8s %8s %8s %8s %8s'
@@ -218,13 +433,14 @@ def print_numbers(robots, prof, stats, sweeps):
             print('%-14s %-10s %8.2f %8.2f %8.2f %8.2f %8.2f %8.2f'
                   % ((short(r), k) + tuple(q) + (np.std(v),)))
 
-    print('\n=== WINDOW SWEEP: mean over runs of r and r|velocity ===')
-    pares = [('vibration_rms_m_s2', 'rpe_rot_mean_deg_m', 'vib->rot'),
-             ('vibration_rms_m_s2', 'rpe_trans_mean_m_m', 'vib->trans'),
-             ('attitude_agitation_rad', 'rpe_rot_mean_deg_m', 'agit->rot'),
-             ('attitude_agitation_rad', 'rpe_trans_mean_m_m', 'agit->trans'),
-             ('yaw_agitation_rad', 'rpe_rot_mean_deg_m', 'yaw->rot'),
-             ('yaw_agitation_rad', 'rpe_trans_mean_m_m', 'yaw->trans')]
+    print('\n=== WINDOW SWEEP (sweeps per window, matched response): '
+          'mean over runs of r and r|velocity ===')
+    pares = [('vibration_rms_m_s2', 'sweep_rot_deg', 'vib->rot'),
+             ('vibration_rms_m_s2', 'sweep_trans_m', 'vib->trans'),
+             ('attitude_agitation_rad', 'sweep_rot_deg', 'agit->rot'),
+             ('attitude_agitation_rad', 'sweep_trans_m', 'agit->trans'),
+             ('yaw_agitation_rad', 'sweep_rot_deg', 'yaw->rot'),
+             ('yaw_agitation_rad', 'sweep_trans_m', 'yaw->trans')]
     for r in robots:
         for w in sorted(sweeps[r]):
             cs = sweeps[r][w]
@@ -233,7 +449,22 @@ def print_numbers(robots, prof, stats, sweeps):
                 rr = np.nanmean([c.get('r_%s__%s' % (pred, resp)) for c in cs])
                 pr = np.nanmean([c.get('pr_%s__%s' % (pred, resp)) for c in cs])
                 cells.append('%s %.3f|%.3f' % (nombre, rr, pr))
-            print('%-14s %5.0f ms  %s' % (short(r), w * 1000, '  '.join(cells)))
+            print('%-14s %2d sw  %s' % (short(r), w, '  '.join(cells)))
+
+    print('\n=== LATENCY and SENSITIVITY (one sweep per window) ===')
+    print('tau: GT delay minimising the 1 m translational RPE, per run.  '
+          'noshift: same correlation with tau = 0.')
+    for r in robots:
+        taus = [1e3 * x for x in latency[r]]
+        ns = noshift[r]
+        cell = lambda k: np.nanmean([c.get(k) for c in ns])
+        print('%-14s tau %s ms (mean %.0f)   noshift agit->rot %.3f  '
+              'agit->trans %.3f   per-sweep rot RMS %.3f -> %.3f deg'
+              % (short(r), ' '.join('%.0f' % x for x in taus), np.mean(taus),
+                 cell('r_attitude_agitation_rad__sweep_rot_deg'),
+                 cell('r_attitude_agitation_rad__sweep_trans_m'),
+                 np.mean([x[0] for x in rms_rot[r]]),
+                 np.mean([x[1] for x in rms_rot[r]])))
 
 
 def main():
@@ -255,6 +486,7 @@ def main():
     step = load_layout(args.config, robots[0])[1]
 
     prof, first, sweeps = {}, {}, {}
+    latency, noshift, rms_rot, chk = {}, {}, {}, {}
     stats = {r: {k: [] for k in STATS} for r in robots}
     for robot in robots:
         sweeps[robot] = {}
@@ -275,6 +507,13 @@ def main():
                 rate_deg_s(t[keep], hr['gt_roll'].values[keep]))
             for w, cs in ag._barrido_ventanas({robot: [res]}, robot).items():
                 sweeps[robot].setdefault(w, []).extend(cs)
+            latency.setdefault(robot, []).append(res['latency_s'])
+            noshift.setdefault(robot, []).append(sm.sweep_error_correlation(
+                res['sweeps_noshift'], hr, con_ci=False) or {})
+            chk.setdefault(robot, []).append(review_checks(res))
+            rms_rot.setdefault(robot, []).append(tuple(
+                float(np.sqrt(np.nanmean(res[k]['rot'] ** 2)))
+                for k in ('sweeps_noshift', 'sweeps')))
             if robot not in first:
                 prof[robot] = profile(res, step, args.margin)
                 first[robot] = res
@@ -287,7 +526,8 @@ def main():
     plot_profiles(robots, prof, out_dir)
     plot_distribution(robots, stats, out_dir)
     plot_trajectories(robots, first, out_dir)
-    print_numbers(robots, prof, stats, sweeps)
+    print_numbers(robots, prof, stats, sweeps, latency, noshift, rms_rot)
+    print_review(robots, chk)
     print('\nwritten to %s' % out_dir)
 
 

@@ -287,7 +287,10 @@ def evaluate_run(run_dir, rpe_delta_m):
     if len(df) < 20:
         return None
 
-    res = sm.evaluate(df, rpe_delta_m=rpe_delta_m)
+    # gt_highrate antes de evaluar: el ATE/RPE se empareja por estimacion de
+    # odometria contra la verdad-terreno interpolada (slam_metrics.evaluate).
+    hr = load_gt_highrate(os.path.join(run_dir, 'metrics.csv'))
+    res = sm.evaluate(df, rpe_delta_m=rpe_delta_m, hr=hr)
     if res is None:
         return None
 
@@ -307,7 +310,6 @@ def evaluate_run(run_dir, rpe_delta_m):
     # 1000 Hz- con ventana de 100 ms, no de metrics.csv a 50 Hz con ventana de
     # 1 s.  load_gt_highrate devuelve None en corridas viejas y entonces
     # stability_error_correlation cae al camino anterior.
-    hr = load_gt_highrate(os.path.join(run_dir, 'metrics.csv'))
     res['hr'] = hr
     # Vibracion y picos de la corrida desde el mismo 1 kHz, con la aceleracion
     # rehecha de la velocidad (metrics_io._accel_from_twist): la de
@@ -319,11 +321,18 @@ def evaluate_run(run_dir, rpe_delta_m):
         res['vibration_rms'] = vibration_rms(tr, 'gt_highrate.csv')
         res['accel_z_max'] = float(np.nanmax(np.abs(tr['gt_az'].values)))
         res['accel_x_rms'] = float(np.sqrt(np.nanmean(tr['gt_ax'].values ** 2)))
-    res['corr'] = sm.stability_error_correlation(
-        df, res['ate_trans_series'], hr=hr,
-        ate_rot=res.get('ate_rot_series'),
-        rpe_rot=res.get('rpe_rot_series'),
-        rpe_trans=res.get('rpe_trans_series'))
+    # Con gt_highrate la ventana es el barrido y la respuesta su propio error
+    # (sm.sweep_error_correlation); sin el, el camino viejo de 1 s.
+    if hr is not None:
+        cmd = ((df['timestamp'].values, df['cmd_vyaw'].values)
+               if 'cmd_vyaw' in df.columns else None)
+        res['corr'] = sm.sweep_error_correlation(res['sweeps'], hr, cmd=cmd)
+    else:
+        res['corr'] = sm.stability_error_correlation(
+            df, res['ate_trans_series'], hr=hr,
+            ate_rot=res.get('ate_rot_series'),
+            rpe_rot=res.get('rpe_rot_series'),
+            rpe_trans=res.get('rpe_trans_series'))
     res['df'] = df
     return res
 
@@ -427,9 +436,17 @@ def _etiqueta_ventana(results):
     for corridas in (results or {}).values():
         for c in corridas:
             if c.get('corr'):
+                if c['corr'].get('per_sweep'):
+                    return 'sweep'
                 w = c['corr']['window_s']
-                return ('%.0f ms' % (w * 1000.0)) if w < 1.0 else ('%g s' % w)
-    return '1 s'
+                return ('%.0f ms window' % (w * 1000.0) if w < 1.0
+                        else '%g s window' % w)
+    return '1 s window'
+
+
+def _por_barrido(results):
+    return any(c.get('corr', {}) and c['corr'].get('per_sweep')
+               for corridas in results.values() for c in corridas)
 
 
 def correlation_table(robots, results, out_path):
@@ -439,10 +456,11 @@ def correlation_table(robots, results, out_path):
     lines.append('CHASSIS STABILITY vs INSTANTANEOUS SLAM ERROR')
     lines.append('=' * 96)
     lines.append('Pearson r between windowed chassis agitation and windowed')
-    lines.append('SLAM error, with a 95% percentile-bootstrap CI (2000 resamples).')
+    lines.append('SLAM error, with a 95% percentile-bootstrap CI (2000 resamples,')
+    lines.append('moving blocks of %g s: consecutive windows are not independent).'
+                 % sm.BLOCK_S)
     lines.append('')
-    lines.append('Predictors, inside a ' + _etiqueta_ventana(results)
-                 + ' window:')
+    lines.append('Predictors, per ' + _etiqueta_ventana(results) + ':')
     lines.append('  pitch_std / roll_std / agitation  std of attitude [rad]')
     lines.append('  vibration_rms                     RMS |gt_a| [m/s^2], la '
                  'aceleracion propia')
@@ -457,6 +475,10 @@ def correlation_table(robots, results, out_path):
     lines.append('  ate_growth  ATE gained across the window [m].  This is the one')
     lines.append('              that asks whether agitation DURING this window cost')
     lines.append('              accuracy, and the one to quote.')
+    lines.append('  sweep_rot / sweep_trans   error of the relative motion between')
+    lines.append('              two consecutive odometry estimates, i.e. of THIS')
+    lines.append('              sweep, against ground truth delayed by the estimated')
+    lines.append('              latency [deg, m].  Same interval as the predictor.')
     lines.append('')
     lines.append('A CI that spans 0 means this run cannot distinguish the effect')
     lines.append('from none.  Read the sign only when it does not.')
@@ -484,9 +506,10 @@ def correlation_table(robots, results, out_path):
     # el ATE es acumulado, asi que su correlacion con lo que agita el
     # chasis en ESTA ventana esta diluida por toda la historia previa.
     RESPONSES = (('ate_mean_m', 'ate_mean'),
-                 ('ate_growth_m', 'ate_growth'),
-                 ('rpe_rot_mean_deg_m', 'rpe_rot'),
-                 ('rpe_trans_mean_m_m', 'rpe_trans'))
+                 ('ate_growth_m', 'ate_growth')) + (
+        (('sweep_rot_deg', 'sweep_rot'), ('sweep_trans_m', 'sweep_trans'))
+        if _por_barrido(results) else
+        (('rpe_rot_mean_deg_m', 'rpe_rot'), ('rpe_trans_mean_m_m', 'rpe_trans')))
 
     pooled = {}
     for robot in robots:
@@ -595,7 +618,7 @@ def plot_stability_vs_error(robots, results, out_dir):
     # Ver la nota en plot_agitation_heading._etiqueta_ventana(): el
     # rotulo tiene que salir del dato, no de una constante en el texto.
     ax.set_xlabel('Attitude agitation per ' + _etiqueta_ventana(results)
-                  + ' window, '
+                  + ', '
                   r'$\sqrt{\sigma_\theta^2+\sigma_\phi^2}$ (deg)')
     ax.set_ylabel('Mean instantaneous ATE (m)')
     ax.legend()
@@ -622,9 +645,9 @@ def _nubes_rpe(results, robot, clave_x, clave_y, a_grados):
 
 COLS_VIB_AGIT = [
     ('vibration_rms_m_s2', False,
-     'Vibration RMS per %s window,\n' r'$|a_{\rm gt}|$ (m/s$^2$)'),
+     'Vibration RMS per %s,\n' r'$|a_{\rm gt}|$ (m/s$^2$)'),
     ('attitude_agitation_rad', True,
-     'Attitude agitation per %s window,\n'
+     'Attitude agitation per %s,\n'
      r'$\sqrt{\sigma_\theta^2+\sigma_\phi^2}$ (deg)'),
 ]
 
@@ -636,7 +659,7 @@ COLS_VIB_AGIT = [
 COLS_ACTITUD_GUINADA = [
     COLS_VIB_AGIT[1],
     ('yaw_agitation_rad', True,
-     'Yaw agitation per %s window,\n' r'$\sigma_\psi$ (deg)'),
+     'Yaw agitation per %s,\n' r'$\sigma_\psi$ (deg)'),
 ]
 
 
@@ -672,10 +695,9 @@ def plot_rpe_vs_agitation(robots, results, out_dir, cols=COLS_VIB_AGIT,
     paper no separa el rojo del verde en deuteranopia (Delta E 3.9, medido),
     asi que el color por si solo no distingue dos de las tres series.
     """
-    filas = [
-        ('rpe_rot_mean_deg_m', 'Rotational RPE per %.0f m (deg)'),
-        ('rpe_trans_mean_m_m', 'Translational RPE per %.0f m (m)'),
-    ]
+    filas = _filas_respuesta(results, 'Rotational RPE per %.0f m (deg)' %
+                             _delta_rpe(results), 'Translational RPE per %.0f m (m)'
+                             % _delta_rpe(results))
     fig, axes = plt.subplots(2, 2, figsize=(COLUMN_WIDTH_IN, 5.6),
                              sharex='col', sharey='row')
     hay = False
@@ -710,7 +732,7 @@ def plot_rpe_vs_agitation(robots, results, out_dir, cols=COLS_VIB_AGIT,
                 ax.legend(fontsize=6, loc='best')
             if fi == len(filas) - 1:
                 ax.set_xlabel(rot_x % _etiqueta_ventana(results))
-        axes[fi][0].set_ylabel(rot_y % _delta_rpe(results))
+        axes[fi][0].set_ylabel(rot_y)
     if not hay:
         plt.close(fig)
         return
@@ -718,37 +740,31 @@ def plot_rpe_vs_agitation(robots, results, out_dir, cols=COLS_VIB_AGIT,
     save(fig, out_dir, nombre)
 
 
-VENTANAS_BARRIDO = (0.05, 0.1, 0.2, 0.5, 1.0)
+GRUPOS_BARRIDO = (1, 2, 5, 10, 22)
 
 
-def _barrido_ventanas(results, robot, ventanas=VENTANAS_BARRIDO):
-    """Recalcula las correlaciones a varios tamanos de ventana.
+def _barrido_ventanas(results, robot, grupos=GRUPOS_BARRIDO):
+    """Recalcula las correlaciones con ventanas de 1 a 22 barridos.
 
-    Devuelve {window_s: corr}.  El tamano de ventana no es un detalle de
-    implementacion: fija QUE se esta preguntando.  Una ventana corta mide si
-    la sacudida de este instante costo error en este instante; una larga mide
-    si el tramo agitado costo error en el tramo.  Que r crezca con la ventana
-    dice que el efecto es acumulativo y que a 50 ms el ruido de medida se
-    come la senal, no que la relacion sea mas fuerte.
+    Devuelve {barridos por ventana: [corr por corrida]}.  Predictor y
+    respuesta cubren siempre el mismo intervalo (sweep_error_correlation);
+    22 barridos son ~2.2 s, lo que tarda el robot en recorrer el metro del
+    RPE.  Que r crezca con la ventana es lo esperable al promediar el ruido
+    de registro de cada barrido, que no depende de la agitacion: no prueba
+    por si solo que el efecto se acumule (critica de revision).
 
-    El bootstrap va apagado aqui (con_ci=False): son cinco ventanas por robot
-    y por corrida, y el intervalo ya se reporta en la tabla a la ventana
-    nominal.
+    El bootstrap va apagado aqui (con_ci=False); el intervalo se reporta en
+    la tabla a un barrido.
     """
     salida = {}
     for r in results[robot]:
-        df = r.get('df')
-        if df is None:
+        if r.get('sweeps') is None:
             continue
-        for w in ventanas:
-            c = sm.stability_error_correlation(
-                df, r['ate_trans_series'], window_s=w, hr=r.get('hr'),
-                ate_rot=r.get('ate_rot_series'),
-                rpe_rot=r.get('rpe_rot_series'),
-                rpe_trans=r.get('rpe_trans_series'),
-                con_ci=False)
+        for g in grupos:
+            c = sm.sweep_error_correlation(r['sweeps'], r['hr'], group=g,
+                                           con_ci=False)
             if c:
-                salida.setdefault(w, []).append(c)
+                salida.setdefault(g, []).append(c)
     return salida
 
 
@@ -767,10 +783,8 @@ def plot_rpe_corr_vs_window(robots, results, out_dir):
         ('vibration_rms_m_s2', 'Vibration'),
         ('attitude_agitation_rad', 'Attitude agitation'),
     ]
-    cols = [
-        ('rpe_rot_mean_deg_m', 'Rotational RPE'),
-        ('rpe_trans_mean_m_m', 'Translational RPE'),
-    ]
+    cols = [('sweep_rot_deg', 'Rotational error'),
+            ('sweep_trans_m', 'Translational error')]
     barridos = {}
     for robot in robots:
         try:
@@ -781,7 +795,7 @@ def plot_rpe_corr_vs_window(robots, results, out_dir):
         return
     fig, axes = plt.subplots(2, 2, figsize=(COLUMN_WIDTH_IN, 5.2),
                              sharex=True, sharey=True)
-    ventanas = sorted(VENTANAS_BARRIDO)
+    ventanas = sorted(GRUPOS_BARRIDO)
     for fi, (pred, rot_p) in enumerate(filas):
         for ci, (resp, rot_r) in enumerate(cols):
             ax = axes[fi][ci]
@@ -804,13 +818,12 @@ def plot_rpe_corr_vs_window(robots, results, out_dir):
                                             sufijo))
             ax.set_xscale('log')
             ax.set_xticks(ventanas)
-            ax.set_xticklabels(['%g ms' % (w * 1000) if w < 1 else '1 s'
-                                for w in ventanas], fontsize=7)
+            ax.set_xticklabels(['%d' % w for w in ventanas], fontsize=7)
             ax.axhline(0.0, color='0.6', linewidth=0.6, zorder=0)
             ax.set_title('%s %s %s' % (rot_p, r'$\rightarrow$', rot_r),
                          fontsize=8)
             if fi == len(filas) - 1:
-                ax.set_xlabel('Window length')
+                ax.set_xlabel('Window length (sweeps, ~0.1 s each)')
             if ci == 0:
                 ax.set_ylabel('Pearson r')
     h, l = axes[0][0].get_legend_handles_labels()
@@ -818,6 +831,15 @@ def plot_rpe_corr_vs_window(robots, results, out_dir):
         axes[0][0].legend(h, l, fontsize=6, loc='best')
     fig.tight_layout()
     save(fig, out_dir, 'rpe_corr_vs_window')
+
+
+def _filas_respuesta(results, rot_rpe, tr_rpe):
+    """(clave, rotulo) de las dos respuestas: el error del barrido cuando la
+    ventana es el barrido, el RPE del metro siguiente en el camino viejo."""
+    if _por_barrido(results):
+        return [('sweep_rot_deg', 'Rotational error per sweep (deg)'),
+                ('sweep_trans_m', 'Translational error per sweep (m)')]
+    return [('rpe_rot_mean_deg_m', rot_rpe), ('rpe_trans_mean_m_m', tr_rpe)]
 
 
 def _delta_rpe(results):

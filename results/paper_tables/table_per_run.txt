@@ -6,19 +6,19 @@ Differential  (5 runs)
 ----------------------------------------------------------------------------------------------
 Metric [unit]                            run01       run02       run03       run04       run05
 ----------------------------------------------------------------------------------------------
-ATE translational RMSE [m]              4.2866      4.0589      4.3966      4.7446      5.1062
-ATE translational max [m]               8.7273      7.9657      8.8397     10.3261     10.3365
-ATE rotational RMSE [deg]               14.240      11.867      11.542      16.407      12.163
-ATE rotational max [deg]                27.598      24.575      25.872      35.875      28.544
-ATE trans. RMSE (aligned) [m]           1.3624      0.9780      1.3414      1.3979      1.4799
+ATE translational RMSE [m]              4.2938      4.0683      4.4058      4.7537      5.1166
+ATE translational max [m]               8.7304      7.9699      8.8464     10.3326     10.3430
+ATE rotational RMSE [deg]               14.219      11.854      11.526      16.397      12.152
+ATE rotational max [deg]                23.354      22.320      22.869      31.534      24.773
+ATE trans. RMSE (aligned) [m]           1.3627      0.9785      1.3418      1.3984      1.4804
 ATE optimised graph RMSE [m]            0.1921      0.1853      0.1797      0.1675      0.1761
 ATE optimised graph mean [m]            0.1830      0.1779      0.1711      0.1597      0.1689
 ATE optimised graph max [m]             0.4488      0.3381      0.3459      0.3017      0.3305
 Optimised graph poses [count]              633         604         624         626         624
-RPE translational RMSE [m/m]            0.0790      0.0693      0.0723      0.0732      0.0729
-RPE rotational RMSE [deg/m]             2.4703      2.0247      2.0952      2.2541      2.0880
-Final drift [m]                         3.1978      1.6199      1.3289      2.2505      2.4311
-Drift / distance [%]                     1.171       0.605       0.492       0.831       0.896
+RPE translational RMSE [m/m]            0.0756      0.0658      0.0691      0.0697      0.0696
+RPE rotational RMSE [deg/m]             2.0507      1.7092      1.7981      1.9346      1.7788
+Final drift [m]                         3.1979      1.6207      1.3288      2.2508      2.4315
+Drift / distance [%]                     1.171       0.605       0.492       0.831       0.897
 Distance travelled (GT) [m]             273.16      267.81      270.22      270.75      271.21
 Run duration [s]                         646.4       616.0       642.3       639.5       633.0
 Tracking losses [count]                      0           0           0           0           0
@@ -33,7 +33,7 @@ Pitch std [deg]                          8.957       8.863       8.899       8.9
 Roll std [deg]                           6.127       6.226       6.021       6.023       5.929
 Pitch max abs [deg]                     34.273      33.072      33.939      32.881      34.026
 Vibration RMS [m/s^2]                   1.5976      1.5704      1.8698      1.7362      1.5602
-GT yaw offset removed [deg]                1.1         0.6         0.4         0.6         0.6
+GT yaw offset removed [deg]                1.2         0.6         0.5         0.6         0.6
 Peak |a_z - g| [m/s^2]                172.8890    184.7154    198.7092    154.0777    188.1615
 ----------------------------------------------------------------------------------------------
 
@@ -41,19 +41,19 @@ Tracked  (5 runs)
 ----------------------------------------------------------------------------------------------
 Metric [unit]                            run01       run02       run03       run04       run05
 ----------------------------------------------------------------------------------------------
-ATE translational RMSE [m]              5.1544      3.9429      3.2510      4.2846      3.9016
-ATE translational max [m]               8.3367      6.8062      5.9718      7.3107      7.5807
-ATE rotational RMSE [deg]               10.977      10.549      10.817      11.815      12.693
-ATE rotational max [deg]                27.674      25.360      28.252      30.126      27.562
-ATE trans. RMSE (aligned) [m]           1.2232      0.5734      0.6550      0.5882      0.5075
+ATE translational RMSE [m]              5.1621      3.9520      3.2609      4.2913      3.9101
+ATE translational max [m]               8.3435      6.8127      5.9735      7.3146      7.5880
+ATE rotational RMSE [deg]               10.959      10.532      10.800      11.800      12.680
+ATE rotational max [deg]                24.210      22.492      27.384      27.458      25.851
+ATE trans. RMSE (aligned) [m]           1.2240      0.5738      0.6554      0.5885      0.5077
 ATE optimised graph RMSE [m]            0.1667      0.1779      0.1767      0.1649      0.1642
 ATE optimised graph mean [m]            0.1594      0.1718      0.1707      0.1585      0.1575
 ATE optimised graph max [m]             0.2822      0.3306      0.3579      0.3370      0.3364
 Optimised graph poses [count]              565         565         565         566         567
-RPE translational RMSE [m/m]            0.0760      0.0780      0.0776      0.0766      0.0780
-RPE rotational RMSE [deg/m]             1.9259      1.9271      1.9372      1.8992      1.9124
-Final drift [m]                         4.5494      1.2781      1.4408      1.5986      1.3119
-Drift / distance [%]                     1.703       0.478       0.539       0.598       0.491
+RPE translational RMSE [m/m]            0.0734      0.0755      0.0750      0.0742      0.0753
+RPE rotational RMSE [deg/m]             1.5972      1.6034      1.6056      1.5923      1.5991
+Final drift [m]                         4.5497      1.2791      1.4416      1.5993      1.3126
+Drift / distance [%]                     1.703       0.479       0.540       0.599       0.491
 Distance travelled (GT) [m]             267.12      267.13      267.15      267.16      267.27
 Run duration [s]                         567.6       568.2       568.1       568.4       570.6
 Tracking losses [count]                      0           0           0           0           0
@@ -68,7 +68,7 @@ Pitch std [deg]                          9.041       9.036       9.049       9.0
 Roll std [deg]                           6.138       6.145       6.142       6.141       6.137
 Pitch max abs [deg]                     34.661      34.943      36.517      36.152      35.721
 Vibration RMS [m/s^2]                   4.5272      4.5419      4.4868      4.4641      4.4524
-GT yaw offset removed [deg]                0.1         0.1         0.0         0.1         0.1
+GT yaw offset removed [deg]                0.1         0.1         0.1         0.1         0.1
 Peak |a_z - g| [m/s^2]                317.5963    366.3648    156.9476    123.5277    302.9117
 ----------------------------------------------------------------------------------------------
 
@@ -76,18 +76,18 @@ Rocker–bogie  (5 runs)
 ----------------------------------------------------------------------------------------------
 Metric [unit]                            run01       run02       run03       run04       run05
 ----------------------------------------------------------------------------------------------
-ATE translational RMSE [m]              2.5413      1.8486      2.4983      1.6134      1.5211
-ATE translational max [m]               6.4719      4.6630      6.6720      3.4072      2.6881
-ATE rotational RMSE [deg]                8.539       6.394       8.023       5.997       5.353
-ATE rotational max [deg]                16.476      13.419      15.926      12.710      11.170
-ATE trans. RMSE (aligned) [m]           1.0877      0.9307      1.3191      0.7681      0.7513
+ATE translational RMSE [m]              2.5324      1.8393      2.4925      1.6043      1.5147
+ATE translational max [m]               6.4684      4.6597      6.6694      3.4027      2.6791
+ATE rotational RMSE [deg]                8.508       6.355       7.994       5.956       5.309
+ATE rotational max [deg]                14.859      12.555      14.481      11.538       9.831
+ATE trans. RMSE (aligned) [m]           1.0878      0.9310      1.3195      0.7685      0.7517
 ATE optimised graph RMSE [m]            0.1671      0.1685      0.1674      0.1630      0.1654
 ATE optimised graph mean [m]            0.1558      0.1577      0.1572      0.1529      0.1550
 ATE optimised graph max [m]             0.3078      0.2947      0.2925      0.3025      0.2879
 Optimised graph poses [count]              565         564         565         565         563
-RPE translational RMSE [m/m]            0.0658      0.0655      0.0661      0.0660      0.0664
-RPE rotational RMSE [deg/m]             2.0155      2.0110      1.9924      1.9749      1.9679
-Final drift [m]                         5.3762      3.8812      5.2402      2.7020      2.1363
+RPE translational RMSE [m/m]            0.0624      0.0621      0.0628      0.0625      0.0630
+RPE rotational RMSE [deg/m]             1.7525      1.7545      1.7348      1.7225      1.7143
+Final drift [m]                         5.3763      3.8813      5.2402      2.7022      2.1364
 Drift / distance [%]                     2.020       1.458       1.969       1.015       0.803
 Distance travelled (GT) [m]             266.17      266.19      266.12      266.10      266.10
 Run duration [s]                         575.4       574.4       574.8       574.2       573.0
@@ -103,6 +103,6 @@ Pitch std [deg]                          8.528       8.546       8.542       8.5
 Roll std [deg]                           6.105       6.087       6.096       6.086       6.090
 Pitch max abs [deg]                     30.091      30.064      30.084      30.232      30.204
 Vibration RMS [m/s^2]                   0.8619      0.8515      0.8548      0.8672      0.8540
-GT yaw offset removed [deg]                0.2         0.1         0.2         0.2         0.2
+GT yaw offset removed [deg]                0.2         0.2         0.2         0.2         0.2
 Peak |a_z - g| [m/s^2]                 24.4327     22.3888     25.3869     30.2046     22.5781
 ----------------------------------------------------------------------------------------------

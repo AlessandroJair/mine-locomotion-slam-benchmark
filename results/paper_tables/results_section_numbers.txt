@@ -20,6 +20,10 @@ evaluating /home/alessandro/metrics_VF/fixed_trajectory/swept_lidar/rocker_bogie
 Differential   |a_z|max 154.22  |a_x|max 226.56  pitch [-22.46,  15.65]  roll [ -3.52,  12.48]  |th_dot|max   162.7  |ph_dot|max   122.2  slab 3.56 m  window 24.9 s
 Tracked        |a_z|max 317.60  |a_x|max  67.92  pitch [-22.53,  19.16]  roll [ -3.46,   9.20]  |th_dot|max   256.1  |ph_dot|max   107.7  slab 3.53 m  window 20.7 s
 Rocker–bogie   |a_z|max  24.42  |a_x|max  15.96  pitch [-21.52,  12.46]  roll [ -5.69,   8.58]  |th_dot|max   121.5  |ph_dot|max    65.8  slab 3.52 m  window 22.6 s
+low-pass (10 ms moving average):
+Differential   |a_z|max  31.28  |a_x|max  22.02
+Tracked        |a_z|max  74.25  |a_x|max  22.99
+Rocker–bogie   |a_z|max   9.64  |a_x|max  12.03
 
 === ATTITUDE DISTRIBUTION (all runs, gt_highrate) ===
 robot          signal       median      p25      p75       p1      p99      std
@@ -36,21 +40,72 @@ Rocker–bogie   roll           0.82    -3.07     5.23   -11.92    13.66     6.0
 Rocker–bogie   pitch_rate     0.00    -1.38     1.20   -13.01    14.67     4.72
 Rocker–bogie   roll_rate      0.00    -0.92     0.97    -7.22     6.99     2.49
 
-=== WINDOW SWEEP: mean over runs of r and r|velocity ===
-Differential      50 ms  vib->rot 0.266|0.240  vib->trans 0.122|0.089  agit->rot 0.490|0.508  agit->trans 0.277|0.292  yaw->rot 0.370|0.346  yaw->trans 0.186|0.152
-Differential     100 ms  vib->rot 0.289|0.263  vib->trans 0.137|0.104  agit->rot 0.498|0.515  agit->trans 0.286|0.301  yaw->rot 0.382|0.357  yaw->trans 0.195|0.159
-Differential     200 ms  vib->rot 0.320|0.292  vib->trans 0.158|0.121  agit->rot 0.522|0.539  agit->trans 0.301|0.315  yaw->rot 0.395|0.367  yaw->trans 0.202|0.162
-Differential     500 ms  vib->rot 0.353|0.315  vib->trans 0.192|0.146  agit->rot 0.552|0.570  agit->trans 0.329|0.340  yaw->rot 0.430|0.391  yaw->trans 0.225|0.171
-Differential    1000 ms  vib->rot 0.378|0.318  vib->trans 0.218|0.154  agit->rot 0.560|0.578  agit->trans 0.364|0.370  yaw->rot 0.432|0.366  yaw->trans 0.245|0.169
-Tracked           50 ms  vib->rot 0.139|0.131  vib->trans 0.240|0.224  agit->rot 0.586|0.599  agit->trans 0.457|0.486  yaw->rot 0.323|0.337  yaw->trans 0.257|0.185
-Tracked          100 ms  vib->rot 0.156|0.147  vib->trans 0.268|0.249  agit->rot 0.614|0.631  agit->trans 0.467|0.502  yaw->rot 0.334|0.351  yaw->trans 0.262|0.192
-Tracked          200 ms  vib->rot 0.174|0.163  vib->trans 0.287|0.266  agit->rot 0.648|0.670  agit->trans 0.480|0.520  yaw->rot 0.346|0.359  yaw->trans 0.265|0.191
-Tracked          500 ms  vib->rot 0.194|0.175  vib->trans 0.311|0.287  agit->rot 0.678|0.705  agit->trans 0.513|0.552  yaw->rot 0.380|0.367  yaw->trans 0.274|0.185
-Tracked         1000 ms  vib->rot 0.236|0.202  vib->trans 0.343|0.313  agit->rot 0.697|0.720  agit->trans 0.571|0.592  yaw->rot 0.410|0.345  yaw->trans 0.297|0.186
-Rocker–bogie      50 ms  vib->rot 0.226|0.224  vib->trans 0.187|0.184  agit->rot 0.535|0.546  agit->trans 0.430|0.432  yaw->rot 0.256|0.211  yaw->trans 0.110|0.081
-Rocker–bogie     100 ms  vib->rot 0.271|0.268  vib->trans 0.227|0.224  agit->rot 0.543|0.555  agit->trans 0.444|0.447  yaw->rot 0.261|0.213  yaw->trans 0.113|0.081
-Rocker–bogie     200 ms  vib->rot 0.321|0.319  vib->trans 0.271|0.268  agit->rot 0.559|0.571  agit->trans 0.457|0.460  yaw->rot 0.276|0.225  yaw->trans 0.118|0.084
-Rocker–bogie     500 ms  vib->rot 0.395|0.389  vib->trans 0.328|0.322  agit->rot 0.594|0.610  agit->trans 0.486|0.489  yaw->rot 0.311|0.248  yaw->trans 0.127|0.085
-Rocker–bogie    1000 ms  vib->rot 0.454|0.447  vib->trans 0.377|0.368  agit->rot 0.624|0.644  agit->trans 0.522|0.525  yaw->rot 0.336|0.243  yaw->trans 0.149|0.092
+=== WINDOW SWEEP (sweeps per window, matched response): mean over runs of r and r|velocity ===
+Differential    1 sw  vib->rot 0.367|0.378  vib->trans 0.319|0.329  agit->rot 0.550|0.551  agit->trans 0.360|0.361  yaw->rot 0.316|0.327  yaw->trans 0.327|0.338
+Differential    2 sw  vib->rot 0.426|0.440  vib->trans 0.373|0.385  agit->rot 0.628|0.628  agit->trans 0.421|0.421  yaw->rot 0.366|0.381  yaw->trans 0.403|0.418
+Differential    5 sw  vib->rot 0.487|0.506  vib->trans 0.408|0.422  agit->rot 0.683|0.684  agit->trans 0.471|0.472  yaw->rot 0.366|0.386  yaw->trans 0.419|0.438
+Differential   10 sw  vib->rot 0.519|0.538  vib->trans 0.432|0.442  agit->rot 0.711|0.712  agit->trans 0.488|0.489  yaw->rot 0.333|0.346  yaw->trans 0.382|0.390
+Differential   22 sw  vib->rot 0.527|0.542  vib->trans 0.423|0.420  agit->rot 0.734|0.732  agit->trans 0.530|0.526  yaw->rot 0.299|0.283  yaw->trans 0.360|0.345
+Tracked         1 sw  vib->rot 0.317|0.346  vib->trans 0.313|0.340  agit->rot 0.674|0.658  agit->trans 0.571|0.552  yaw->rot 0.181|0.084  yaw->trans 0.175|0.087
+Tracked         2 sw  vib->rot 0.375|0.410  vib->trans 0.370|0.402  agit->rot 0.762|0.748  agit->trans 0.649|0.629  yaw->rot 0.199|0.076  yaw->trans 0.193|0.081
+Tracked         5 sw  vib->rot 0.421|0.458  vib->trans 0.422|0.456  agit->rot 0.806|0.794  agit->trans 0.730|0.713  yaw->rot 0.217|0.076  yaw->trans 0.211|0.079
+Tracked        10 sw  vib->rot 0.471|0.504  vib->trans 0.467|0.498  agit->rot 0.822|0.813  agit->trans 0.769|0.758  yaw->rot 0.237|0.120  yaw->trans 0.239|0.130
+Tracked        22 sw  vib->rot 0.576|0.585  vib->trans 0.564|0.572  agit->rot 0.827|0.818  agit->trans 0.791|0.780  yaw->rot 0.292|0.169  yaw->trans 0.292|0.185
+Rocker–bogie    1 sw  vib->rot 0.379|0.378  vib->trans 0.339|0.337  agit->rot 0.577|0.579  agit->trans 0.336|0.339  yaw->rot 0.169|0.161  yaw->trans 0.128|0.112
+Rocker–bogie    2 sw  vib->rot 0.474|0.472  vib->trans 0.436|0.434  agit->rot 0.648|0.650  agit->trans 0.418|0.421  yaw->rot 0.182|0.171  yaw->trans 0.166|0.146
+Rocker–bogie    5 sw  vib->rot 0.585|0.585  vib->trans 0.543|0.543  agit->rot 0.715|0.717  agit->trans 0.515|0.518  yaw->rot 0.191|0.177  yaw->trans 0.219|0.192
+Rocker–bogie   10 sw  vib->rot 0.667|0.667  vib->trans 0.620|0.622  agit->rot 0.762|0.765  agit->trans 0.564|0.569  yaw->rot 0.180|0.163  yaw->trans 0.200|0.156
+Rocker–bogie   22 sw  vib->rot 0.715|0.712  vib->trans 0.664|0.663  agit->rot 0.804|0.804  agit->trans 0.608|0.610  yaw->rot 0.110|0.041  yaw->trans 0.158|0.039
+
+=== LATENCY and SENSITIVITY (one sweep per window) ===
+tau: GT delay minimising the 1 m translational RPE, per run.  noshift: same correlation with tau = 0.
+Differential   tau 90 100 130 120 100 ms (mean 108)   noshift agit->rot 0.520  agit->trans 0.298   per-sweep rot RMS 0.595 -> 0.259 deg
+Tracked        tau 70 70 70 60 60 ms (mean 66)   noshift agit->rot 0.677  agit->trans 0.485   per-sweep rot RMS 0.659 -> 0.441 deg
+Rocker–bogie   tau 150 130 150 140 160 ms (mean 146)   noshift agit->rot 0.498  agit->trans 0.323   per-sweep rot RMS 0.427 -> 0.181 deg
+
+=== RPE PAIRING: row-by-row (held odometry) vs per estimate (tables); means over runs ===
+Differential   RPE trans 0.0734 -> 0.0700 m/m (-4.6%)   rot 2.186 -> 1.854 deg/m (-15.2%)   ATE max |change| over runs 0.23%
+Tracked        RPE trans 0.0772 -> 0.0747 m/m (-3.3%)   rot 1.920 -> 1.600 deg/m (-16.7%)   ATE max |change| over runs 0.31%
+Rocker–bogie   RPE trans 0.0660 -> 0.0626 m/m (-5.2%)   rot 1.992 -> 1.736 deg/m (-12.9%)   ATE max |change| over runs 0.57%
+
+=== LATENCY-CORRECTED RPE (GT delayed by tau per run; sensitivity only) ===
+Differential   RPE trans 0.0677 m/m (-3.3% vs table)   rot 1.228 deg/m (-33.8%)
+Tracked        RPE trans 0.0741 m/m (-0.8% vs table)   rot 1.137 deg/m (-28.9%)
+Rocker–bogie   RPE trans 0.0602 m/m (-3.8% vs table)   rot 1.093 deg/m (-37.0%)
+  ranking trans table : Rocker–bogie < Differential < Tracked
+  ranking trans tau   : Rocker–bogie < Differential < Tracked
+  ranking rot   table : Tracked < Rocker–bogie < Differential
+  ranking rot   tau   : Rocker–bogie < Tracked < Differential
+
+=== ESTIMATE HEADING OFFSET and start-aligned ATE by correction ===
+Differential   est offset 0.76..1.41 deg   |ATE gt-offset - own| max 0.055 m   |ATE uncorrected - own| max 0.247 m (5.7%)
+Tracked        est offset 0.29..0.34 deg   |ATE gt-offset - own| max 0.032 m   |ATE uncorrected - own| max 0.048 m (1.5%)
+Rocker–bogie   est offset 0.49..0.53 deg   |ATE gt-offset - own| max 0.026 m   |ATE uncorrected - own| max 0.035 m (2.1%)
+  ranking ate_own         : Rocker–bogie < Tracked < Differential
+  ranking ate_gt_offset   : Rocker–bogie < Tracked < Differential
+  ranking ate_uncorrected : Rocker–bogie < Tracked < Differential
+
+=== PROXIMITY DETECTIONS with known node gap: lap split at first return within 3 m of start after 50 m ===
+Differential   lap at 132.4..135.3 m   lap1 share 36.6..38.4%   lap1 gap median 12.7..13.2 m   gap median 12.5..13.0 m   <=1 m 16.8..19.4%   in (1,5] m 0
+Tracked        lap at 132.2..132.3 m   lap1 share 34.1..35.4%   lap1 gap median 14.1..14.2 m   gap median 13.8..13.9 m   <=1 m 20.7..21.6%   in (1,5] m 0
+Rocker–bogie   lap at 131.7..131.7 m   lap1 share 35.0..35.4%   lap1 gap median 14.1..14.3 m   gap median 13.8..13.9 m   <=1 m 20.4..21.3%   in (1,5] m 0
+
+=== YAW AGITATION without the commanded turn, sigma(psi - int omega_cmd), one sweep; means over runs ===
+Differential   rot: r 0.119 (raw sigma_psi 0.316)  r|attitude 0.055 (raw 0.217)   trans: r 0.087 (raw 0.327)
+Tracked        rot: r 0.126 (raw sigma_psi 0.181)  r|attitude 0.054 (raw 0.091)   trans: r 0.097 (raw 0.175)
+Rocker–bogie   rot: r 0.147 (raw sigma_psi 0.169)  r|attitude 0.054 (raw 0.078)   trans: r 0.160 (raw 0.128)
+
+=== VIBRATION RMS: 1 kHz derivative (tables) vs 10 ms moving average; means over runs ===
+Differential   1.667 -> 0.996 m/s^2
+Tracked        4.494 -> 3.235 m/s^2
+Rocker–bogie   0.858 -> 0.626 m/s^2
+
+=== WHEEL CONTACT (contact sensors, 50 Hz rows, after warm-up) ===
+Rocker–bogie   all 6 wheels in contact 98.65..99.05% of the time   least-contact wheel 99.38..99.51%
+
+=== AUTOCORRELATION of per-sweep series at the bootstrap block lag (max over runs) ===
+Differential   block 50 sweeps   attitude_agitation_rad 0.059  sweep_rot_deg 0.077  sweep_trans_m 0.066
+Tracked        block 50 sweeps   attitude_agitation_rad 0.024  sweep_rot_deg 0.095  sweep_trans_m 0.062
+Rocker–bogie   block 50 sweeps   attitude_agitation_rad 0.029  sweep_rot_deg 0.112  sweep_trans_m 0.095
 
 written to /home/alessandro/metrics_VF/fixed_trajectory/swept_lidar/paper_tables

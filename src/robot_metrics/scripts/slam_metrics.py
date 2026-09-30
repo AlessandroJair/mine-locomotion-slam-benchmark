@@ -259,21 +259,24 @@ def rpe(T_est, T_gt, delta_m=1.0):
     if n < 2 or s[-1] < delta_m:
         return np.array([]), np.array([]), 0
 
-    # For each i, the first j with s[j] - s[i] >= delta_m.
+    # For each i, the first j with s[j] - s[i] >= delta_m.  s does not
+    # decrease, so the i that have a partner are a prefix.
     j_of = np.searchsorted(s, s + delta_m, side='left')
-    pairs = [(i, j) for i, j in enumerate(j_of) if j < n]
-    if not pairs:
+    i = np.flatnonzero(j_of < n)
+    if not i.size:
         return np.array([]), np.array([]), 0
+    trans, rot = relative_error(T_est[i], T_est[j_of[i]], T_gt[i], T_gt[j_of[i]])
+    return trans, rot, len(i)
 
-    trans = np.empty(len(pairs))
-    rot = np.empty(len(pairs))
-    for k, (i, j) in enumerate(pairs):
-        gt_rel = np.linalg.inv(T_gt[i]) @ T_gt[j]
-        est_rel = np.linalg.inv(T_est[i]) @ T_est[j]
-        err = np.linalg.inv(gt_rel) @ est_rel
-        trans[k] = np.linalg.norm(err[:3, 3])
-        rot[k] = rot_to_angle(err[:3, :3])
-    return trans, rot, len(pairs)
+
+def relative_error(E_i, E_j, G_i, G_j):
+    """Residual of the relative motion i->j, estimate against ground truth,
+    for stacks of poses.  Returns (translation [m], rotation angle [rad])."""
+    inv = np.linalg.inv
+    err = inv(inv(G_i) @ G_j) @ (inv(E_i) @ E_j)
+    tr = np.einsum('nii->n', err[:, :3, :3])
+    return (np.linalg.norm(err[:, :3, 3], axis=1),
+            np.arccos(np.clip((tr - 1.0) / 2.0, -1.0, 1.0)))
 
 
 def rmse(a):
@@ -295,11 +298,138 @@ def summarize(trans, rot, prefix):
     return out
 
 
-def evaluate(df, rpe_delta_m=1.0):
+def _pair_at_estimates(df, hr, col, tau=0.0):
+    """Una muestra por estimacion de odometria, con la verdad-terreno en SU
+    instante.
+
+    POR QUE.  metrics.csv va a 50 Hz y la odometria llega a 10 Hz, asi que
+    cada estimacion se repite ~5 filas mientras la verdad-terreno de esas filas
+    sigue avanzando.  Emparejar fila a fila cuenta como error lo que es solo
+    una estimacion que aun no se ha actualizado (hasta v * 100 ms).  Medido en
+    la campaña de swept_lidar: el RPE salia ~4 % mas alto en traslacion y
+    ~15 % en rotacion, igual en las tres plataformas.
+
+    Se toma la fila en que aparece cada estimacion nueva y la verdad-terreno
+    de gt_highrate (1 kHz) interpolada en ese instante.  Queda sin corregir la
+    latencia entre el barrido y la recepcion de su odometria: el logger no
+    guarda el stamp de cabecera, solo la hora de llegada.
+
+    Con `tau` la verdad-terreno se toma `tau` segundos ANTES de la llegada de
+    cada estimacion: la latencia supuesta entre el barrido y su odometria.
+
+    Devuelve (indices de fila, T_est, T_gt) de las estimaciones.
+    """
+    o = np.column_stack([df['odom_x'].values, df['odom_y'].values,
+                         df['odom_z'].values, col('odom_yaw')])
+    idx = np.flatnonzero(np.r_[True, np.any(np.diff(o, axis=0) != 0, axis=1)])
+    t = df['timestamp'].values[idx] - tau
+    th = hr['timestamp'].values
+    order = np.argsort(th)
+    th = th[order]
+
+    def g(k, ang=False):
+        v = hr[k].values[order]
+        return np.interp(t, th, np.unwrap(v) if ang else v)
+
+    T_gt = poses_from_rpy(g('gt_x'), g('gt_y'), g('gt_z'), g('gt_roll', True),
+                          g('gt_pitch', True), g('gt_yaw', True))
+    T_est = poses_from_rpy(df['odom_x'].values[idx], df['odom_y'].values[idx],
+                           df['odom_z'].values[idx], col('odom_roll')[idx],
+                           col('odom_pitch')[idx], col('odom_yaw')[idx])
+    return idx, T_est, T_gt
+
+
+def _body(T):
+    return correct_body_frame(T, heading_offset(T))
+
+
+LATENCY_GRID_S = np.arange(0.0, 0.2501, 0.01)
+
+
+def estimate_latency(df, hr, delta_m=1.0):
+    """Retardo de la verdad-terreno que minimiza el RPE traslacional.
+
+    El logger no guarda el stamp de cabecera de la odometria, solo su hora
+    de llegada, y entre el barrido y la llegada pasan el ensamblado y el ICP.
+    Sobre 1 m ese retardo pesa poco; sobre un barrido es mas de la mitad del
+    error (medido: RMS rotacional por barrido 0.60 -> 0.25 deg en el
+    diferencial al retrasar 108 ms).  Se estima por corrida en una rejilla de
+    10 ms; en la campana swept_lidar sale 66-146 ms segun la plataforma.
+    """
+    best = (np.inf, 0.0)
+    for tau in LATENCY_GRID_S:
+        best = min(best, (rpe_at_delay(df, hr, tau, delta_m)[0], float(tau)))
+    return best[1]
+
+
+def _colfn(df):
+    return lambda name, default=0.0: (df[name].values if name in df.columns
+                                      else np.full(len(df), default))
+
+
+def rpe_at_delay(df, hr, tau, delta_m=1.0):
+    """(RMSE trans [m/m], RMSE rot [rad/m]) del RPE por estimacion con la
+    verdad-terreno retrasada `tau`.  tau = 0 es el RPE de las tablas."""
+    _, Te, Tg = _pair_at_estimates(df, hr, _colfn(df), tau)
+    tr, ro, _ = rpe(_body(Te), _body(Tg), delta_m)
+    return rmse(tr), rmse(ro)
+
+
+def ate_offset_sensitivity(df, hr):
+    """ATE alineado al inicio (RMSE, m) segun que correccion de rumbo reciba
+    la ESTIMACION: la suya propia (la de las tablas), la de la verdad-terreno,
+    o ninguna.  Critica de revision: si el delta de la estimacion absorbiera
+    el sesgo de rumbo que domina el ATE, las tres diferirian mucho."""
+    _, Te, Tg = _pair_at_estimates(df, hr, _colfn(df))
+    d_gt, d_est = heading_offset(Tg), heading_offset(Te)
+    G = correct_body_frame(Tg, d_gt)
+
+    def ate_of(E):
+        return rmse(ate(align_origin(E, G), G)[0])
+    return {'est_offset_deg': float(np.degrees(d_est)),
+            'ate_own': ate_of(correct_body_frame(Te, d_est)),
+            'ate_gt_offset': ate_of(correct_body_frame(Te, d_gt)),
+            'ate_uncorrected': ate_of(Te)}
+
+
+def sweep_increments(df, hr, col, tau):
+    """Error de cada barrido: el incremento entre dos estimaciones seguidas
+    contra el de la verdad-terreno retrasada `tau`.
+
+    Es la respuesta de la correlacion por ventanas.  La anterior, el RPE del
+    metro SIGUIENTE, mira ~2 s (unos 22 barridos) hacia delante desde una
+    ventana de 100 ms: predictor y respuesta no cubrian el mismo intervalo
+    (critica de revision).  Aqui el intervalo es el mismo: el barrido que
+    produjo la estimacion k+1 ocupa, en la verdad-terreno retrasada, el
+    intervalo [t_k, t_k+1).
+
+    Devuelve dict de arrays por barrido: t0, t1 (hora de la verdad-terreno,
+    ya retrasada), trans [m], rot [deg], speed [m/s], y el ATE (alineado al
+    inicio) al final de cada barrido, para el crecimiento del ATE.
+    """
+    idx, Te, Tg = _pair_at_estimates(df, hr, col, tau)
+    Te, Tg = _body(Te), _body(Tg)
+    t = df['timestamp'].values[idx] - tau
+    tr, ro = relative_error(Te[:-1], Te[1:], Tg[:-1], Tg[1:])
+    dt = np.diff(t)
+    ate_t, ate_r = ate(align_origin(Te, Tg), Tg)
+    return {'t0': t[:-1], 't1': t[1:], 'trans': tr, 'rot': np.degrees(ro),
+            'speed': np.linalg.norm(np.diff(Tg[:, :3, 3], axis=0), axis=1)
+            / np.where(dt > 0, dt, np.nan),
+            'ate': ate_t[1:], 'ate_prev': ate_t[:-1],
+            'ate_rot': np.degrees(ate_r[1:])}
+
+
+def evaluate(df, rpe_delta_m=1.0, hr=None):
     """Full trajectory evaluation for one run.
 
     `df` must carry gt_x/gt_y/gt_z, gt_roll/gt_pitch/gt_yaw and the matching
     odom_* columns (already unit-stripped by metrics_io.load_metrics).
+
+    With `hr` (gt_highrate) the errors are computed once per odometry estimate
+    against the interpolated ground truth (_pair_at_estimates) and the
+    per-sample series are held over the 50 Hz rows while each estimate is in
+    force.  Without it, rows are paired as logged.
     """
     need = ['gt_x', 'gt_y', 'gt_z', 'odom_x', 'odom_y', 'odom_z']
     if any(c not in df.columns for c in need) or len(df) < 10:
@@ -309,12 +439,19 @@ def evaluate(df, rpe_delta_m=1.0):
         return (df[name].values if name in df.columns
                 else np.full(len(df), default))
 
-    T_gt = poses_from_rpy(df['gt_x'].values, df['gt_y'].values,
-                          df['gt_z'].values, col('gt_roll'),
-                          col('gt_pitch'), col('gt_yaw'))
-    T_est = poses_from_rpy(df['odom_x'].values, df['odom_y'].values,
-                           df['odom_z'].values, col('odom_roll'),
-                           col('odom_pitch'), col('odom_yaw'))
+    T_gt_rows = poses_from_rpy(df['gt_x'].values, df['gt_y'].values,
+                               df['gt_z'].values, col('gt_roll'),
+                               col('gt_pitch'), col('gt_yaw'))
+    if hr is not None:
+        idx, T_est, T_gt = _pair_at_estimates(df, hr, col)
+        # fila -> estimacion vigente en esa fila
+        held = np.searchsorted(idx, np.arange(len(df)), side='right') - 1
+    else:
+        T_gt = T_gt_rows
+        T_est = poses_from_rpy(df['odom_x'].values, df['odom_y'].values,
+                               df['odom_z'].values, col('odom_roll'),
+                               col('odom_pitch'), col('odom_yaw'))
+        held = np.arange(len(df))
 
     # A platform whose base_link does not face the way it drives logs a yaw that
     # is a constant angle from its direction of travel, and align_origin, rpe
@@ -333,8 +470,8 @@ def evaluate(df, rpe_delta_m=1.0):
     T_org = align_origin(T_est, T_gt)
     tr, ro = ate(T_org, T_gt)
     res.update(summarize(tr, ro, 'ate_origin'))
-    res['ate_trans_series'] = tr
-    res['ate_rot_series'] = ro
+    res['ate_trans_series'] = tr[held]
+    res['ate_rot_series'] = ro[held]
 
     T_um = align_umeyama(T_est, T_gt)
     tr_u, ro_u = ate(T_um, T_gt)
@@ -352,12 +489,14 @@ def evaluate(df, rpe_delta_m=1.0):
     # deja en NaN, no en cero: un cero se promediaria como si fuese un acierto.
     serie_rot = np.full(len(T_gt), np.nan)
     serie_rot[:len(rr)] = np.degrees(rr)
-    res['rpe_rot_series'] = serie_rot
+    res['rpe_rot_series'] = serie_rot[held]
     serie_tr = np.full(len(T_gt), np.nan)
     serie_tr[:len(rt)] = rt
-    res['rpe_trans_series'] = serie_tr
+    res['rpe_trans_series'] = serie_tr[held]
 
-    dist = _cumulative_distance(T_gt)
+    # Distancia de la verdad-terreno fila a fila (50 Hz), que no depende del
+    # emparejamiento; el drift final, de la ultima estimacion.
+    dist = _cumulative_distance(T_gt_rows)
     res['gt_distance_m'] = float(dist[-1])
     res['distance_series'] = dist
     res['final_drift_m'] = float(np.linalg.norm(
@@ -366,6 +505,13 @@ def evaluate(df, rpe_delta_m=1.0):
     # can be compared against other papers.
     res['drift_pct_of_distance'] = (
         100.0 * res['final_drift_m'] / dist[-1] if dist[-1] > 0 else float('nan'))
+
+    # Error por barrido para la correlacion por ventanas, con la latencia
+    # estimada y, como sensibilidad, sin ella.
+    if hr is not None:
+        res['latency_s'] = estimate_latency(df, hr, rpe_delta_m)
+        res['sweeps'] = sweep_increments(df, hr, col, res['latency_s'])
+        res['sweeps_noshift'] = sweep_increments(df, hr, col, 0.0)
 
     return res
 
@@ -408,12 +554,18 @@ def partial_correlation(x, y, z):
     return float((r_xy - r_xz * r_yz) / den), n
 
 
-def bootstrap_ci(x, y, n_boot=2000, alpha=0.05, seed=0):
+def bootstrap_ci(x, y, n_boot=2000, alpha=0.05, seed=0, block=1):
     """Percentile bootstrap CI for Pearson r.
 
     Used instead of an analytic p-value so that no scipy dependency is needed;
     it also makes no normality assumption, which windowed IMU statistics
     certainly do not satisfy.
+
+    `block` > 1 gives a moving-block bootstrap: consecutive windows are
+    autocorrelated (the terrain changes over metres, not over one sweep), and
+    resampling them one by one treats them as independent and makes the
+    interval too narrow.  Measured on the 1 m RPE response: iid +-0.04,
+    5 s blocks +-0.09.
     """
     x = np.asarray(x, dtype=float)
     y = np.asarray(y, dtype=float)
@@ -422,10 +574,13 @@ def bootstrap_ci(x, y, n_boot=2000, alpha=0.05, seed=0):
     n = len(x)
     if n < 5:
         return float('nan'), float('nan')
+    block = int(min(max(block, 1), n))
+    k = -(-n // block)
     rng = np.random.default_rng(seed)
     rs = np.empty(n_boot)
     for b in range(n_boot):
-        idx = rng.integers(0, n, n)
+        s = rng.integers(0, n - block + 1, k)
+        idx = (s[:, None] + np.arange(block)).ravel()[:n]
         xs, ys = x[idx], y[idx]
         if np.std(xs) == 0 or np.std(ys) == 0:
             rs[b] = np.nan
@@ -582,16 +737,105 @@ def stability_error_correlation(df, ate_trans, window_s=None, hr=None,
 
     if len(rows) < 5:
         return None
+    out = _correlate(rows, ('ate_mean_m', 'ate_growth_m', 'ate_rot_mean_deg',
+                            'rpe_rot_mean_deg_m', 'rpe_trans_mean_m_m'), con_ci)
+    out['window_s'] = window_s
+    return out
 
+
+BLOCK_S = 5.0
+
+
+def sweep_error_correlation(sw, hr, group=1, con_ci=True, cmd=None):
+    """Agitacion contra el error de los MISMOS barridos (sweep_increments).
+
+    Cada ventana son `group` barridos consecutivos: los predictores salen de
+    gt_highrate sobre [t0 del primero, t1 del ultimo) y la respuesta es la
+    SUMA del error de esos barridos, asi que predictor y respuesta cubren
+    siempre el mismo intervalo.  Con group > 1 la r sube, pero eso es lo que
+    se espera al promediar el ruido de registro de cada barrido, que no
+    depende de la agitacion; no demuestra por si solo un efecto acumulativo.
+
+    Barridos de menos de 50 ms o mas de 200 ms (huecos de la odometria) o con
+    menos de 20 muestras de verdad-terreno se descartan, y un grupo no cruza
+    un barrido descartado.
+
+    `cmd` = (t, omega_cmd) de metrics.csv: con el, la agitacion de guinada se
+    da tambien sin el giro MANDADO, sigma(psi - integral de omega_cmd)
+    (critica de revision: sigma_psi incluye las curvas de la ruta).
+    """
+    t0, t1 = sw['t0'], sw['t1']
+    dt = t1 - t0
+    th = hr['timestamp'].values
+    o = np.argsort(th)
+    th = th[o]
+    p = np.unwrap(hr['gt_pitch'].values[o])
+    r = np.unwrap(hr['gt_roll'].values[o])
+    y = np.unwrap(hr['gt_yaw'].values[o])
+    if cmd is not None:
+        w = np.interp(th, cmd[0], cmd[1])
+        yr = y - np.r_[0.0, np.cumsum(0.5 * (w[1:] + w[:-1]) * np.diff(th))]
+    else:
+        yr = np.full_like(y, np.nan)
+    a2 = vibration_magnitude(hr, 'gt_highrate.csv')[o] ** 2
+    fin = np.isfinite(a2)
+    csum = {k: np.r_[0.0, np.cumsum(v)] for k, v in (
+        ('p', p), ('p2', p * p), ('r', r), ('r2', r * r), ('y', y),
+        ('y2', y * y), ('yr', yr), ('yr2', yr * yr),
+        ('a2', np.where(fin, a2, 0.0)), ('na', fin * 1.0))}
+    i_of = np.searchsorted(th, t0)
+    j_of = np.searchsorted(th, t1)
+    ok = (dt > 0.05) & (dt < 0.2) & (j_of - i_of > 20)
+
+    # grupos de `group` barridos validos y contiguos
+    runs = np.split(np.arange(len(ok)), np.flatnonzero(np.diff(ok * 1)) + 1)
+    grupos = [g[k:k + group] for g in runs if ok[g[0]]
+              for k in range(0, len(g) - group + 1, group)]
+    rows = []
+    for g in grupos:
+        i, j = i_of[g[0]], j_of[g[-1]]
+        n = j - i
+
+        def std(k):
+            m = (csum[k][j] - csum[k][i]) / n
+            return math.sqrt(max((csum[k + '2'][j] - csum[k + '2'][i]) / n - m * m, 0.0))
+        na = csum['na'][j] - csum['na'][i]
+        rows.append({
+            'window_start_s': float(t0[g[0]]),
+            'attitude_agitation_rad': math.hypot(std('p'), std('r')),
+            'yaw_agitation_rad': std('y'),
+            'yaw_resid_agitation_rad': std('yr'),
+            'vibration_rms_m_s2': (math.sqrt((csum['a2'][j] - csum['a2'][i]) / na)
+                                   if na else float('nan')),
+            'sweep_rot_deg': float(sw['rot'][g].sum()),
+            'sweep_trans_m': float(sw['trans'][g].sum()),
+            'ate_mean_m': float(sw['ate'][g].mean()),
+            'ate_growth_m': float(sw['ate'][g[-1]] - sw['ate_prev'][g[0]]),
+            'ate_rot_mean_deg': float(sw['ate_rot'][g].mean()),
+            'speed_mean_m_s': float(np.nanmean(sw['speed'][g])),
+        })
+    if len(rows) < 5:
+        return None
+    win = float(np.median(dt[ok])) * group
+    out = _correlate(rows, ('ate_mean_m', 'ate_growth_m', 'ate_rot_mean_deg',
+                            'sweep_rot_deg', 'sweep_trans_m'), con_ci,
+                     block=max(1, int(round(BLOCK_S / win))))
+    out.update(window_s=win, group=group, per_sweep=True)
+    return out
+
+
+def _correlate(rows, responses, con_ci, block=1):
+    """r, r|velocidad, r|otra agitacion y su IC para cada par
+    predictor/respuesta de las ventanas `rows`."""
     def colof(key):
-        return np.array([r[key] for r in rows])
+        return np.array([r.get(key, np.nan) for r in rows], dtype=float)
 
-    out = {'windows': rows, 'window_s': window_s, 'n_windows': len(rows)}
+    out = {'windows': rows, 'n_windows': len(rows), 'block': block}
     vel_w = colof('speed_mean_m_s')
     for pred in ('pitch_std_rad', 'roll_std_rad', 'attitude_agitation_rad',
-                 'yaw_agitation_rad', 'vibration_rms_m_s2'):
-        for resp in ('ate_mean_m', 'ate_growth_m', 'ate_rot_mean_deg',
-                     'rpe_rot_mean_deg_m', 'rpe_trans_mean_m_m'):
+                 'yaw_agitation_rad', 'yaw_resid_agitation_rad',
+                 'vibration_rms_m_s2'):
+        for resp in responses:
             r, n_used = pearson(colof(pred), colof(resp))
             out['r_{}__{}'.format(pred, resp)] = r
             out['n_{}__{}'.format(pred, resp)] = n_used
@@ -602,13 +846,14 @@ def stability_error_correlation(df, ate_trans, window_s=None, hr=None,
             # agitacion explica del RPE que la otra no explica ya.  Es la
             # prueba de si la guinada DOMINA, no solo de si correlaciona.
             otra = {'yaw_agitation_rad': 'attitude_agitation_rad',
+                    'yaw_resid_agitation_rad': 'attitude_agitation_rad',
                     'attitude_agitation_rad': 'yaw_agitation_rad'}.get(pred)
             if otra:
                 out['pa_{}__{}'.format(pred, resp)], _ = partial_correlation(
                     colof(pred), colof(resp), colof(otra))
             # El bootstrap es lo caro; el barrido de ventanas lo apaga.
             if con_ci:
-                lo, hi = bootstrap_ci(colof(pred), colof(resp))
+                lo, hi = bootstrap_ci(colof(pred), colof(resp), block=block)
             else:
                 lo = hi = float('nan')
             out['ci_{}__{}'.format(pred, resp)] = (lo, hi)
