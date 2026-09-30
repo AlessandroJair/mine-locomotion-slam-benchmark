@@ -251,9 +251,9 @@ cmd_topic() {
 # come out with the same label.
 display_name() {
   case "$1" in
-    differential) echo "Husky" ;;
+    differential) echo "Differential" ;;
     tracked)      echo "Tracked" ;;
-    rocker_bogie) echo "Rocker-bogie" ;;
+    rocker_bogie) echo "Rocker–bogie" ;;
     *)            echo "$1" ;;
   esac
 }

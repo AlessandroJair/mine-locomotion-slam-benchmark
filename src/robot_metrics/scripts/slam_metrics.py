@@ -506,6 +506,8 @@ def stability_error_correlation(df, ate_trans, window_s=None, hr=None,
     # Actitud de la verdad-terreno: ver la nota de VIBRACION mas abajo.
     pitch = (df['gt_pitch'] if 'gt_pitch' in df.columns else df['pitch']).values[:n]
     roll = (df['gt_roll'] if 'gt_roll' in df.columns else df['roll']).values[:n]
+    yaw = np.unwrap((df['gt_yaw'] if 'gt_yaw' in df.columns
+                     else df['yaw']).values[:n])
 
     # VIBRACION.  La misma definicion que las tablas y que las figuras, porque
     # sale de la misma funcion: metrics_io.vibration_magnitude, o sea |gt_a|.
@@ -552,10 +554,11 @@ def stability_error_correlation(df, ate_trans, window_s=None, hr=None,
         if hr_win:
             if clave not in hr_win:
                 continue
-            agit, vib, _n = hr_win[clave]
+            agit, vib, _n, yaw_std = hr_win[clave]
             p_std = r_std = float('nan')
         else:
             p_std, r_std = float(np.std(p)), float(np.std(r))
+            yaw_std = float(np.std(yaw[m]))
             agit = float(np.hypot(p_std, r_std))
             v = vib_muestra[m]
             v = v[np.isfinite(v)]
@@ -566,6 +569,7 @@ def stability_error_correlation(df, ate_trans, window_s=None, hr=None,
             'roll_std_rad': r_std,
             'vibration_rms_m_s2': vib,
             'attitude_agitation_rad': agit,
+            'yaw_agitation_rad': yaw_std,
             'pitch_rate_rms_rad_s': float(np.sqrt(np.mean(
                 (np.diff(p) / window_s * m.sum()) ** 2))) if m.sum() > 1 else 0.0,
             'ate_mean_m': float(np.mean(e)),
@@ -585,7 +589,7 @@ def stability_error_correlation(df, ate_trans, window_s=None, hr=None,
     out = {'windows': rows, 'window_s': window_s, 'n_windows': len(rows)}
     vel_w = colof('speed_mean_m_s')
     for pred in ('pitch_std_rad', 'roll_std_rad', 'attitude_agitation_rad',
-                 'vibration_rms_m_s2'):
+                 'yaw_agitation_rad', 'vibration_rms_m_s2'):
         for resp in ('ate_mean_m', 'ate_growth_m', 'ate_rot_mean_deg',
                      'rpe_rot_mean_deg_m', 'rpe_trans_mean_m_m'):
             r, n_used = pearson(colof(pred), colof(resp))
@@ -594,6 +598,14 @@ def stability_error_correlation(df, ate_trans, window_s=None, hr=None,
             # La misma r con la velocidad descontada de ambos lados.
             pr, _ = partial_correlation(colof(pred), colof(resp), vel_w)
             out['pr_{}__{}'.format(pred, resp)] = pr
+            # Guinada con la actitud descontada, y al reves: lo que cada
+            # agitacion explica del RPE que la otra no explica ya.  Es la
+            # prueba de si la guinada DOMINA, no solo de si correlaciona.
+            otra = {'yaw_agitation_rad': 'attitude_agitation_rad',
+                    'attitude_agitation_rad': 'yaw_agitation_rad'}.get(pred)
+            if otra:
+                out['pa_{}__{}'.format(pred, resp)], _ = partial_correlation(
+                    colof(pred), colof(resp), colof(otra))
             # El bootstrap es lo caro; el barrido de ventanas lo apaga.
             if con_ci:
                 lo, hi = bootstrap_ci(colof(pred), colof(resp))

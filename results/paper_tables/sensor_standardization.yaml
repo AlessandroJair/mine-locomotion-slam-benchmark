@@ -37,9 +37,9 @@ standard_pose:
     rule: at_centre_of_mass
     lever_arm_from_com_m: 0.0
     height_above_contact_m:
-      Husky (differential): 0.309
+      Differential: 0.309
       Tracked: 0.157
-      Rocker-bogie: 0.2681
+      "Rocker\u2013bogie": 0.2681
     roll_deg: 0.0
     pitch_deg: 0.0
     yaw_deg: 0.0
@@ -48,19 +48,19 @@ note_on_x: 'forward_offset_m is measured from the centre of the ground contact p
   a different place in each chassis and the Rocker-Bogie model has forward = -x, so
   raw x values are not comparable between the three files.'
 contact_plane_offset_m:
-  Husky (differential): -0.113
+  Differential: -0.113
   Tracked: 0.202
-  Rocker-bogie: -0.148
+  "Rocker\u2013bogie": -0.148
 contact_polygon_centre_x_m:
-  Husky (differential): 0.0
+  Differential: 0.0
   Tracked: -0.0
-  Rocker-bogie: 0.0
+  "Rocker\u2013bogie": 0.0
 forward_axis_x:
-  Husky (differential): 1
+  Differential: 1
   Tracked: 1
-  Rocker-bogie: 1
+  "Rocker\u2013bogie": 1
 applied_poses:
-  Husky (differential):
+  Differential:
     lidar:
       height_above_contact_m: 0.6699
       forward_offset_m: 0.0
@@ -76,7 +76,7 @@ applied_poses:
     imu:
       height_above_contact_m: 0.157
       forward_offset_m: 0.0157
-  Rocker-bogie:
+  "Rocker\u2013bogie":
     lidar:
       height_above_contact_m: 0.67
       forward_offset_m: -0.0
@@ -87,7 +87,7 @@ applied_poses:
       height_above_contact_m: 0.2681
       forward_offset_m: -0.0044
 current_base_link_coordinates:
-  Husky (differential):
+  Differential:
     lidar:
       x_m: 0.0
       y_m: 0.0
@@ -111,7 +111,7 @@ current_base_link_coordinates:
       y_m: 0.0
       z_m: 0.009
       height_above_contact_m: 0.157
-  Rocker-bogie:
+  "Rocker\u2013bogie":
     lidar:
       x_m: 0.0
       y_m: 0.0

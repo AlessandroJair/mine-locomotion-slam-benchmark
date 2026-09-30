@@ -1,4 +1,4 @@
-property,unit,Husky (differential),Tracked,Rocker-bogie
+property,unit,Differential,Tracked,Rocker–bogie
 Total mass,kg,44.99997889999999,44.99999890000001,44.999992294398
   of which URDF/SDF links,kg,44.99997889999999,44.99999890000001,44.999992294398
   of which embedded SDF bodies,kg,0,0,0

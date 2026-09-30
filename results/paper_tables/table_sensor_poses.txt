@@ -3,7 +3,7 @@ SENSOR MOUNTING POSES, relative to base_link
 ====================================================================================================
 
 LIDAR  (LiDAR)
-Property [unit]                     Husky (differential)               Tracked          Rocker-bogie
+Property [unit]                             Differential               Tracked          Rocker–bogie
 ----------------------------------------------------------------------------------------------------
 Mount link [-]                        velodyne_base_link    velodyne_base_link    velodyne_base_link
 x (base_link) [m]                                 0.0000                0.0000                0.0000
@@ -20,7 +20,7 @@ yaw [deg]                                         0.0000                0.0000  
 Update rate [Hz]                                      10                    10                    10
 
 CAMERA  (camera)
-Property [unit]                     Husky (differential)               Tracked          Rocker-bogie
+Property [unit]                             Differential               Tracked          Rocker–bogie
 ----------------------------------------------------------------------------------------------------
 Mount link [-]                                    absent                absent           camera_link
 x (base_link) [m]                                 absent                absent                0.3543
@@ -37,7 +37,7 @@ yaw [deg]                                         absent                absent  
 Update rate [Hz]                                  absent                absent                    10
 
 IMU  (imu)
-Property [unit]                     Husky (differential)               Tracked          Rocker-bogie
+Property [unit]                             Differential               Tracked          Rocker–bogie
 ----------------------------------------------------------------------------------------------------
 Mount link [-]                                  imu_link              imu_link              imu_link
 x (base_link) [m]                                -0.0640                0.0157               -0.0044
@@ -57,7 +57,7 @@ LEVER ARM  (sensor height above the contact plane; a chassis
 rotation of dtheta displaces the sensor by height * dtheta)
 El IMU ya no se iguala por altura: va en el centro de masas,
 asi que sus tres alturas son distintas a proposito.
-Property [unit]                     Husky (differential)               Tracked          Rocker-bogie
+Property [unit]                             Differential               Tracked          Rocker–bogie
 ----------------------------------------------------------------------------------------------------
 lidar height [m]                                  0.6699                0.6700                0.6700
 camera height [m]                                 absent                absent                0.5307

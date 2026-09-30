@@ -50,7 +50,7 @@ import model_parser as mp                                  # noqa: E402
 # Where each platform's description and configuration live, relative to src/.
 ROBOTS = {
     'differential': {
-        'display': 'Husky (differential)',
+        'display': 'Differential',
         # EL FICHERO QUE GAZEBO SPAWNEA (-database differential), no la copia
         # de model/model.sdf, que se quedo con el LiDAR a 0.9000 m.  Misma
         # lista que check_sim_parity.SPAWN_SOURCE.
@@ -103,7 +103,7 @@ ROBOTS = {
         'forward_axis_x': +1,
     },
     'rocker_bogie': {
-        'display': 'Rocker-bogie',
+        'display': 'Rocker–bogie',
         'description': 'rocker_bogie/urdf/ensamblajeurdf.xacro',
         'wheel_pattern': r'^Rueda',
         'contact_offset_m': 0.148,

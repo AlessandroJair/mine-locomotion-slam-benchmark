@@ -111,8 +111,8 @@ def plot_profiles(robots, prof, out_dir):
                     linewidth=0.7, label=ag.DISPLAY_NAME.get(robot, robot))
         ax.set_ylabel(label)
     axes[0].legend(loc='upper left', fontsize=7, ncol=3)
-    axes[-1].set_xlabel('Distance from the step edge along the path (m); '
-                        'shaded: base over the 0.10 m slab')
+    axes[-1].set_xlabel('Distance from the slab footprint edge along the path (m); '
+                        'shaded: base over the footprint')
     fig.tight_layout()
     ag.save(fig, out_dir, 'dynamic_profiles_step')
 
@@ -203,7 +203,7 @@ def print_numbers(robots, prof, stats, sweeps):
         print('%-14s |a_z|max %6.2f  |a_x|max %6.2f  pitch [%6.2f, %6.2f]  '
               'roll [%6.2f, %6.2f]  |th_dot|max %7.1f  |ph_dot|max %7.1f  '
               'slab %.2f m  window %.1f s'
-              % (short(r), np.max(np.abs(p['az'])), np.max(np.abs(p['ax'])),
+              % (short(r), np.nanmax(np.abs(p['az'])), np.nanmax(np.abs(p['ax'])),
                  p['pitch'].min(), p['pitch'].max(), p['roll'].min(),
                  p['roll'].max(), np.max(np.abs(p['pitch_rate'])),
                  np.max(np.abs(p['roll_rate'])), p['slab_len'], p['duration_s']))
@@ -222,7 +222,9 @@ def print_numbers(robots, prof, stats, sweeps):
     pares = [('vibration_rms_m_s2', 'rpe_rot_mean_deg_m', 'vib->rot'),
              ('vibration_rms_m_s2', 'rpe_trans_mean_m_m', 'vib->trans'),
              ('attitude_agitation_rad', 'rpe_rot_mean_deg_m', 'agit->rot'),
-             ('attitude_agitation_rad', 'rpe_trans_mean_m_m', 'agit->trans')]
+             ('attitude_agitation_rad', 'rpe_trans_mean_m_m', 'agit->trans'),
+             ('yaw_agitation_rad', 'rpe_rot_mean_deg_m', 'yaw->rot'),
+             ('yaw_agitation_rad', 'rpe_trans_mean_m_m', 'yaw->trans')]
     for r in robots:
         for w in sorted(sweeps[r]):
             cs = sweeps[r][w]

@@ -1,7 +1,7 @@
 ====================================================================================================
 MECHANICAL SPECIFICATIONS (parsed from the model files)
 ====================================================================================================
-Property [unit]                     Husky (differential)               Tracked          Rocker-bogie
+Property [unit]                             Differential               Tracked          Rocker–bogie
 ----------------------------------------------------------------------------------------------------
 Total mass [kg]                                   45.000                45.000                45.000
   of which URDF/SDF links [kg]                    45.000                45.000                45.000
@@ -29,17 +29,17 @@ Source file                                    model.sdf             model.sdf  
 
 DRIVE CONTROLLER CONFIGURATION
 ----------------------------------------------------------------------------------------------------
-Husky (differential):
+Differential:
   controller: JointVelocityController x4 + twist_to_wheels.py (skid-steer)
     min_angular          0.0
     track_width          0.5709
-    wheel_radius         0.17775
+    wheel_radius         0.148
 Tracked:
   controller: JointVelocityController x2 + twist_to_tracks.py
     min_angular          0.0
     sprocket_radius      0.138
     track_separation     0.5709
-Rocker-bogie:
+Rocker–bogie:
   controller: JointVelocityController x6 + JointPositionController x4 + twist_to_wheels.py (Ackermann)
     front_track          0.4462
     max_steer_angle      1.1

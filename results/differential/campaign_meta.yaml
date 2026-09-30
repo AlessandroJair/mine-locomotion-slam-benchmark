@@ -1,0 +1,13 @@
+campaign_started: 2026-09-29T01:15:45-05:00
+control_mode: fixed_trajectory (ground-truth pursuit, SLAM observes only)
+git_commit: 51cbdb5
+robots: differential
+runs_per_robot: 5
+duration_cap_s: 4800
+seed_base: 0
+seed_rule: 'gazebo_seed = seed_base + run_id'
+follower_overrides: none
+lidar: swept (distorsion de barrido metida por formulas sobre la nube instantanea)
+laps: 2
+parity_check_passed: true
+paper_usable: true

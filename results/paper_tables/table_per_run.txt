@@ -2,39 +2,39 @@
 PER-RUN RESULTS (each repetition reported separately)
 ====================================================================================================
 
-Husky (differential)  (5 runs)
+Differential  (5 runs)
 ----------------------------------------------------------------------------------------------
 Metric [unit]                            run01       run02       run03       run04       run05
 ----------------------------------------------------------------------------------------------
-ATE translational RMSE [m]              2.9294      2.6042      3.0804      2.3917      3.3666
-ATE translational max [m]               5.5399      4.7641      5.5214      4.5358      6.6952
-ATE rotational RMSE [deg]                8.260       7.844       9.643       9.939      11.322
-ATE rotational max [deg]                20.239      26.097      18.338      20.753      23.397
-ATE trans. RMSE (aligned) [m]           0.8687      1.1830      1.0953      1.7805      1.1677
-ATE optimised graph RMSE [m]            0.1382      0.1346      0.1520      0.1448      0.1371
-ATE optimised graph mean [m]            0.1288      0.1271      0.1426      0.1344      0.1250
-ATE optimised graph max [m]             0.3835      0.3081      0.3271      0.4215      0.5052
-Optimised graph poses [count]              742         750         744         764         760
-RPE translational RMSE [m/m]            0.0778      0.0780      0.0759      0.0854      0.0807
-RPE rotational RMSE [deg/m]             2.3774      2.4311      2.2994      2.5388      2.3916
-Final drift [m]                         1.3238      1.8610      1.9964      1.4100      3.0989
-Drift / distance [%]                     0.489       0.685       0.737       0.517       1.136
-Distance travelled (GT) [m]             270.73      271.76      271.03      272.60      272.82
-Run duration [s]                         757.7       768.1       767.2       793.5       776.0
+ATE translational RMSE [m]              4.2866      4.0589      4.3966      4.7446      5.1062
+ATE translational max [m]               8.7273      7.9657      8.8397     10.3261     10.3365
+ATE rotational RMSE [deg]               14.240      11.867      11.542      16.407      12.163
+ATE rotational max [deg]                27.598      24.575      25.872      35.875      28.544
+ATE trans. RMSE (aligned) [m]           1.3624      0.9780      1.3414      1.3979      1.4799
+ATE optimised graph RMSE [m]            0.1921      0.1853      0.1797      0.1675      0.1761
+ATE optimised graph mean [m]            0.1830      0.1779      0.1711      0.1597      0.1689
+ATE optimised graph max [m]             0.4488      0.3381      0.3459      0.3017      0.3305
+Optimised graph poses [count]              633         604         624         626         624
+RPE translational RMSE [m/m]            0.0790      0.0693      0.0723      0.0732      0.0729
+RPE rotational RMSE [deg/m]             2.4703      2.0247      2.0952      2.2541      2.0880
+Final drift [m]                         3.1978      1.6199      1.3289      2.2505      2.4311
+Drift / distance [%]                     1.171       0.605       0.492       0.831       0.896
+Distance travelled (GT) [m]             273.16      267.81      270.22      270.75      271.21
+Run duration [s]                         646.4       616.0       642.3       639.5       633.0
 Tracking losses [count]                      0           0           0           0           0
 Relocalizations [count]                      0           0           0           0           0
 Loop closures reported [count]               0           0           0           0           0
 Loop closures true pos. [count]              0           0           0           0           0
 Loop closures false pos. [count]             0           0           0           0           0
-Proximity detections [count]               666         670         666         689         675
-Proximity true pos. [count]                631         625         615         628         609
+Proximity detections [count]               521         494         517         518         512
+Proximity true pos. [count]                459         463         477         475         468
 Proximity false pos. [count]                 0           0           0           0           0
-Pitch std [deg]                          8.947       8.805       8.827       8.913       8.831
-Roll std [deg]                           6.043       6.153       6.011       5.971       5.827
-Pitch max abs [deg]                     34.088      33.942      34.120      32.771      32.985
-Vibration RMS [m/s^2]                   2.2117      1.9448      2.3028      1.9588      1.8678
-GT yaw offset removed [deg]                0.6         0.9         0.7         0.6         0.8
-Peak |a_z - g| [m/s^2]                 57.7075     47.6039     63.5676     50.7294     54.6514
+Pitch std [deg]                          8.957       8.863       8.899       8.941       8.935
+Roll std [deg]                           6.127       6.226       6.021       6.023       5.929
+Pitch max abs [deg]                     34.273      33.072      33.939      32.881      34.026
+Vibration RMS [m/s^2]                   1.5976      1.5704      1.8698      1.7362      1.5602
+GT yaw offset removed [deg]                1.1         0.6         0.4         0.6         0.6
+Peak |a_z - g| [m/s^2]                172.8890    184.7154    198.7092    154.0777    188.1615
 ----------------------------------------------------------------------------------------------
 
 Tracked  (5 runs)
@@ -67,12 +67,12 @@ Proximity false pos. [count]                 0           0           0          
 Pitch std [deg]                          9.041       9.036       9.049       9.022       9.046
 Roll std [deg]                           6.138       6.145       6.142       6.141       6.137
 Pitch max abs [deg]                     34.661      34.943      36.517      36.152      35.721
-Vibration RMS [m/s^2]                   4.3201      4.3808      4.4596      4.3256      4.3230
+Vibration RMS [m/s^2]                   4.5272      4.5419      4.4868      4.4641      4.4524
 GT yaw offset removed [deg]                0.1         0.1         0.0         0.1         0.1
-Peak |a_z - g| [m/s^2]                 94.8838     63.0381     82.6336     79.0104     71.1197
+Peak |a_z - g| [m/s^2]                317.5963    366.3648    156.9476    123.5277    302.9117
 ----------------------------------------------------------------------------------------------
 
-Rocker-bogie  (5 runs)
+Rocker–bogie  (5 runs)
 ----------------------------------------------------------------------------------------------
 Metric [unit]                            run01       run02       run03       run04       run05
 ----------------------------------------------------------------------------------------------
@@ -102,7 +102,7 @@ Proximity false pos. [count]                 0           0           0          
 Pitch std [deg]                          8.528       8.546       8.542       8.547       8.554
 Roll std [deg]                           6.105       6.087       6.096       6.086       6.090
 Pitch max abs [deg]                     30.091      30.064      30.084      30.232      30.204
-Vibration RMS [m/s^2]                   0.7925      0.7694      0.7727      0.7678      0.7329
+Vibration RMS [m/s^2]                   0.8619      0.8515      0.8548      0.8672      0.8540
 GT yaw offset removed [deg]                0.2         0.1         0.2         0.2         0.2
-Peak |a_z - g| [m/s^2]                 30.2467     19.8598     12.1213      7.4412      7.7863
+Peak |a_z - g| [m/s^2]                 24.4327     22.3888     25.3869     30.2046     22.5781
 ----------------------------------------------------------------------------------------------

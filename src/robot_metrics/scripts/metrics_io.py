@@ -199,8 +199,54 @@ def load_gt_highrate(metrics_path):
     df = df.rename(columns=renamed)
     if 'gt_ax' not in df.columns:
         return None            # corrida vieja: pose si, aceleracion no
+    _accel_from_twist(df)
     df.attrs['source'] = p
     return df
+
+
+def _accel_from_twist(df):
+    """Rehace gt_ax/gt_ay/gt_az derivando la velocidad de ESTE fichero.
+
+    POR QUE.  El logger deriva el twist mensaje a mensaje (0.5 ms) y guarda
+    el valor del mensaje que toca: 1 de cada 2 aqui, 1 de cada 40 en
+    metrics.csv.  Un impacto de contacto rigido cambia la velocidad en UN paso
+    de fisica, asi que solo aparece si ese paso cae en una fila guardada.
+    Medido: la corrida 4 del husky r0.148 registro -745 m/s^2 en metrics.csv
+    al bajar la rampa y 9 m/s^2 aqui; las otras cuatro, el mismo impacto al
+    reves.  La velocidad, en cambio, integra todo lo que pasa entre filas:
+    derivandola sobre el intervalo guardado (1 ms) ningun impacto se pierde y
+    la cifra deja de depender de la suerte del muestreo.
+
+    SE DIVIDE POR EL INTERVALO NOMINAL, NO POR EL MEDIDO.  La marca de tiempo
+    es el reloj simulado AL RECIBIR, que avanza a saltos: el dt medido baila
+    entre 0 y 2 ms aunque cada fila este exactamente `decimation` pasos de
+    fisica despues de la anterior (run_meta: messages_seen == expected).
+    Dividir por el medido descartaba el 26 % de los intervalos del rocker y el
+    3 % de los otros dos; y un umbral de 3x el nominal todavia tiraba el 2.5 %
+    del rocker, que procesa el callback a rafagas sin perder mensajes.  Solo
+    una pausa de verdad (mas de 50 ms) da NaN.  Los pocos mensajes que el
+    logger si pierde (run_meta: expected - seen, decenas en 1.3 M) no se
+    pueden localizar y quedan como un intervalo de 2 ms dividido por 1.
+    """
+    import numpy as np
+
+    t = df['timestamp'].values
+    v = df[['gt_vx', 'gt_vy', 'gt_vz']].values
+    dt = np.diff(t)
+    nominal = np.median(dt)          # 1 ms: decimation / physics_hz
+    aw = np.full_like(v, np.nan)
+    ok = dt < 0.05
+    aw[1:][ok] = np.diff(v, axis=0)[ok] / nominal
+    # mundo -> cuerpo: a_b = R^T a_w, con R del cuaternion de la fila
+    x, y, z, w = (df['gt_qx'].values, df['gt_qy'].values,
+                  df['gt_qz'].values, df['gt_qw'].values)
+    R = np.stack([
+        np.stack([1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w)], -1),
+        np.stack([2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w)], -1),
+        np.stack([2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)], -1),
+    ], -2)
+    ab = np.einsum('nji,nj->ni', R, aw)
+    df['gt_ax'], df['gt_ay'], df['gt_az'] = ab[:, 0], ab[:, 1], ab[:, 2]
 
 
 _VIB_AVISADO = set()
@@ -279,10 +325,18 @@ def vibration_rms(df, etiqueta=''):
 def ventanas_alta_frecuencia(hr, t0, window_s):
     """Agitacion y vibracion por ventana, desde gt_highrate.
 
-    Devuelve {inicio_de_ventana: (agitacion_rad, vibracion_m_s2)} con la
-    agitacion como hypot(std(cabeceo), std(balanceo)) dentro de la ventana y
-    la vibracion como RMS del modulo de gt_a*, la misma definicion que
-    vibration_rms() aplicada a la ventana.
+    Devuelve {inicio_de_ventana: (agitacion_rad, vibracion_m_s2, n,
+    agitacion_guinada_rad)} con la agitacion como hypot(std(cabeceo),
+    std(balanceo)) dentro de la ventana, la vibracion como RMS del modulo de
+    gt_a*, la misma definicion que vibration_rms() aplicada a la ventana, y la
+    agitacion de guinada como std(guinada desenrollada).
+
+    La guinada va aparte y no dentro de la hypot a proposito: la agitacion de
+    actitud es la que fija el suelo, la de guinada es la que mete la
+    locomocion al girar -el skid-steer derrapa-, y juntarlas borraria
+    justamente la pregunta de cual de las dos pesa en el RPE rotacional.
+    Incluye el giro mandado por la ruta, igual que la de actitud incluye la
+    pendiente: std, no residuo de una recta, para que las dos se lean igual.
 
     Las ventanas se indexan por su instante de inicio RELATIVO a t0, que es
     el que usa el llamante sobre metrics.csv, para que las dos series se
@@ -297,6 +351,7 @@ def ventanas_alta_frecuencia(hr, t0, window_s):
     t = hr['timestamp'].values - t0
     p = hr['gt_pitch'].values
     r = hr['gt_roll'].values
+    y = np.unwrap(hr['gt_yaw'].values)
     a = vibration_magnitude(hr, 'gt_highrate.csv')
     if len(t) == 0:
         return {}
@@ -310,8 +365,9 @@ def ventanas_alta_frecuencia(hr, t0, window_s):
             continue
         out[round(float(bordes[k]), 6)] = (
             float(np.hypot(np.std(p[m]), np.std(r[m]))),
-            float(np.sqrt(np.mean(a[m] ** 2))),
-            n)
+            float(np.sqrt(np.nanmean(a[m] ** 2))),
+            n,
+            float(np.std(y[m])))
     return out
 
 

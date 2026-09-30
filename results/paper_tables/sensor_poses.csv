@@ -1,4 +1,4 @@
-sensor,property,unit,Husky (differential),Tracked,Rocker-bogie
+sensor,property,unit,Differential,Tracked,Rocker–bogie
 lidar,Mount link,-,velodyne_base_link,velodyne_base_link,velodyne_base_link
 lidar,x (base_link),m,0.0,0.0,0.0
 lidar,y (base_link),m,0.0,0.0,2.7755575615628914e-17

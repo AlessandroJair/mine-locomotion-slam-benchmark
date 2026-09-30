@@ -200,12 +200,14 @@
         <!--
           cmd_vel -> four wheel velocities.  Subscribes to cmd_vel in this
           namespace, i.e. /husky/cmd_vel, which is where move_base.launch
-          remaps it.  track_width and wheel_radius are the Husky's own
-          kinematic figures (wheelSeparation 0.5709, wheelDiameter 0.3555).
+          remaps it.  track_width is the Husky's own wheelSeparation (0.5709);
+          wheel_radius is the 0.148 m collision cylinder the wheels roll on, not
+          the old plugin's wheelDiameter 0.3555: with 0.17775 the platform
+          delivered 82.5% of every commanded speed.
         -->
         <node name="twist_to_wheels" pkg="differential" type="twist_to_wheels.py" output="screen">
             <param name="track_width"  value="0.5709" />
-            <param name="wheel_radius" value="0.17775" />
+            <param name="wheel_radius" value="0.148" />
             <!-- 0.0 for all three platforms; see command.min_angular_rad_s in
                  sim_config.yaml.  The tracked platform used to force 0.25. -->
             <param name="min_angular"  value="0.0" />

@@ -23,6 +23,8 @@ OUTPUT (into --output_dir):
     stability_vs_error.eps     windowed attitude agitation vs SLAM error
     rpe_vs_agitation.eps       windowed rotational and translational RPE
                                against vibration and attitude agitation
+    rpe_vs_yaw_agitation.eps   the same RPE against attitude and yaw
+                               agitation side by side, with r|other
     rpe_corr_vs_window.eps     how those correlations move with the window
                                length, raw and partialled on velocity
 
@@ -66,10 +68,10 @@ matplotlib.rcParams.update({
 })
 
 DISPLAY_NAME = {
-    'differential': 'Husky (differential)',
-    'husky': 'Husky (differential)',
+    'differential': 'Differential',
+    'husky': 'Differential',
     'tracked': 'Tracked',
-    'rocker_bogie': 'Rocker-bogie',
+    'rocker_bogie': 'Rocker–bogie',
 }
 ROBOT_ORDER = ['differential', 'husky', 'tracked', 'rocker_bogie']
 
@@ -307,6 +309,16 @@ def evaluate_run(run_dir, rpe_delta_m):
     # stability_error_correlation cae al camino anterior.
     hr = load_gt_highrate(os.path.join(run_dir, 'metrics.csv'))
     res['hr'] = hr
+    # Vibracion y picos de la corrida desde el mismo 1 kHz, con la aceleracion
+    # rehecha de la velocidad (metrics_io._accel_from_twist): la de
+    # metrics.csv es un valor mensaje a mensaje tomado 1 de cada 40 veces y
+    # un impacto solo cuenta si cae en esa fila.  Mismo tramo que el resto.
+    if hr is not None:
+        t = df['timestamp'].values
+        tr = hr[(hr['timestamp'] >= t[0]) & (hr['timestamp'] <= t[-1])]
+        res['vibration_rms'] = vibration_rms(tr, 'gt_highrate.csv')
+        res['accel_z_max'] = float(np.nanmax(np.abs(tr['gt_az'].values)))
+        res['accel_x_rms'] = float(np.sqrt(np.nanmean(tr['gt_ax'].values ** 2)))
     res['corr'] = sm.stability_error_correlation(
         df, res['ate_trans_series'], hr=hr,
         ate_rot=res.get('ate_rot_series'),
@@ -466,6 +478,7 @@ def correlation_table(robots, results, out_path):
     PREDICTORS = (('pitch_std_rad', 'pitch_std'),
                   ('roll_std_rad', 'roll_std'),
                   ('attitude_agitation_rad', 'agitation'),
+                  ('yaw_agitation_rad', 'yaw_agit'),
                   ('vibration_rms_m_s2', 'vibration_rms'))
     # rpe_rot va el ultimo pero es el que responde a la pregunta local:
     # el ATE es acumulado, asi que su correlacion con lo que agita el
@@ -607,7 +620,36 @@ def _nubes_rpe(results, robot, clave_x, clave_y, a_grados):
     return np.array(xs), np.array(ys)
 
 
-def plot_rpe_vs_agitation(robots, results, out_dir):
+COLS_VIB_AGIT = [
+    ('vibration_rms_m_s2', False,
+     'Vibration RMS per %s window,\n' r'$|a_{\rm gt}|$ (m/s$^2$)'),
+    ('attitude_agitation_rad', True,
+     'Attitude agitation per %s window,\n'
+     r'$\sqrt{\sigma_\theta^2+\sigma_\phi^2}$ (deg)'),
+]
+
+# Critica de revision: alpha_k deja fuera la guinada y el RPE rotacional la
+# incluye, justo la componente que distingue al skid-steer.  Esta pareja pone
+# las dos agitaciones lado a lado sobre las mismas ventanas; la leyenda da
+# ademas r|other, la parcial con la otra agitacion descontada, que es la que
+# dice si la guinada DOMINA y no solo si acompana.
+COLS_ACTITUD_GUINADA = [
+    COLS_VIB_AGIT[1],
+    ('yaw_agitation_rad', True,
+     'Yaw agitation per %s window,\n' r'$\sigma_\psi$ (deg)'),
+]
+
+
+def _parcial_media(results, robot, clave_x, clave_y):
+    """Media por corrida de r(x, y | la otra agitacion); NaN si no existe."""
+    v = [r['corr'].get('pa_%s__%s' % (clave_x, clave_y), float('nan'))
+         for r in results[robot] if r.get('corr')]
+    v = [x for x in v if np.isfinite(x)]
+    return float(np.mean(v)) if v else float('nan')
+
+
+def plot_rpe_vs_agitation(robots, results, out_dir, cols=COLS_VIB_AGIT,
+                          nombre='rpe_vs_agitation'):
     """RPE por ventana contra lo que zarandea al chasis.  Rejilla 2x2.
 
     Filas: la componente del RPE -rotacional arriba, traslacional abajo-.
@@ -634,13 +676,6 @@ def plot_rpe_vs_agitation(robots, results, out_dir):
         ('rpe_rot_mean_deg_m', 'Rotational RPE per %.0f m (deg)'),
         ('rpe_trans_mean_m_m', 'Translational RPE per %.0f m (m)'),
     ]
-    cols = [
-        ('vibration_rms_m_s2', False,
-         'Vibration RMS per %s window,\n' r'$|a_{\rm gt}|$ (m/s$^2$)'),
-        ('attitude_agitation_rad', True,
-         'Attitude agitation per %s window,\n'
-         r'$\sqrt{\sigma_\theta^2+\sigma_\phi^2}$ (deg)'),
-    ]
     fig, axes = plt.subplots(2, 2, figsize=(COLUMN_WIDTH_IN, 5.6),
                              sharex='col', sharey='row')
     hay = False
@@ -657,10 +692,15 @@ def plot_rpe_vs_agitation(robots, results, out_dir):
                 # nubes salian opacas en el .eps, tapandose entre plataformas.
                 # Rasterizadas, Agg mezcla la transparencia y el resto del
                 # panel sigue siendo vectorial.
+                etiqueta = '%s  (r = %+.2f' % (DISPLAY_NAME.get(robot, robot),
+                                               rho)
+                # r|other solo existe entre las dos agitaciones.
+                pa = _parcial_media(results, robot, clave_x, clave_y)
+                if np.isfinite(pa):
+                    etiqueta += ', r|other = %+.2f' % pa
                 ax.scatter(xs, ys, s=7, alpha=0.30, color=COLORS[i % 3],
                            marker=MARKERS[i % 3], linewidths=0, rasterized=True,
-                           label='%s  (r = %+.2f)'
-                                 % (DISPLAY_NAME.get(robot, robot), rho))
+                           label=etiqueta + ')')
                 k, b = np.polyfit(xs, ys, 1)
                 xf = np.linspace(xs.min(), xs.max(), 50)
                 ax.plot(xf, k * xf + b, color=COLORS[i % 3], linewidth=1.2)
@@ -675,7 +715,7 @@ def plot_rpe_vs_agitation(robots, results, out_dir):
         plt.close(fig)
         return
     fig.tight_layout()
-    save(fig, out_dir, 'rpe_vs_agitation')
+    save(fig, out_dir, nombre)
 
 
 VENTANAS_BARRIDO = (0.05, 0.1, 0.2, 0.5, 1.0)
@@ -905,6 +945,9 @@ def main():
     plot_ate_vs(robots, results, args.output_dir, 'distance')
     plot_stability_vs_error(robots, results, args.output_dir)
     plot_rpe_vs_agitation(robots, results, args.output_dir)
+    plot_rpe_vs_agitation(robots, results, args.output_dir,
+                          cols=COLS_ACTITUD_GUINADA,
+                          nombre='rpe_vs_yaw_agitation')
     plot_rpe_corr_vs_window(robots, results, args.output_dir)
     plot_run_spread(robots, results, args.output_dir)
 

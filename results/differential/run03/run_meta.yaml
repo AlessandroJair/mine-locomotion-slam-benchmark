@@ -1,9 +1,9 @@
 robot: differential
 run_id: 3
 gazebo_model: differential
-samples: 38615
-duration_s: 772.258
-gt_distance_m: 269.734
+samples: 32370
+duration_s: 647.342
+gt_distance_m: 269.281
 log_rate_hz: 50.0
 ground_truth:
   topic: /gazebo/model_states
@@ -18,27 +18,27 @@ gt_highrate:
   file: gt_highrate.csv
   requested_hz: 800.0
   nominal_hz: 1000.0
-  measured_hz: 999.9929
+  measured_hz: 1000.0023
   physics_hz: 2000.0
   decimation: 2
-  samples: 773399
-  messages_seen: 1546799
-  messages_expected: 1546807
+  samples: 647989
+  messages_seen: 1295979
+  messages_expected: 1295973
   rows_dropped_queue_full: 0
-  span_s: 773.4035
+  span_s: 647.9865
   note: 'decimated by RECEIVED message count, so an interval is `decimation` physics
     steps only while nothing is lost. Compare messages_seen against messages_expected:
     a shortfall means ModelStates was dropped before the callback, and measured_hz
     falls below nominal_hz.'
 slam:
   loop_closures: 0
-  proximity_detections: 666
+  proximity_detections: 517
   tracking_losses: 0
   relocalizations: 0
 wheel_links: []
 suspension_joints: []
 suspension_topic: null
-suspension_messages: 38670
+suspension_messages: 32399
 effort_joints:
 - front_left_joint
 - front_right_joint
@@ -50,4 +50,4 @@ velocity_joints:
 - back_left_joint
 - back_right_joint
 ros_time_is_sim_time: true
-git_commit: 4cacede
+git_commit: 51cbdb5

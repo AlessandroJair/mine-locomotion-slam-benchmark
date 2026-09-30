@@ -84,8 +84,8 @@ from aggregate_runs import trim_warmup                   # noqa: E402
 COLORS = {'rocker_bogie': '#2ca02c',
           'differential': '#1f77b4',
           'tracked': '#d62728'}
-LABEL = {'rocker_bogie': 'Rocker-Bogie',
-         'differential': 'Husky (differential)',
+LABEL = {'rocker_bogie': 'Rocker–bogie',
+         'differential': 'Differential',
          'tracked': 'Tracked'}
 ORDER = ['rocker_bogie', 'differential', 'tracked']
 MARKERS = {'run01': 'o', 'run02': '^'}

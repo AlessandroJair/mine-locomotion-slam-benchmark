@@ -802,9 +802,9 @@ def main():
 
     # Canonical display names keyed by filename patterns
     CANONICAL_ORDER = [
-        (['differential', 'husky'], 'Husky (differential)'),
+        (['differential', 'husky'], 'Differential'),
         (['tracked'],               'Tracked'),
-        (['rocker', 'rocker_bogie'],'Rocker-bogie'),
+        (['rocker', 'rocker_bogie'],'Rocker–bogie'),
     ]
 
     if args.names:

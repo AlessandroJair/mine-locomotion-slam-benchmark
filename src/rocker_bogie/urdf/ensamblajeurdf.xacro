@@ -750,7 +750,7 @@
 
   DAMPING TRADES GROUND CONTACT FOR RIDE SMOOTHNESS on this platform, and the
   two points measured over the full mine route
-  (robot_metrics/ROCKER_RUEDAS_AL_AIRE.md section 2) are the ENDS of the range,
+  (full-route campaigns, tabulated below) are the ENDS of the range,
   not this value:
 
                            damping 0.5     damping 80
