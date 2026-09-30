@@ -413,7 +413,12 @@ def sweep_increments(df, hr, col, tau):
     tr, ro = relative_error(Te[:-1], Te[1:], Tg[:-1], Tg[1:])
     dt = np.diff(t)
     ate_t, ate_r = ate(align_origin(Te, Tg), Tg)
+    # Tiempo de proceso de RTAB-Map de la estimacion k+1 (OdomInfo), para
+    # validar tau y medir su jitter barrido a barrido.
+    proc = (df['slam_processing_time'].values[idx[1:]]
+            if 'slam_processing_time' in df.columns else np.full(len(idx) - 1, np.nan))
     return {'t0': t[:-1], 't1': t[1:], 'trans': tr, 'rot': np.degrees(ro),
+            'proc': np.where(proc > 0, proc, np.nan),
             'speed': np.linalg.norm(np.diff(Tg[:, :3, 3], axis=0), axis=1)
             / np.where(dt > 0, dt, np.nan),
             'ate': ate_t[1:], 'ate_prev': ate_t[:-1],
@@ -813,6 +818,8 @@ def sweep_error_correlation(sw, hr, group=1, con_ci=True, cmd=None):
             'ate_growth_m': float(sw['ate'][g[-1]] - sw['ate_prev'][g[0]]),
             'ate_rot_mean_deg': float(sw['ate_rot'][g].mean()),
             'speed_mean_m_s': float(np.nanmean(sw['speed'][g])),
+            'proc_time_s': (float(np.nanmean(sw['proc'][g]))
+                            if np.isfinite(sw['proc'][g]).any() else float('nan')),
         })
     if len(rows) < 5:
         return None

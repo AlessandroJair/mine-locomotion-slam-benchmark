@@ -130,7 +130,29 @@ def review_checks(res):
     else:
         contact = None
 
+    # Latencia: tau estimado frente al tiempo de proceso de RTAB-Map, tasa de
+    # nubes procesadas y si el jitter del proceso explica la correlacion con
+    # la agitacion (critica de revision).
+    sw = res['sweeps']
+    proc = sw['proc'][np.isfinite(sw['proc'])]
+    span = sw['t1'][-1] - sw['t0'][0]
+    col = lambda k: np.array([w[k] for w in W], dtype=float)
+    agit, prc = col('attitude_agitation_rad'), col('proc_time_s')
+    latency = {
+        'tau': res['latency_s'],
+        'proc_median': float(np.median(proc)) if proc.size else float('nan'),
+        'proc_p90': float(np.percentile(proc, 90)) if proc.size else float('nan'),
+        'proc_std': float(np.std(proc)) if proc.size else float('nan'),
+        'est_rate_hz': (len(sw['t0']) + 1) / span,
+        'r_proc_agit': sm.pearson(prc, agit)[0],
+        'r_rot': sm.pearson(agit, col('sweep_rot_deg'))[0],
+        'r_rot_proc': sm.partial_correlation(agit, col('sweep_rot_deg'), prc)[0],
+        'r_trans': sm.pearson(agit, col('sweep_trans_m'))[0],
+        'r_trans_proc': sm.partial_correlation(agit, col('sweep_trans_m'), prc)[0],
+    }
+
     return {
+        'latency': latency,
         'vib': res.get('vibration_rms', float('nan')), 'vib_lp': vib_lp,
         'contact': contact, 'corr': res['corr'],
         'rpe_t_row': old['rpe_trans_rmse'], 'rpe_r_row': old['rpe_rot_rmse'],
@@ -167,16 +189,32 @@ def print_review(robots, chk):
     print('\n=== LATENCY-CORRECTED RPE (GT delayed by tau per run; '
           'sensitivity only) ===')
     for r in robots:
-        print('%-14s RPE trans %.4f m/m (%+.1f%% vs table)   rot %.3f deg/m '
-              '(%+.1f%%)' % (short(r), mean(r, 'rpe_t_tau'),
-                             pct(mean(r, 'rpe_t'), mean(r, 'rpe_t_tau')),
-                             np.degrees(mean(r, 'rpe_r_tau')),
-                             pct(mean(r, 'rpe_r'), mean(r, 'rpe_r_tau'))))
+        sd = lambda k: np.std([c[k] for c in chk[r]], ddof=1)
+        print('%-14s RPE trans %.4f +- %.4f m/m (%+.1f%% vs table)   rot %.3f +- '
+              '%.3f deg/m (%+.1f%%)'
+              % (short(r), mean(r, 'rpe_t_tau'), sd('rpe_t_tau'),
+                 pct(mean(r, 'rpe_t'), mean(r, 'rpe_t_tau')),
+                 np.degrees(mean(r, 'rpe_r_tau')), np.degrees(sd('rpe_r_tau')),
+                 pct(mean(r, 'rpe_r'), mean(r, 'rpe_r_tau'))))
     for k, name in (('rpe_t', 'trans'), ('rpe_r', 'rot')):
         for suf, cual in (('', 'table'), ('_tau', 'tau')):
             orden = sorted(robots, key=lambda r: mean(r, k + suf))
             print('  ranking %-5s %-5s : %s' % (name, cual,
                                                 ' < '.join(short(r) for r in orden)))
+
+    print('\n=== LATENCY vs RTAB-Map PROCESSING TIME (per run -> mean over runs) ===')
+    print('tau: GT delay minimising RPE; proc: OdomInfo processing time per '
+          'estimate; rate: odometry estimates per second (LiDAR gives 10 Hz)')
+    for r in robots:
+        L = [c['latency'] for c in chk[r]]
+        g = lambda k: np.mean([x[k] for x in L])
+        print('%-14s tau %.0f ms   proc median %.0f ms (p90 %.0f, std %.0f)   '
+              'rate %.2f Hz (%.0f%% of sweeps)   r(proc, agit) %.3f   '
+              'r(agit, rot) %.3f -> |proc %.3f   r(agit, trans) %.3f -> |proc %.3f'
+              % (short(r), 1e3 * g('tau'), 1e3 * g('proc_median'),
+                 1e3 * g('proc_p90'), 1e3 * g('proc_std'), g('est_rate_hz'),
+                 10 * g('est_rate_hz'), g('r_proc_agit'), g('r_rot'),
+                 g('r_rot_proc'), g('r_trans'), g('r_trans_proc')))
 
     print('\n=== ESTIMATE HEADING OFFSET and start-aligned ATE by correction ===')
     for r in robots:

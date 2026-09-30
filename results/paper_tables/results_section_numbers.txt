@@ -69,13 +69,19 @@ Tracked        RPE trans 0.0772 -> 0.0747 m/m (-3.3%)   rot 1.920 -> 1.600 deg/m
 Rocker–bogie   RPE trans 0.0660 -> 0.0626 m/m (-5.2%)   rot 1.992 -> 1.736 deg/m (-12.9%)   ATE max |change| over runs 0.57%
 
 === LATENCY-CORRECTED RPE (GT delayed by tau per run; sensitivity only) ===
-Differential   RPE trans 0.0677 m/m (-3.3% vs table)   rot 1.228 deg/m (-33.8%)
-Tracked        RPE trans 0.0741 m/m (-0.8% vs table)   rot 1.137 deg/m (-28.9%)
-Rocker–bogie   RPE trans 0.0602 m/m (-3.8% vs table)   rot 1.093 deg/m (-37.0%)
+Differential   RPE trans 0.0677 +- 0.0037 m/m (-3.3% vs table)   rot 1.228 +- 0.081 deg/m (-33.8%)
+Tracked        RPE trans 0.0741 +- 0.0009 m/m (-0.8% vs table)   rot 1.137 +- 0.035 deg/m (-28.9%)
+Rocker–bogie   RPE trans 0.0602 +- 0.0003 m/m (-3.8% vs table)   rot 1.093 +- 0.016 deg/m (-37.0%)
   ranking trans table : Rocker–bogie < Differential < Tracked
   ranking trans tau   : Rocker–bogie < Differential < Tracked
   ranking rot   table : Tracked < Rocker–bogie < Differential
   ranking rot   tau   : Rocker–bogie < Tracked < Differential
+
+=== LATENCY vs RTAB-Map PROCESSING TIME (per run -> mean over runs) ===
+tau: GT delay minimising RPE; proc: OdomInfo processing time per estimate; rate: odometry estimates per second (LiDAR gives 10 Hz)
+Differential   tau 108 ms   proc median 61 ms (p90 78, std 11)   rate 10.00 Hz (100% of sweeps)   r(proc, agit) -0.089   r(agit, rot) 0.550 -> |proc 0.549   r(agit, trans) 0.360 -> |proc 0.365
+Tracked        tau 66 ms   proc median 88 ms (p90 107, std 13)   rate 10.00 Hz (100% of sweeps)   r(proc, agit) 0.015   r(agit, rot) 0.674 -> |proc 0.673   r(agit, trans) 0.571 -> |proc 0.570
+Rocker–bogie   tau 146 ms   proc median 103 ms (p90 130, std 18)   rate 10.01 Hz (100% of sweeps)   r(proc, agit) -0.105   r(agit, rot) 0.577 -> |proc 0.572   r(agit, trans) 0.336 -> |proc 0.338
 
 === ESTIMATE HEADING OFFSET and start-aligned ATE by correction ===
 Differential   est offset 0.76..1.41 deg   |ATE gt-offset - own| max 0.055 m   |ATE uncorrected - own| max 0.247 m (5.7%)
